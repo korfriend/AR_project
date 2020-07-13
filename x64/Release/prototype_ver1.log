@@ -1,0 +1,143 @@
+﻿  prototype_ver1.cpp
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(33): warning C4005: 'NUMMARKERS': macro redefinition
+  c:\program files (x86)\windows kits\10\include\10.0.17763.0\um\wingdi.h(2006): note: see previous definition of 'NUMMARKERS'
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(42): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(191): warning C4305: 'argument': truncation from 'double' to 'const float'
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(311): warning C4305: 'argument': truncation from 'double' to 'const float'
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(315): warning C4305: 'argument': truncation from 'double' to 'const float'
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(336): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(337): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(338): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(340): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(341): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(342): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(344): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(345): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(346): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(348): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(349): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(350): warning C4244: '=': conversion from 'T' to 'T', possible loss of data
+          with
+          [
+              T=double
+          ]
+          and
+          [
+              T=float
+          ]
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(457): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(490): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+e:\project_srcs\kar\prototype_ver1\kar_helpers.hpp(503): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  Unknown compiler version - please run the configure tests and report the results
+e:\project_srcs\librealsense-2.35.0\include\librealsense2\h\rs_option.h : warning C4819: The file contains a character that cannot be represented in the current code page (949). Save the file in Unicode format to prevent data loss
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(276): warning C4305: 'argument': truncation from 'double' to 'const float'
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(956): warning C4267: 'argument': conversion from 'size_t' to 'const int', possible loss of data
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(999): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(1002): warning C4244: 'argument': conversion from '_Ty' to '_Tp', possible loss of data
+          with
+          [
+              _Ty=float
+          ]
+          and
+          [
+              _Tp=int
+          ]
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(1185): warning C4244: 'argument': conversion from 'float' to 'const int', possible loss of data
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(1186): warning C4244: 'argument': conversion from 'float' to 'const int', possible loss of data
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(1274): warning C4305: 'argument': truncation from 'double' to 'const float'
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(1274): warning C4267: 'argument': conversion from 'size_t' to 'const int', possible loss of data
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(1295): warning C4305: 'argument': truncation from 'double' to 'const float'
+e:\project_srcs\kar\prototype_ver1\prototype_ver1.cpp(1322): warning C4267: 'argument': conversion from 'size_t' to 'const int', possible loss of data
+     Creating library E:\project_srcs\kar\x64\Release\prototype_ver1.lib and object E:\project_srcs\kar\x64\Release\prototype_ver1.exp
+  Generating code
+  All 2849 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  prototype_ver1.vcxproj -> E:\project_srcs\kar\x64\Release\prototype_ver1.exe
