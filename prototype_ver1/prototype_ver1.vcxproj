@@ -106,7 +106,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>E:\project_srcs\VisMotive\EngineCores\CommonApi;E:\project_srcs\OptiTrack\Motive\Samples\markers\optitrk;E:\Projects\boost_1_65_1;E:\Projects\Libraries;$(OPENCV_4)\Include;E:\project_srcs\librealsense-2.35.0\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\Projects\boost_1_65_1;E:\Projects\Libraries;$(OPENCV_4)\Include;E:\project_srcs\librealsense-2.35.0\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,7 +145,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>E:\project_srcs\VisMotive\EngineCores\CommonApi;E:\project_srcs\OptiTrack\Motive\Samples\markers\optitrk;E:\libraries\Super4PCS\include;E:\Projects\boost_1_65_1;E:\Projects\Libraries;$(OPENCV_4)\Include;E:\project_srcs\librealsense-2.35.0\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\libraries\Super4PCS\include;E:\Projects\boost_1_65_1;E:\Projects\Libraries;$(OPENCV_4)\Include;E:\project_srcs\librealsense-2.35.0\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -160,6 +160,8 @@
     <ClCompile Include="prototype_ver1.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\optitrack.h" />
+    <ClInclude Include="..\VisMtvApi.h" />
     <ClInclude Include="kar_helpers.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
