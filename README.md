@@ -14,9 +14,9 @@ You can download the engine by using Git and cloning the repository, or download
 
 ### Dependencies:
 
-- Intel Realsense 2.35
+- Intel Realsense 2.35 (included in build dir)
+- Optitrack Motive SDK (included in build dir)
+- VisMotive Engine (included in build dir)
 - OpenCV 4.0 or higher
 - GL math
-- Optitrack Motive SDK
-- VisMotive Engine
 - Boost 1.65
