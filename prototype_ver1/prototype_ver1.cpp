@@ -31,7 +31,7 @@
 #ifdef USE_OPTITRACK
 #define USE_AR_MARKER
 #define NUMMARKERS 6
-#include "optitrack.h"
+#include "../optitrk/optitrack.h"
 #endif
 using namespace std;
 using namespace cv;
@@ -488,7 +488,7 @@ int main()
 
 	vzm::InitEngineLib();
 
-	vzm::LoadModelFile(model_path, mesh_obj_id);
+	//vzm::LoadModelFile(model_path, mesh_obj_id);
 	vzm::ValidatePickTarget(mesh_obj_id);
 
 	vzm::CameraParameters cam_params;

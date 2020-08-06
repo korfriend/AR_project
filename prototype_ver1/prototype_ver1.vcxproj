@@ -106,13 +106,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>E:\Projects\boost_1_65_1;E:\Projects\Libraries;$(OPENCV_4)\Include;E:\project_srcs\librealsense-2.35.0\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../include;../include/rs_include;$(OPENCV_4)\Include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;E:\Projects\boost_1_65_1\lib64-msvc-14.1;E:\project_srcs\VisMotive\bin\X64_Release;E:\project_srcs\OptiTrack\Motive\Samples\markers\x64\Release;E:\project_srcs\librealsense-2.35.0\build\$(Configuration)\;$(OPENCV_4)\x64\vc15\lib;E:\project_srcs\VisMotive\bin\X64_Debug;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>aruco_marker.lib;optitrk.lib;realsense2d.lib;CommonApi.lib;opencv_highgui420d.lib;opencv_core420d.lib;opencv_imgcodecs420d.lib;opencv_imgproc420d.lib;opencv_calib3d420d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../libs;$(OPENCV_4)\x64\vc15\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>realsense2d.lib;CommonApid.lib;opencv_highgui420d.lib;opencv_core420d.lib;opencv_imgcodecs420d.lib;opencv_imgproc420d.lib;opencv_calib3d420d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -145,7 +145,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>E:\libraries\Super4PCS\include;E:\Projects\boost_1_65_1;E:\Projects\Libraries;$(OPENCV_4)\Include;E:\project_srcs\librealsense-2.35.0\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../include;../include/rs_include;$(OPENCV_4)\Include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -160,9 +160,15 @@
     <ClCompile Include="prototype_ver1.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\optitrack.h" />
-    <ClInclude Include="..\VisMtvApi.h" />
     <ClInclude Include="kar_helpers.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\aruco_marker\aruco_marker.vcxproj">
+      <Project>{aed53348-f34f-47f1-b0cf-0e34e13190bf}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\optitrk\optitrk.vcxproj">
+      <Project>{578aae55-4591-48b9-ada3-13ce883f7c5a}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
