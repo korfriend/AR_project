@@ -530,6 +530,10 @@ int main()
 	int mesh_obj_ws_id = 0;
 	vzm::GenerateCopiedObject(mesh_obj_id, mesh_obj_ws_id);
 
+
+	// Soongsil Commit Test //
+
+
 	vzm::CameraParameters cam_params;
 	if (!optitrk::InitOptiTrackLib())
 	{
