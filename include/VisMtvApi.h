@@ -184,6 +184,7 @@ namespace vzm
 	__dojostatic bool GeneratePointCloudObject(const float* xyz_list, const float* nrl_list, const float* rgb_list, const int num_points, int& obj_id);
 	__dojostatic bool GenerateTextObject(const float* xyz_LT_view_up, const std::string& text, const float font_height, bool bold, bool italic, int& obj_id);
 	__dojostatic bool GenerateMappingTable(const int table_size, const int num_alpha_ctrs, const float* ctr_alpha_idx_list, const int num_rgb_ctrs, const float* ctr_rgb_idx_list, int& tmap_id);
+	__dojostatic bool GenerateCopiedObject(const int obj_src_id, int& obj_id);
 
 	__dojostatic bool ReplaceOrAddSceneObject(const int scene_id, const int obj_id, const ObjStates& obj_states);
 	__dojostatic bool GetSceneObjectState(const int scene_id, const int obj_id, ObjStates& obj_states);
@@ -208,12 +209,13 @@ namespace vzm
 
 	// only for the contributor's (by DongJoon Kim) test info.
 	__dojostatic void DebugTestSet(const std::string& _script, const void* _pvalue, const size_t size_bytes, const int scene_id, const int cam_id, const int obj_id = -1);
+	__dojostatic void DisplayConsoleMessages(const bool is_display);
 }
 
 namespace vzmproc
 {
 	__dojostatic bool SimplifyPModelByUGrid(const int obj_src_id, const float cell_width, int& obj_dst_id);
-	__dojostatic bool ComputePCA(const int obj_id, float(&egvals)[3], float(&egvecs)[9]);
+	__dojostatic bool ComputePCA(const int obj_id, float* egvals /*float3*/, float* egvecs /*three of float3*/);
 
 	// kar-breast part // to do
 	__dojostatic bool GenerateSamplePoints(const int obj_src_id, const float* pos_src, const float r, const float min_interval, int& obj_dst_id);
@@ -223,12 +225,12 @@ namespace vzmproc
 namespace helpers
 {
 	//__dojostatic bool CopyObject(const int src_obj_id, const int dst_obj_id);
-	__dojostatic bool ComputePCAc(const float* xyz_list, const int num_points, float(&egvals)[3], float(&egvecs)[9]);
+	__dojostatic bool ComputePCAc(const float* xyz_list, const int num_points, float* egvals /*float3*/, float* egvecs /*three of float3*/);
 
 	// at least 3 point-pairs are requested
 	// matching based on least squares
 	// assume each point pair has the same index of the point list (one-to-one);
-	__dojostatic bool ComputeRigidTransform(const float* xyz_from_list, const float* xyz_to_list, const int num_pts, float(&mat_tr)[16]);
+	__dojostatic bool ComputeRigidTransform(const float* xyz_from_list, const float* xyz_to_list, const int num_pts, float* mat_tr /*float16*/);
 
 	// mat_ext : glm::fmat4x3 format, conventional camera system's extrinsic parameters (y down and z as view direction)
 	// fx, fy : focusing parameters

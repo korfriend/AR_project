@@ -4,6 +4,6 @@
     <ClCompile Include="prototype_ver1.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="kar_helpers.hpp" />
+    <ClInclude Include="..\kar_helpers.hpp" />
   </ItemGroup>
 </Project>
