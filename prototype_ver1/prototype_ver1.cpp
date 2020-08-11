@@ -62,23 +62,96 @@ ENUM(RsMouseMode, NONE, ADD_CALIB_POINTS, GATHERING_POINTS, PIN_ORIENTATION)
 RsMouseMode rs_ms_mode = NONE;
 bool skip_main_thread = false;
 
+struct OpttrkData
+{
+	track_info trk_info; // available when USE_OPTITRACK
+	vzm::ObjStates obj_state;
+	int cb_spheres_id;
+	vector<Point3f> calib_3d_pts;
+
+	OpttrkData()
+	{
+		cb_spheres_id = 0;
+		obj_state.emission = 0.4f;
+		obj_state.diffusion = 0.6f;
+		obj_state.specular = 0.2f;
+		obj_state.sp_pow = 30.f;
+		__cv4__ obj_state.color = glm::fvec4(1.f, 1.f, 1.f, 1.f);
+		__cm4__ obj_state.os2ws = glm::fmat4x4();
+	}
+};
+OpttrkData g_otrk_data;
+
+#define TESTOUT(NAME, P) {cout << NAME << P.x << ", " << P.y << ", " << P.z << endl;}
+
+map<int, glm::fvec3> vzmobjid2mkid;
+
 void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 {
 	glm::ivec2 scene_cam = *(glm::ivec2*)userdata;
 	vzm::CameraParameters cam_params;
 	vzm::GetCameraParameters(scene_cam.x, cam_params, scene_cam.y);
-
+	
 	// https://docs.opencv.org/3.4/d7/dfc/group__highgui.html
 	static helpers::arcball aball_ov;
 	if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
 	{
-		aball_ov.intializer((float*)&glm::fvec3(), 2.0f);
+		if (flags & EVENT_FLAG_CTRLKEY && rs_ms_mode == RsMouseMode::ADD_CALIB_POINTS)
+		{
+			vector<Point3f>& point3ds = g_otrk_data.calib_3d_pts;
+			if (event == EVENT_LBUTTONDOWN)
+			{
+				int pick_obj = 0;
+				glm::fvec3 pos_pick;
+				vzm::PickObject(pick_obj, __FP pos_pick, x, y, scene_cam.x, scene_cam.y);
+				cout << "PICK ID : " << pick_obj << endl;
 
-		helpers::cam_pose arc_cam_pose;
-		glm::fvec3 pos = __cv3__ arc_cam_pose.pos = __cv3__ cam_params.pos;
-		__cv3__ arc_cam_pose.up = __cv3__ cam_params.up;
-		__cv3__ arc_cam_pose.view = __cv3__ cam_params.view;
-		aball_ov.start((int*)&glm::ivec2(x, y), (float*)&glm::fvec2(cam_params.w, cam_params.h), arc_cam_pose);
+				if (pick_obj != 0)
+				{
+					glm::fvec3 mk_pt = vzmobjid2mkid[pick_obj];
+					cout << "----> " << vzmobjid2mkid .size() << endl;
+					TESTOUT("==> ", mk_pt);
+					if (mk_pt != glm::fvec3(0))
+					{
+						const float zig_hight = 0.03;
+						const float mk_r = 0.009;
+
+						glm::fvec3 pt = mk_pt - glm::fvec3(0, 1, 0) * (zig_hight + mk_r);
+						TESTOUT("mk position " + to_string(point3ds.size()), pt);
+						point3ds.push_back(Point3f(pt.x, pt.y, pt.z));
+					}
+				}
+			}
+			else
+			{
+				if (point3ds.size() > 0)
+					point3ds.pop_back();
+			}
+
+			ofstream outfile(cb_positions);
+			if (outfile.is_open())
+			{
+				outfile.clear();
+				for (int i = 0; i < point3ds.size(); i++)
+				{
+					string line = to_string(point3ds[i].x) + " " +
+						to_string(point3ds[i].y) + " " +
+						to_string(point3ds[i].z);
+					outfile << line << endl;
+				}
+			}
+			outfile.close();
+		}
+		else
+		{
+			aball_ov.intializer((float*)&glm::fvec3(), 2.0f);
+
+			helpers::cam_pose arc_cam_pose;
+			glm::fvec3 pos = __cv3__ arc_cam_pose.pos = __cv3__ cam_params.pos;
+			__cv3__ arc_cam_pose.up = __cv3__ cam_params.up;
+			__cv3__ arc_cam_pose.view = __cv3__ cam_params.view;
+			aball_ov.start((int*)&glm::ivec2(x, y), (float*)&glm::fvec2(cam_params.w, cam_params.h), arc_cam_pose);
+		}
 	}
 	else if (event == EVENT_MBUTTONDOWN)
 	{
@@ -91,7 +164,7 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 			__cv3__ cam_params.pos -= 0.05f * (__cv3__ cam_params.view);
 		vzm::SetCameraParameters(scene_cam.x, cam_params, scene_cam.y);
 	}
-	else if (event == EVENT_MOUSEMOVE)
+	else if (event == EVENT_MOUSEMOVE && !(flags & EVENT_FLAG_CTRLKEY))
 	{
 		if (flags & EVENT_FLAG_LBUTTON)
 		{
@@ -114,26 +187,6 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 	}
 }
 
-struct OpttrkData
-{
-	track_info trk_info; // available when USE_OPTITRACK
-	vzm::ObjStates obj_state;
-	int cb_spheres_id;
-	vector<Point3f> calib_3d_pts;
-
-	OpttrkData()
-	{
-		cb_spheres_id = 0;
-		obj_state.emission = 0.4f;
-		obj_state.diffusion = 0.6f;
-		obj_state.specular = 0.2f;
-		obj_state.sp_pow = 30.f;
-		__cv4__ obj_state.color = glm::fvec4(1.f, 1.f, 1.f, 1.f);
-		__cm4__ obj_state.os2ws = glm::fmat4x4();
-	}
-};
-
-OpttrkData g_otrk_data;
 bool do_initialize_trk_points = false;
 float pnp_err = -1.f;
 int num_calib = 0;
@@ -162,8 +215,6 @@ const int ws_scene_id = 1; // arbitrary integer
 const int rs_scene_id = 2; // arbitrary integer
 const int model_scene_id = 3; // arbitrary integer
 const int csection_scene_id = 4; // arbitrary integer
-
-#define TESTOUT(NAME, P) {cout << NAME << P.x << ", " << P.y << ", " << P.z << endl;}
 
 vector<glm::fvec3> model_pick_pts;
 bool align_matching_model = false;
@@ -581,6 +632,8 @@ int main()
 	vzm::SceneEnvParameters ms_scn_env_params = scn_env_params;
 	ms_scn_env_params.is_on_camera = true;
 	vzm::SetSceneEnvParameters(model_scene_id, ms_scn_env_params);
+	vzm::SceneEnvParameters csection_scn_env_params = scn_env_params;
+	vzm::SetSceneEnvParameters(csection_scene_id, csection_scn_env_params);
 
 	vzm::ObjStates obj_state;
 	obj_state.emission = 0.4f;
@@ -865,6 +918,8 @@ int main()
 	int key_pressed = -1;
 	bool recompile_hlsl = false;
 	bool show_apis_console = false;
+	bool show_csection = false;
+	bool show_mks = true;
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		key_pressed = cv::waitKey(1);
@@ -873,14 +928,15 @@ int main()
 		{
 		case 91: postpone = max(postpone - 1, 0);  break; // [ 
 		case 93: postpone += 1; break; // ] 
-		case 97: use_new_version = false;  cout << "Use Prev Version : ON" << endl; break; // a 
-		case 115: use_new_version = true; cout << "Use Prev Version : OFF" << endl; break; // s 
-		case 100: recompile_hlsl = true; cout << "Recompile Shader!" << endl; break; // d
+		case 97: use_new_version = !use_new_version;  cout << "Use Prev Version : " << use_new_version << endl; break; // a 
+		case 114: recompile_hlsl = true; cout << "Recompile Shader!" << endl; break; // r
 		case 108: load_calib_points = true; break; // l
 		case 118: show_calib_frames = !show_calib_frames; break; // v
 		case 112: show_pc = !show_pc; break; // p
 		case 101: show_apis_console = !show_apis_console; break; // e
+		case 109: show_mks = !show_mks; break; // m
 		case 99: calib_toggle = !calib_toggle; break; // c
+		case 115: show_csection = !show_csection; break; // s
 		case 49: rs_ms_mode = RsMouseMode::NONE; break; // 1
 		case 50: rs_ms_mode = RsMouseMode::ADD_CALIB_POINTS; break; // 2
 		case 51: rs_ms_mode = RsMouseMode::GATHERING_POINTS; break; // 3
@@ -951,35 +1007,36 @@ int main()
 				//	infile.close();
 				//}
 			}
-			
-			vector<glm::fvec4> sphers_xyzr;
-			vector<glm::fvec3> sphers_rgb;
 
 			auto marker_color = [](int idx, int w)
 			{
 				return glm::fvec3((idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1), 1);
 			};
-			for (int i = 0; i < g_otrk_data.calib_3d_pts.size(); i++)
-			{
-				Point3f pt = g_otrk_data.calib_3d_pts[i];
-				sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.01));
-				sphers_rgb.push_back(marker_color(i, (int)g_otrk_data.calib_3d_pts.size() / 2));
-			}
 
-
-			if (sphers_xyzr.size() > 0)
+			if (rs_ms_mode == RsMouseMode::ADD_CALIB_POINTS)
 			{
-				vzm::GenerateSpheresObject(__FP sphers_xyzr[0], __FP sphers_rgb[0],
-					g_otrk_data.calib_3d_pts.size(), g_otrk_data.cb_spheres_id);
-				vzm::ReplaceOrAddSceneObject(ws_scene_id, g_otrk_data.cb_spheres_id, obj_state);
-				vzm::ReplaceOrAddSceneObject(rs_scene_id, g_otrk_data.cb_spheres_id, obj_state);
-			}
-			else
-			{
-				vzm::ObjStates cstate = obj_state;
-				cstate.is_visible = false;
-				vzm::ReplaceOrAddSceneObject(ws_scene_id, g_otrk_data.cb_spheres_id, cstate);
-				vzm::ReplaceOrAddSceneObject(rs_scene_id, g_otrk_data.cb_spheres_id, cstate);
+				vector<glm::fvec4> sphers_xyzr;
+				vector<glm::fvec3> sphers_rgb;
+				for (int i = 0; i < g_otrk_data.calib_3d_pts.size(); i++)
+				{
+					Point3f pt = g_otrk_data.calib_3d_pts[i];
+					sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.005));
+					sphers_rgb.push_back(marker_color(i, (int)g_otrk_data.calib_3d_pts.size() / 2));
+				}
+				if (sphers_xyzr.size() > 0)
+				{
+					vzm::GenerateSpheresObject(__FP sphers_xyzr[0], __FP sphers_rgb[0],
+						g_otrk_data.calib_3d_pts.size(), g_otrk_data.cb_spheres_id);
+					vzm::ReplaceOrAddSceneObject(ws_scene_id, g_otrk_data.cb_spheres_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(rs_scene_id, g_otrk_data.cb_spheres_id, obj_state);
+				}
+				else
+				{
+					vzm::ObjStates cstate = obj_state;
+					cstate.is_visible = false;
+					vzm::ReplaceOrAddSceneObject(ws_scene_id, g_otrk_data.cb_spheres_id, cstate);
+					vzm::ReplaceOrAddSceneObject(rs_scene_id, g_otrk_data.cb_spheres_id, cstate);
+				}
 			}
 
 			static vector<int> calib_trial_cam_frame_ids;
@@ -996,12 +1053,12 @@ int main()
 				Mat viewGray;
 				cvtColor(imagebgr, viewGray, COLOR_BGR2GRAY);
 
-				std::vector<__MarkerDetInfo> list_det_mks;
-				ar_marker.track_markers(list_det_mks, viewGray.data, viewGray.cols, viewGray.rows, mk_ids);
+				std::vector<__MarkerDetInfo> list_det_armks;
+				ar_marker.track_markers(list_det_armks, viewGray.data, viewGray.cols, viewGray.rows, mk_ids);
 
-				for (int i = 0; i < (int)list_det_mks.size(); i++)
+				for (int i = 0; i < (int)list_det_armks.size(); i++)
 				{
-					__MarkerDetInfo& armk = list_det_mks[i];
+					__MarkerDetInfo& armk = list_det_armks[i];
 
 					int id = armk.id;
 					glm::fvec3 _rgb = marker_color(id - 1, g_otrk_data.calib_3d_pts.size() / 2);
@@ -1010,14 +1067,14 @@ int main()
 						circle(imagebgr, Point(armk.corners2d[2 * j + 0], armk.corners2d[2 * j + 1]), 1, CV_RGB(_rgb.r * 255, _rgb.g * 255, _rgb.b * 255), 2);
 				}
 
-				if (list_det_mks.size() > 0)
+				if (list_det_armks.size() > 0)
 				{
 					vector<Point2f> point2d;
 					vector<Point3f> point3d;
 
-					for (int i = 0; i < (int)list_det_mks.size(); i++)
+					for (int i = 0; i < (int)list_det_armks.size(); i++)
 					{
-						__MarkerDetInfo& armk = list_det_mks[i];
+						__MarkerDetInfo& armk = list_det_armks[i];
 						if (armk.id > g_otrk_data.calib_3d_pts.size()) continue;
 
 						Point2f pt2d = Point2f(0, 0);
@@ -1216,7 +1273,6 @@ int main()
 				vzm::ReplaceOrAddSceneObject(rs_scene_id, rs_pc_id, obj_state_pts);
 			}
 
-
 			if(is_calib_cam)
 			{
 				pos_probe_pin = tr_pt(trk_info.mat_probe2ws, glm::fvec3());
@@ -1226,7 +1282,7 @@ int main()
 				if(trk_info.is_detected_rscam)
 					Register_CamModel(ws_scene_id, mat_rscs2ws, "RS CAM 0", 2);
 				
-				auto register_mks = [&obj_state](const glm::fvec3* pos_list, const int num_mks, const float r)
+				auto register_mks = [&obj_state](const glm::fvec3* pos_list, const int num_mks, const float r, const bool is_show)
 				{
 					static int obj_mks_id = 0;
 					vector<glm::fvec4> sphers_xyzr;
@@ -1238,7 +1294,7 @@ int main()
 						sphers_rgb.push_back(glm::fvec3(1, 1, 0));
 					}
 
-					if (num_mks > 0)
+					if (num_mks > 0 && is_show)
 					{
 						vzm::GenerateSpheresObject(__FP sphers_xyzr[0], __FP sphers_rgb[0], num_mks, obj_mks_id);
 						vzm::ReplaceOrAddSceneObject(ws_scene_id, obj_mks_id, obj_state);
@@ -1252,19 +1308,51 @@ int main()
 						vzm::ReplaceOrAddSceneObject(rs_scene_id, obj_mks_id, cstate);
 					}
 				};
-				register_mks((glm::fvec3*)&trk_info.mk_xyz_list[0], trk_info.mk_xyz_list.size() / 3, 0.005);
-
-				//if (!trk_info.is_detected_rscam)
-					// to do // via SLAM (with AR mks?!)
+				register_mks((glm::fvec3*)&trk_info.mk_xyz_list[0], trk_info.mk_xyz_list.size() / 3, 0.005, show_mks);
 			}
 
-			if (trk_info.mk_residue_list.size() > 5)
+			static vector<int> mk_pickable_sphere_ids;
+			if (rs_ms_mode == RsMouseMode::ADD_CALIB_POINTS)
 			{
-				for (int i = 0; i < trk_info.mk_residue_list.size(); i++)
+				auto marker_color_B = [](int idx, int w)
 				{
-					//cout << i << " ==> " << trk_info.mk_residue_list[i] << endl;
+					return glm::fvec3(1, (idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1));
+				};
+
+				int num_mks = trk_info.mk_xyz_list.size() / 3;
+				vzmobjid2mkid.clear();
+				for (int i = 0; i < (int)mk_pickable_sphere_ids.size(); i++)
+					vzm::DeleteObject(mk_pickable_sphere_ids[i]);
+
+				mk_pickable_sphere_ids.clear();
+				for (int i = 0; i < num_mks; i++)
+				{
+					mk_pickable_sphere_ids.push_back(0);
+					glm::fvec3 pt = trk_info.GetMkPos(i);
+					vzm::GenerateSpheresObject(__FP glm::fvec4(pt.x, pt.y, pt.z, 0.01), __FP marker_color_B(i, 7), 1, mk_pickable_sphere_ids[i]);
+					vzmobjid2mkid[mk_pickable_sphere_ids[i]] = pt;
+					vzm::ValidatePickTarget(mk_pickable_sphere_ids[i]);
+					vzm::ObjStates cstate = obj_state;
+					vzm::ReplaceOrAddSceneObject(ws_scene_id, mk_pickable_sphere_ids[i], cstate);
+					//vzm::ReplaceOrAddSceneObject(rs_scene_id, mk_pickable_sphere_ids[i], cstate);
 				}
 			}
+			else
+			{
+				for (int i = 0; i < (int)mk_pickable_sphere_ids.size(); i++)
+					vzm::DeleteObject(mk_pickable_sphere_ids[i]);
+				mk_pickable_sphere_ids.clear();
+				vzmobjid2mkid.clear();
+			}
+
+
+			//if (trk_info.mk_residue_list.size() > 5)
+			//{
+			//	for (int i = 0; i < trk_info.mk_residue_list.size(); i++)
+			//	{
+			//		//cout << i << " ==> " << trk_info.mk_residue_list[i] << endl;
+			//	}
+			//}
 
 			auto set_rb_axis = [&obj_state](const bool is_detected, const glm::fmat4x4& mat_frm2ws, int& obj_id)
 			{
@@ -1326,6 +1414,81 @@ int main()
 				//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
 				vzm::ReplaceOrAddSceneObject(ws_scene_id, mesh_obj_ws_id, model_obj_state);
 				vzm::ReplaceOrAddSceneObject(rs_scene_id, mesh_obj_ws_id, model_obj_state);
+
+				bool is_section_probe_detected = trk_info.is_detected_probe;
+				glm::fmat4x4 mat_section_probe2ws = trk_info.mat_probe2ws;
+				static int section_probe_line_id = 0, section_probe_end_id = 0;
+				if (is_section_probe_detected)
+				{
+					glm::fvec3 probe_end = tr_pt(mat_section_probe2ws, glm::fvec3(0));
+					glm::fvec3 probe_dir = glm::normalize(tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1)));
+					if (show_csection)
+					{
+						vzm::ReplaceOrAddSceneObject(csection_scene_id, mesh_obj_ws_id, model_obj_state);
+
+						vzm::CameraParameters csection_cam_params_model = cam_params;
+						csection_cam_params_model.np = 0.0f;
+						csection_cam_params_model.fp = 10.0f;
+						csection_cam_params_model.projection_mode = 4;
+						csection_cam_params_model.ip_w = 0.1;
+						csection_cam_params_model.ip_h = 0.1;
+						csection_cam_params_model.w = 512;
+						csection_cam_params_model.h = 512;
+
+						__cv3__ csection_cam_params_model.pos = probe_end;
+						glm::fvec3 cs_up = tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1));
+						glm::fvec3 cs_view = glm::fvec3(0, 0, 1);
+
+						glm::fvec3 cs_right = glm::cross(cs_view, cs_up);
+						cs_up = glm::normalize(glm::cross(cs_up, cs_right));
+						__cv3__ csection_cam_params_model.up = cs_up;
+						__cv3__ csection_cam_params_model.view = cs_view;
+						vzm::SetCameraParameters(csection_scene_id, csection_cam_params_model, 0);
+
+						cs_up = tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1));
+						cs_view = glm::fvec3(1, 0, 0);
+
+						cs_right = glm::cross(cs_view, cs_up);
+						cs_up = glm::normalize(glm::cross(cs_up, cs_right));
+						__cv3__ csection_cam_params_model.up = cs_up;
+						__cv3__ csection_cam_params_model.view = cs_view;
+						vzm::SetCameraParameters(csection_scene_id, csection_cam_params_model, 1);
+
+						vzm::RenderScene(csection_scene_id, 0);
+						vzm::RenderScene(csection_scene_id, 1);
+						unsigned char* cs_ptr_rgba[2];
+						float* cs_ptr_zdepth[2];
+						int cs_w[2], cs_h[2];
+						for (int i = 0; i < 2; i++)
+						{
+							vzm::GetRenderBufferPtrs(csection_scene_id, &cs_ptr_rgba[i], &cs_ptr_zdepth[i], &cs_w[i], &cs_h[i], 0);
+							cv::Mat cs_cvmat(cs_h[i], cs_w[i], CV_8UC4, cs_ptr_rgba[i]);
+							cv::line(cs_cvmat, cv::Point(cs_w[i] / 2, cs_h[i] / 2), cv::Point(cs_w[i] / 2, 0), cv::Scalar(255, 255, 0), 2, 2);
+							cv::circle(cs_cvmat, cv::Point(cs_w[i] / 2, cs_h[i] / 2), 2, cv::Scalar(255, 0, 0), 2);
+							cv::imshow("Sectional View " + to_string(i), cs_cvmat);
+						}
+					}
+
+					glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir * 0.2f };
+					float cyl_r = 0.003f;
+					glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
+					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
+					vzm::GenerateSpheresObject(__FP glm::fvec4(probe_end, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_end_id);
+
+					vzm::ReplaceOrAddSceneObject(ws_scene_id, section_probe_line_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(rs_scene_id, section_probe_line_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(ws_scene_id, section_probe_end_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(rs_scene_id, section_probe_end_id, obj_state);
+				}
+				else
+				{
+					vzm::ObjStates cobj_state = obj_state;
+					cobj_state.is_visible = false;
+					vzm::ReplaceOrAddSceneObject(ws_scene_id, section_probe_line_id, cobj_state);
+					vzm::ReplaceOrAddSceneObject(rs_scene_id, section_probe_line_id, cobj_state);
+					vzm::ReplaceOrAddSceneObject(ws_scene_id, section_probe_end_id, cobj_state);
+					vzm::ReplaceOrAddSceneObject(rs_scene_id, section_probe_end_id, cobj_state);
+				}
 			}
 
 			vzm::CameraParameters _rs_cam_params;
