@@ -105,11 +105,11 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../include;$(OPENCV_4)\Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../include;$(OPENCV_4)\Include;E:\K-AR\설치파일\opencv</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>$(OPENCV_4)\x64\vc15\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OPENCV_4)\x64\vc15\lib;E:\K-AR\설치파일\opencv\vc15\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_aruco420d.lib;opencv_highgui420d.lib;opencv_core420d.lib;opencv_imgcodecs420d.lib;opencv_imgproc420d.lib;opencv_calib3d420d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
