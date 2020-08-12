@@ -645,7 +645,7 @@ int main()
 				for (int i = 0; i < g_info.otrk_data.calib_3d_pts.size(); i++)
 				{
 					Point3f pt = g_info.otrk_data.calib_3d_pts[i];
-					sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.02));
+					sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.007));
 					sphers_rgb.push_back(marker_color(i, (int)g_info.otrk_data.calib_3d_pts.size() / 2));
 				}
 				if (sphers_xyzr.size() > 0)
@@ -662,6 +662,13 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
 				}
+			}
+			else
+			{
+				vzm::ObjStates cstate = obj_state;
+				cstate.is_visible = false;
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
 			}
 
 			if (calib_toggle && trk_info.is_detected_rscam && g_info.otrk_data.calib_3d_pts.size() > 0)
@@ -1247,8 +1254,16 @@ int main()
 				{
 					Mat image_stg(Size(w, h), CV_8UC4, (void*)ptr_rgba, Mat::AUTO_STEP);
 					imshow(g_info.window_name_stg_view, image_stg);
+					cv::drawMarker(image_stg, Point(stg_w / 2, stg_h / 2), Scalar(255, 255, 255));
 				}
 			}
+			else
+			{
+				Mat image_stg(Size(w, h), CV_8UC4, Mat::AUTO_STEP);
+				imshow(g_info.window_name_stg_view, image_stg);
+				cv::drawMarker(image_stg, Point(stg_w / 2, stg_h / 2), Scalar(255, 255, 255));
+			}
+
 
 			/**/
 		}

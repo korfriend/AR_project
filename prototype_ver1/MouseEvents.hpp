@@ -90,7 +90,10 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 				}
 				outfile.close();
 			}
-			else if (eginfo->ginfo.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+		}
+		else
+		{
+			if (eginfo->ginfo.manual_set_mode == MsMouseMode::STG_CALIBRATION)
 			{
 				if (event == EVENT_LBUTTONDOWN)
 				{
@@ -119,16 +122,16 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 					eginfo->ginfo.otrk_data.stg_calib_mk_id = -1;
 				}
 			}
-		}
-		else
-		{
-			aball_ov.intializer((float*)&glm::fvec3(), 2.0f);
+			else
+			{
+				aball_ov.intializer((float*)&glm::fvec3(), 2.0f);
 
-			helpers::cam_pose arc_cam_pose;
-			glm::fvec3 pos = __cv3__ arc_cam_pose.pos = __cv3__ cam_params.pos;
-			__cv3__ arc_cam_pose.up = __cv3__ cam_params.up;
-			__cv3__ arc_cam_pose.view = __cv3__ cam_params.view;
-			aball_ov.start((int*)&glm::ivec2(x, y), (float*)&glm::fvec2(cam_params.w, cam_params.h), arc_cam_pose);
+				helpers::cam_pose arc_cam_pose;
+				glm::fvec3 pos = __cv3__ arc_cam_pose.pos = __cv3__ cam_params.pos;
+				__cv3__ arc_cam_pose.up = __cv3__ cam_params.up;
+				__cv3__ arc_cam_pose.view = __cv3__ cam_params.view;
+				aball_ov.start((int*)&glm::ivec2(x, y), (float*)&glm::fvec2(cam_params.w, cam_params.h), arc_cam_pose);
+			}
 		}
 	}
 	else if (event == EVENT_MBUTTONDOWN)
@@ -142,7 +145,9 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 			__cv3__ cam_params.pos -= 0.05f * (__cv3__ cam_params.view);
 		vzm::SetCameraParameters(eginfo->scene_id, cam_params, eginfo->cam_id);
 	}
-	else if (event == EVENT_MOUSEMOVE && !(flags & EVENT_FLAG_CTRLKEY))
+	else if (event == EVENT_MOUSEMOVE 
+	&& !(flags & EVENT_FLAG_CTRLKEY) 
+	&& eginfo->ginfo.manual_set_mode != MsMouseMode::STG_CALIBRATION)
 	{
 		if (flags & EVENT_FLAG_LBUTTON)
 		{
