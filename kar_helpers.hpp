@@ -722,6 +722,7 @@ struct GlobalInfo
 	string window_name_rs_view;
 	string window_name_ws_view;
 	string window_name_ms_view;
+	string window_name_hm_view;
 	
 	// file path
 	string optrack_calib;

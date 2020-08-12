@@ -70,6 +70,7 @@ int main()
 	g_info.window_name_rs_view = "RealSense VIEW";
 	g_info.window_name_ws_view = "World VIEW";
 	g_info.window_name_ms_view = "Model VIEW";
+	g_info.window_name_ms_view = "STG VIEW";
 
 	// load txt file
 	g_info.optrack_calib = "D:\\Document\\OptiTrack\\my_test_200812_1.cal";
@@ -205,6 +206,10 @@ int main()
 	cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 	cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 	cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
+	cv::namedWindow(g_info.window_name_hm_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
+
+	const int stg_w = 640;
+	const int stg_h = 480;
 
 	vzm::ObjStates model_state = obj_state;
 	model_state.color[3] = 0.8;
@@ -497,6 +502,7 @@ int main()
 	int rs_lf_axis = 0, probe_lf_axis = 0, sstool_lf_axis = 0; // lf means local frame
 	bool show_pc = false;
 	bool calib_toggle = false;
+	bool stg_calib_toggle = false;
 	int num_calib = 0;
 	int calib_samples = 0;
 	int match_model_switch = 0; // 0: ss_head, 1: breastbody
