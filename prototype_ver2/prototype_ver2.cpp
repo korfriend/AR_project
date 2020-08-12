@@ -32,6 +32,9 @@ using namespace cv;
 
 #include "../kar_helpers.hpp"
 
+
+#include "Simulation.h"
+
 // This example will require several standard data-structures and algorithms:
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -51,12 +54,13 @@ const string window_name_rs_view = "RealSense VIEW";
 const string window_name_ws_view = "World VIEW";
 const string window_name_ms_view = "Model VIEW";
 
-const string optrack_calib = "D:\\Document\\OptiTrack\\my_test_200810_1.cal";
-const string optrack_env = "D:\\Document\\OptiTrack\\my_test_200810_1.motive";
+const string optrack_calib = "E:\\K-AR\\Code\\KAR_samples-master\\Data\\optitrack.cal";
+const string optrack_env = "E:\\K-AR\\Code\\KAR_samples-master\\Data\\optitrack.motive";
 const string cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
 const string sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
-//const string model_path = "D:\\Data\\K-AR_Data\\demo.obj";
-const string model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
+
+const string model_path = "E:\\K-AR\\Code\\Data\\Model\\skin.obj";
+
 
 ENUM(RsMouseMode, NONE, ADD_CALIB_POINTS, GATHERING_POINTS, PIN_ORIENTATION)
 RsMouseMode rs_ms_mode = NONE;
@@ -143,7 +147,7 @@ int rs_lf_axis = 0, probe_lf_axis = 0, sstool_lf_axis = 0;
 bool show_calib_frames = true;
 bool show_pc = false;
 bool calib_toggle = false;
-int mesh_obj_id = 0;
+int mesh_obj_id = 0, brain_obj_id = 0, ventricle_obj_id = 0;
 glm::fmat4x4 mat_rscs2clf;
 bool is_calib_cam = false;
 glm::fvec3 pos_probe_pin;
@@ -295,7 +299,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				}
 				else if (event == EVENT_RBUTTONDOWN)
 				{
-					if(pick_pts.size() > 0)
+					if (pick_pts.size() > 0)
 						pick_pts.pop_back();
 				}
 				if (pick_pts.size() > 0)
@@ -425,7 +429,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 				Show_Window_with_Texts(window_name_ms_view, scene_cam.x, scene_cam.y, "Point : " + to_string((int)pick_pts.size()));
 			}
 		}
-	}	
+	}
 	else if (flags & EVENT_FLAG_ALTKEY)
 	{
 		if (pick_pts.size() == 0) return;
@@ -530,8 +534,20 @@ int main()
 	int mesh_obj_ws_id = 0;
 	vzm::GenerateCopiedObject(mesh_obj_id, mesh_obj_ws_id);
 
+	/////////////////////////////////////////////////////////////////////////
+	Simulation s;
+	string modelRootPath("E:\\K-AR\\Code\\Data\\Model");
+	s.initSSUDeform(modelRootPath.c_str());
+	s.initTool(modelRootPath.c_str());
 
-	// Soongsil Commit Test //
+
+	string brainPath = modelRootPath + "\\brain.obj";
+	vzm::LoadModelFile(brainPath, brain_obj_id);
+
+	string ventriclePath = modelRootPath + "\\ventricle.obj";
+	vzm::LoadModelFile(ventriclePath, ventricle_obj_id);
+	
+	/////////////////////////////////////////////////////////////////////////
 
 
 	vzm::CameraParameters cam_params;
@@ -631,6 +647,12 @@ int main()
 	glm::fmat4x4 mat_s = glm::scale(glm::fvec3(0.001));
 	__cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
 	vzm::ReplaceOrAddSceneObject(model_scene_id, mesh_obj_id, model_state);
+	vzm::ReplaceOrAddSceneObject(model_scene_id, brain_obj_id, model_state);
+	vzm::ReplaceOrAddSceneObject(model_scene_id, ventricle_obj_id, model_state);
+
+
+
+
 	Show_Window(window_name_ms_view, model_scene_id, model_cam_id);
 
 	// Colorizer is used to visualize depth data
@@ -667,7 +689,7 @@ int main()
 	// For the color stream, set format to RGBA
 	// To allow blending of the color frame on top of the depth frame
 	cfg.enable_stream(RS2_STREAM_COLOR, RS2_FORMAT_RGB8);
-	
+
 	auto profile = pipe.start(cfg);
 
 	auto sensor = profile.get_device().first<rs2::depth_sensor>();
@@ -682,7 +704,7 @@ int main()
 	auto stream_rgb = profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
 	auto stream_depth = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 	rs2_intrinsics rgb_intrinsics;
-	if(stream_rgb)
+	if (stream_rgb)
 	{
 		rgb_intrinsics = stream_rgb.get_intrinsics();
 		cout << std::endl << "RGB Intrinsic:," << std::endl;
@@ -849,6 +871,103 @@ int main()
 		}
 	});
 
+	//////////////////////////////////////////////////////////////////
+	double dTimeStepMilliSecond = s.getTimeStep() * 1000.0;
+	LARGE_INTEGER iT1, iT2;
+	LARGE_INTEGER iTFrequency;
+	QueryPerformanceFrequency(&iTFrequency);
+
+	std::atomic_bool ssu_deform_alive{ true };
+	std::thread deform_processing_thread([&]() {
+		while (ssu_deform_alive) {
+			// Simulation
+			QueryPerformanceCounter(&iT1);
+			s.stepPhysics();
+
+			glm::fvec3 *pos_xyz_list, *nrl_xyz_list;
+			unsigned int* idx_prims;
+			int num_vtx, num_prims, stride_idx;
+			glm::fvec3 *rgb_list;
+			glm::fmat3x3 mat_s;
+
+			// brain //
+			vzm::GetPModelData(brain_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
+			rgb_list = new glm::fvec3[num_vtx];
+			mat_s = glm::scale(glm::fvec3(1.f, 0.5f, 0.5f));
+			for (int i = 0, ni = s.softBodies[0]->m_surfaceMeshFace.size(); i < ni; i++) {
+				const CiSoftBody::Face&	f = s.softBodies[0]->m_surfaceMeshFace[i];
+				const btVector3			x[] = { f.m_n[0]->m_x,f.m_n[1]->m_x,f.m_n[2]->m_x };
+
+				/*
+				glm::fvec3 v0 = glm::fvec3(x[0].getX() / 1000.0000, x[0].getY() / 1000.0000, x[0].getZ() / 1000.0000);
+				glm::fvec3 v1 = glm::fvec3(x[1].getX() / 1000.0000, x[1].getY() / 1000.0000, x[1].getZ() / 1000.0000);
+				glm::fvec3 v2 = glm::fvec3(x[2].getX() / 1000.0000, x[2].getY() / 1000.0000, x[2].getZ() / 1000.0000);
+				*/
+				glm::fvec3 v0 = glm::fvec3(x[0].getX(), x[0].getY(), x[0].getZ());
+				glm::fvec3 v1 = glm::fvec3(x[1].getX(), x[1].getY(), x[1].getZ());
+				glm::fvec3 v2 = glm::fvec3(x[2].getX(), x[2].getY(), x[2].getZ());
+
+				int j = i * 3;
+				pos_xyz_list[j] = v0;
+				pos_xyz_list[j+1] = v1;
+				pos_xyz_list[j+2] = v2;
+
+				rgb_list[j] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
+				rgb_list[j + 1] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
+				rgb_list[j + 2] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
+			}
+			vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, (float*)rgb_list, NULL, num_vtx, idx_prims, num_prims, stride_idx, brain_obj_id);
+			delete[] pos_xyz_list;
+			delete[] nrl_xyz_list;
+			delete[] idx_prims;
+			delete[] rgb_list;
+
+
+			// ventricle //
+			vzm::GetPModelData(ventricle_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
+			rgb_list = new glm::fvec3[num_vtx];
+			mat_s = glm::scale(glm::fvec3(1.f, 0.5f, 0.5f));
+			for (int c = 0; c< s.softBodies[0]->m_childCnt; c++) {
+				for (int i = 0, ni = s.softBodies[0]->m_child[c].m_surfaceMeshFace.size(); i < ni; i++) {
+					const CiSoftBody::Face&	f = s.softBodies[0]->m_child[c].m_surfaceMeshFace[i];
+					const btVector3			x[] = { f.m_n[0]->m_x,f.m_n[1]->m_x,f.m_n[2]->m_x };
+
+					/*
+					glm::fvec3 v0 = glm::fvec3(x[0].getX() / 1000.0000, x[0].getY() / 1000.0000, x[0].getZ() / 1000.0000);
+					glm::fvec3 v1 = glm::fvec3(x[1].getX() / 1000.0000, x[1].getY() / 1000.0000, x[1].getZ() / 1000.0000);
+					glm::fvec3 v2 = glm::fvec3(x[2].getX() / 1000.0000, x[2].getY() / 1000.0000, x[2].getZ() / 1000.0000);
+					*/
+					glm::fvec3 v0 = glm::fvec3(x[0].getX(), x[0].getY(), x[0].getZ());
+					glm::fvec3 v1 = glm::fvec3(x[1].getX(), x[1].getY(), x[1].getZ());
+					glm::fvec3 v2 = glm::fvec3(x[2].getX(), x[2].getY(), x[2].getZ());
+
+					int j = i * 3;
+					pos_xyz_list[j] = v0;
+					pos_xyz_list[j + 1] = v1;
+					pos_xyz_list[j + 2] = v2;
+
+					rgb_list[j] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
+					rgb_list[j + 1] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
+					rgb_list[j + 2] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
+				}
+			}
+			
+			vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, (float*)rgb_list, NULL, num_vtx, idx_prims, num_prims, stride_idx, ventricle_obj_id);
+
+
+
+			QueryPerformanceCounter(&iT2);
+			// 
+			double dSimulationTime = (iT2.QuadPart - iT1.QuadPart) * 1000.0 / iTFrequency.QuadPart;
+			double dt = dTimeStepMilliSecond - dSimulationTime;
+
+			if (dt > 0) {
+				Sleep(dt);
+			}
+		}
+	});
+	//////////////////////////////////////////////////////////////////
+
 
 	// make 3d ui widgets
 	int coord_grid_obj_id = 0, axis_lines_obj_id = 0, axis_texX_obj_id = 0, axis_texZ_obj_id = 0;
@@ -922,7 +1041,7 @@ int main()
 			Mat imagebgr;
 
 			cvtColor(image, imagebgr, COLOR_BGR2RGB);
-			
+
 			if (load_calib_points)
 			{
 				g_otrk_data.calib_3d_pts.clear();
@@ -955,7 +1074,7 @@ int main()
 				//	infile.close();
 				//}
 			}
-			
+
 			vector<glm::fvec4> sphers_xyzr;
 			vector<glm::fvec3> sphers_rgb;
 
@@ -1066,7 +1185,7 @@ int main()
 					do_initialize_trk_points = false;
 				}
 			}
-			if(!show_calib_frames)
+			if (!show_calib_frames)
 			{
 				for (int i = 0; i < calib_trial_cam_frame_ids.size(); i++)
 				{
@@ -1076,7 +1195,7 @@ int main()
 					vzm::ReplaceOrAddSceneObject(ws_scene_id, calib_trial_cam_frame_ids[i], cstate);
 				}
 			}
-			if(show_pc)
+			if (show_pc)
 			{
 				vzm::ObjStates obj_state_pts = obj_state;
 				obj_state_pts.color[3] = 1.f;
@@ -1192,7 +1311,7 @@ int main()
 						float ty = tex[i].y * h;
 						int _tx = (int)tx;
 						int _ty = (int)ty;
-						if (_tx < 0 || _ty < 0 || _tx >= w || _ty >= h) 
+						if (_tx < 0 || _ty < 0 || _tx >= w || _ty >= h)
 							continue;
 						glm::u8vec3* _data = (glm::u8vec3*)image.data;
 						glm::u8vec3 _color0 = _data[_tx + _ty * w];
@@ -1201,7 +1320,7 @@ int main()
 						//glm::u8vec3 _color3 = _data[_tx + _ty * w];
 						color_pts[i] = glm::fvec3(_color0.x / 255.f, _color0.y / 255.f, 1.f);// _color0.z / 255.f);
 						pos_pts[i] = tr_pt(mat_os2ws, *(glm::fvec3*)&vertices[i]);
-						if(normalmap) nrl_pts[i] = normalmap[i % _w + (i / _w) * _w];
+						if (normalmap) nrl_pts[i] = normalmap[i % _w + (i / _w) * _w];
 					}
 					if (normalmap) delete[] normalmap;
 					//vzm::GeneratePointCloudObject(__FP pos_pts[0], NULL, __FP color_pts[0], (int)points.size(), rs_pc_id);
@@ -1221,15 +1340,15 @@ int main()
 			}
 
 
-			if(is_calib_cam)
+			if (is_calib_cam)
 			{
 				pos_probe_pin = tr_pt(trk_info.mat_probe2ws, glm::fvec3());
 				glm::fmat4x4 mat_rscs2ws = mat_clf2ws * mat_rscs2clf;
 
 				//rs_cam_tris_id, rs_cam_lines_id, rs_cam_txt_id
-				if(trk_info.is_detected_rscam)
+				if (trk_info.is_detected_rscam)
 					Register_CamModel(ws_scene_id, mat_rscs2ws, "RS CAM 0", 2);
-				
+
 				auto register_mks = [&obj_state](const glm::fvec3* pos_list, const int num_mks, const float r)
 				{
 					static int obj_mks_id = 0;
@@ -1302,7 +1421,7 @@ int main()
 					}
 
 					vzm::GenerateSpheresObject(__FP sphers_xyzr[0], __FP sphers_rgb[0], ss_tool_info.pos_centers_tfrm.size(), ss_tool_info.ss_tool_guide_points_id);
-					
+
 					vzm::ObjStates cobjstate = obj_state;
 					*(glm::fmat4x4*) cobjstate.os2ws = trk_info.mat_tfrm2ws;
 					vzm::ReplaceOrAddSceneObject(ws_scene_id, ss_tool_info.ss_tool_guide_points_id, cobjstate);
@@ -1332,6 +1451,25 @@ int main()
 				vzm::ReplaceOrAddSceneObject(rs_scene_id, mesh_obj_ws_id, model_obj_state);
 			}
 
+
+			//////////////////////////////////////////////////////
+			if (trk_info.is_detected_probe)
+			{
+				// tracking 하고 있는 도구 2점?을 입력받아서 넣어주기 (guide view 원기둥 그릴때 2점)
+				int iToolIdx = -1;
+				for (int i = 0, ni = s.rigidBodies.size(); i < ni; i++) {
+					if (s.rigidBodies[i]->getType() == CiRigidBody::bodyType::TOOL) {
+						iToolIdx = i;
+						break;
+					}
+				}
+
+				s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(0, 0, 0);
+				s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(0, 0, 0);
+			}
+
+			//////////////////////////////////////////////////////
+
 			vzm::CameraParameters _rs_cam_params;
 			vzm::GetCameraParameters(rs_scene_id, _rs_cam_params, rs_cam_id);
 			ComputeCameraStates(mat_rscs2clf, mat_clf2ws, _rs_cam_params);
@@ -1341,14 +1479,14 @@ int main()
 			__cv3__ scn_env_params.pos_light = __cv3__ _rs_cam_params.pos;
 			__cv3__ scn_env_params.dir_light = __cv3__ _rs_cam_params.view;
 			vzm::SetSceneEnvParameters(ws_scene_id, scn_env_params);
-			
+
 			vzm::RenderScene(rs_scene_id, rs_cam_id);
 			unsigned char* ptr_rgba;
 			float* ptr_zdepth;
 			int rs_w, rs_h;
 			if (vzm::GetRenderBufferPtrs(rs_scene_id, &ptr_rgba, &ptr_zdepth, &rs_w, &rs_h, rs_cam_id))
 				copy_back_ui_buffer(imagebgr.data, ptr_rgba, rs_w, rs_h, false);
-			
+
 			cv::putText(imagebgr, "PnP reprojection error : " + to_string(pnp_err) + " pixels, # samples : " + to_string(calib_samples),
 				cv::Point(3, 25), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
 			cv::putText(imagebgr, "Calibration Points : " + to_string(g_otrk_data.calib_3d_pts.size()),
@@ -1359,7 +1497,7 @@ int main()
 			string b_calib_toggle = calib_toggle ? "true" : "false";
 			cv::putText(imagebgr, "Calibration Toggle : " + b_calib_toggle + ", Postpone : " + to_string(postpone) + " ms",
 				cv::Point(3, 100), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-			
+
 			if (is_calib_cam && !trk_info.is_detected_rscam)
 				cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(400, 50), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
 
@@ -1382,6 +1520,9 @@ int main()
 	tracker_alive = false;
 	tracker_processing_thread.join();
 	optitrk::DeinitOptiTrackLib();
+
+	ssu_deform_alive = false;
+	deform_processing_thread.join();
 
 	vzm::DeinitEngineLib();
 
