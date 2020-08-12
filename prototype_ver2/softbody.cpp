@@ -1756,14 +1756,11 @@ void CiSoftBody::PSolveSelfCollision(CiSoftBody* psb)
 }
 void CiSoftBody::PSolveToolCollision(CiSoftBody* psb)
 {
-	btScalar toolContactRange = 2.0;			// tool 충돌처리 판정범위
-	btScalar toolRepulsiveStrength = 0.5;	// tool이 밀어내는 힘 (셀수록 변형이 크게 일어나지만, 불안정해짐)
+	btScalar toolContactRange = 2;			// tool 충돌처리 판정범위	2.0
+	btScalar toolRepulsiveStrength = 1;	// tool이 밀어내는 힘 (셀수록 변형이 크게 일어나지만, 불안정해짐) 0.5
 	btScalar toolCorrectionRange = 0.1;		// tool이 밀어냈을 때 이전 frame과 비교해서 일정 거리(toolCorrectionRange)를 벗어나면 오변형으로 간주하고 변형 x
 	float marginOrigin = 1.75;	// 1.5
 	float shapeMargin = marginOrigin * toolContactRange * psb->m_cfg.m_contactMargin;
-
-	printf("%f\n", shapeMargin);
-
 
 	int nToolIdx = -1;
 	for (int i = 0, ni = psb->m_simulationSpace->rigidBodies.size(); i < ni; i++) {
@@ -1788,6 +1785,9 @@ void CiSoftBody::PSolveToolCollision(CiSoftBody* psb)
 	btScalar tc2_x = toolCollision2.x();
 	btScalar tc2_y = toolCollision2.y();
 	btScalar tc2_z = toolCollision2.z();
+
+	//printf("toolCollision1 : %f %f %f\n", tc1_x, tc1_y, tc1_z);
+	//printf("toolCollision2 : %f %f %f\n", tc2_x, tc2_y, tc2_z);
 
 	for (int i = 0, ni = psb->m_nodes.size(); i < ni; i++) {
 		Node& node = psb->m_nodes[i];

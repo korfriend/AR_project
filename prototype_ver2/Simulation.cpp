@@ -155,6 +155,7 @@ void Simulation::stepPhysics()
 {
 	if (fAccumulator >= fTimeStep)
 	{
+		//printf("stepPhysics (%f %f)\n", fAccumulator, fTimeStep);
 		computeForces();
 		integrate(fTimeStep);
 		updateConstraints(fTimeStep);

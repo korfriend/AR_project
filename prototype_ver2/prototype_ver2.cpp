@@ -109,6 +109,7 @@ int main()
 
 
 	/////////////////////////////////////////////////////////////////////////
+	bool bAlign = false;
 	Simulation s;
 	string modelRootPath("..\\Data");
 	s.initSSUDeform(modelRootPath.c_str());
@@ -474,90 +475,24 @@ int main()
 
 	std::atomic_bool ssu_deform_alive{ true };
 	std::thread deform_processing_thread([&]() {
-		while (ssu_deform_alive && g_info.align_matching_model) {
-			// Simulation
-			QueryPerformanceCounter(&iT1);
-			s.stepPhysics();
+		while (ssu_deform_alive) {
 
-			glm::fvec3 *pos_xyz_list, *nrl_xyz_list;
-			unsigned int* idx_prims;
-			int num_vtx, num_prims, stride_idx;
-			glm::fvec3 *rgb_list;
-			glm::fmat3x3 mat_s;
+			if (bAlign) {
+				// Simulation
+				QueryPerformanceCounter(&iT1);
+				s.stepPhysics();
 
-			// brain //
-			vzm::GetPModelData(g_info.brain_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
-			rgb_list = new glm::fvec3[num_vtx];
-			mat_s = glm::scale(glm::fvec3(1.f, 0.5f, 0.5f));
-			for (int i = 0, ni = s.softBodies[0]->m_surfaceMeshFace.size(); i < ni; i++) {
-				const CiSoftBody::Face&	f = s.softBodies[0]->m_surfaceMeshFace[i];
-				const btVector3			x[] = { f.m_n[0]->m_x,f.m_n[1]->m_x,f.m_n[2]->m_x };
+				QueryPerformanceCounter(&iT2);
+				// 
+				double dSimulationTime = (iT2.QuadPart - iT1.QuadPart) * 1000.0 / iTFrequency.QuadPart;
+				double dt = dTimeStepMilliSecond - dSimulationTime;
+				iT1 = iT2;
 
-				/*
-				glm::fvec3 v0 = glm::fvec3(x[0].getX() / 1000.0000, x[0].getY() / 1000.0000, x[0].getZ() / 1000.0000);
-				glm::fvec3 v1 = glm::fvec3(x[1].getX() / 1000.0000, x[1].getY() / 1000.0000, x[1].getZ() / 1000.0000);
-				glm::fvec3 v2 = glm::fvec3(x[2].getX() / 1000.0000, x[2].getY() / 1000.0000, x[2].getZ() / 1000.0000);
-				*/
-				glm::fvec3 v0 = glm::fvec3(x[0].getX(), x[0].getY(), x[0].getZ());
-				glm::fvec3 v1 = glm::fvec3(x[1].getX(), x[1].getY(), x[1].getZ());
-				glm::fvec3 v2 = glm::fvec3(x[2].getX(), x[2].getY(), x[2].getZ());
+				s.accumulateTime(dSimulationTime);
 
-				int j = i * 3;
-				pos_xyz_list[j] = v0;
-				pos_xyz_list[j + 1] = v1;
-				pos_xyz_list[j + 2] = v2;
-
-				//rgb_list[j] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
-				//rgb_list[j + 1] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
-				//rgb_list[j + 2] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
-			}
-			vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.brain_obj_id);
-			delete[] pos_xyz_list;
-			delete[] nrl_xyz_list;
-			delete[] idx_prims;
-			delete[] rgb_list;
-
-
-			// ventricle //
-			vzm::GetPModelData(g_info.ventricle_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
-			rgb_list = new glm::fvec3[num_vtx];
-			mat_s = glm::scale(glm::fvec3(1.f, 0.5f, 0.5f));
-			for (int c = 0; c < s.softBodies[0]->m_childCnt; c++) {
-				for (int i = 0, ni = s.softBodies[0]->m_child[c].m_surfaceMeshFace.size(); i < ni; i++) {
-					const CiSoftBody::Face&	f = s.softBodies[0]->m_child[c].m_surfaceMeshFace[i];
-					const btVector3			x[] = { f.m_n[0]->m_x,f.m_n[1]->m_x,f.m_n[2]->m_x };
-
-					/*
-					glm::fvec3 v0 = glm::fvec3(x[0].getX() / 1000.0000, x[0].getY() / 1000.0000, x[0].getZ() / 1000.0000);
-					glm::fvec3 v1 = glm::fvec3(x[1].getX() / 1000.0000, x[1].getY() / 1000.0000, x[1].getZ() / 1000.0000);
-					glm::fvec3 v2 = glm::fvec3(x[2].getX() / 1000.0000, x[2].getY() / 1000.0000, x[2].getZ() / 1000.0000);
-					*/
-					glm::fvec3 v0 = glm::fvec3(x[0].getX(), x[0].getY(), x[0].getZ());
-					glm::fvec3 v1 = glm::fvec3(x[1].getX(), x[1].getY(), x[1].getZ());
-					glm::fvec3 v2 = glm::fvec3(x[2].getX(), x[2].getY(), x[2].getZ());
-
-					int j = i * 3;
-					pos_xyz_list[j] = v0;
-					pos_xyz_list[j + 1] = v1;
-					pos_xyz_list[j + 2] = v2;
-
-					//rgb_list[j] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
-					//rgb_list[j + 1] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
-					//rgb_list[j + 2] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
+				if (dt > 0) {
+					//Sleep(dt);
 				}
-			}
-
-			vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.ventricle_obj_id);
-
-
-
-			QueryPerformanceCounter(&iT2);
-			// 
-			double dSimulationTime = (iT2.QuadPart - iT1.QuadPart) * 1000.0 / iTFrequency.QuadPart;
-			double dt = dTimeStepMilliSecond - dSimulationTime;
-
-			if (dt > 0) {
-				Sleep(dt);
 			}
 		}
 	});
@@ -1045,9 +980,9 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, obj_id, ostate);
 				}
 			};
-			set_rb_axis(trk_info.is_detected_rscam, trk_info.mat_rbcam2ws, rs_lf_axis);
-			set_rb_axis(trk_info.is_detected_probe, trk_info.mat_probe2ws, probe_lf_axis);
-			set_rb_axis(trk_info.is_detected_sstool, trk_info.mat_tfrm2ws, sstool_lf_axis);
+			//set_rb_axis(trk_info.is_detected_rscam, trk_info.mat_rbcam2ws, rs_lf_axis);
+			//set_rb_axis(trk_info.is_detected_probe, trk_info.mat_probe2ws, probe_lf_axis);
+			//set_rb_axis(trk_info.is_detected_sstool, trk_info.mat_tfrm2ws, sstool_lf_axis);
 
 			if (trk_info.is_detected_sstool)
 			{
@@ -1079,9 +1014,12 @@ int main()
 				vzm::GetSceneObjectState(g_info.model_scene_id, g_info.brain_obj_id, brain_obj_state);
 				vzm::GetSceneObjectState(g_info.model_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
 
-				model_obj_state.color[3] = 0.5;
-				brain_obj_state.color[3] = 0.7;
-				ventricle_obj_state.color[3] = 1.0;
+				model_obj_state.color[3] = 0.1;
+
+				brain_obj_state.is_wireframe = true;
+				brain_obj_state.wire_color[0] = 0.5; brain_obj_state.wire_color[1] = 0.5; brain_obj_state.wire_color[2] = 0.5; brain_obj_state.wire_color[3] = 0.2;
+				brain_obj_state.color[0] = 0.5; brain_obj_state.color[1] = 0.5; brain_obj_state.color[2] = 0.5; brain_obj_state.color[3] = 0.3;
+				ventricle_obj_state.color[0] = 1.0; ventricle_obj_state.color[1] = 0; ventricle_obj_state.color[2] = 0; ventricle_obj_state.color[3] = 1.0;
 
 				if (g_info.align_matching_model)
 				{
@@ -1089,6 +1027,7 @@ int main()
 					glm::fmat4x4 mat_ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
 					mat_os2headfrm = mat_ws2headfrm * g_info.mat_match_model2ws;
 					g_info.align_matching_model = false;
+					bAlign = true;
 				}
 
 				__cm4__ model_obj_state.os2ws = trk_info.mat_headfrm2ws * mat_os2headfrm;
@@ -1097,13 +1036,59 @@ int main()
 
 				// REFACTORING 필요!!!!
 				//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
+				if (bAlign) {
+					glm::fvec3 *pos_xyz_list, *nrl_xyz_list;
+					unsigned int* idx_prims;
+					int num_vtx, num_prims, stride_idx;
+					glm::fvec3 *rgb_list;
+					glm::fmat3x3 mat_s;
 
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.brain_obj_id, brain_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.brain_obj_id, brain_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
+					// brain //
+					vzm::GetPModelData(g_info.brain_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
+					
+					for (int i = 0, ni = s.softBodies[0]->m_surfaceMeshFace.size(); i < ni; i++) {
+						const CiSoftBody::Face&	f = s.softBodies[0]->m_surfaceMeshFace[i];
+						const btVector3			x[] = { f.m_n[0]->m_x,f.m_n[1]->m_x,f.m_n[2]->m_x };
+
+						glm::fvec3 v0 = glm::fvec3(x[0].getX(), x[0].getY(), x[0].getZ());
+						glm::fvec3 v1 = glm::fvec3(x[1].getX(), x[1].getY(), x[1].getZ());
+						glm::fvec3 v2 = glm::fvec3(x[2].getX(), x[2].getY(), x[2].getZ());
+
+						int j = i * 3;
+						pos_xyz_list[j] = v0;
+						pos_xyz_list[j + 1] = v1;
+						pos_xyz_list[j + 2] = v2;
+					}
+					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.brain_obj_id);
+					//printf("%f %f %f\n", s.softBodies[0]->m_surfaceMeshFace[0].m_n[0]->m_x.x(), s.softBodies[0]->m_surfaceMeshFace[0].m_n[0]->m_x.y(), s.softBodies[0]->m_surfaceMeshFace[0].m_n[0]->m_x.z());
+
+					// ventricle //
+					vzm::GetPModelData(g_info.ventricle_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
+					for (int c = 0; c < s.softBodies[0]->m_childCnt; c++) {
+						for (int i = 0, ni = s.softBodies[0]->m_child[c].m_surfaceMeshFace.size(); i < ni; i++) {
+							const CiSoftBody::Face&	f = s.softBodies[0]->m_child[c].m_surfaceMeshFace[i];
+							const btVector3			x[] = { f.m_n[0]->m_x,f.m_n[1]->m_x,f.m_n[2]->m_x };
+
+							glm::fvec3 v0 = glm::fvec3(x[0].getX(), x[0].getY(), x[0].getZ());
+							glm::fvec3 v1 = glm::fvec3(x[1].getX(), x[1].getY(), x[1].getZ());
+							glm::fvec3 v2 = glm::fvec3(x[2].getX(), x[2].getY(), x[2].getZ());
+
+							int j = i * 3;
+							pos_xyz_list[j] = v0;
+							pos_xyz_list[j + 1] = v1;
+							pos_xyz_list[j + 2] = v2;
+						}
+					}
+					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.ventricle_obj_id);
+
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
+
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.brain_obj_id, brain_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.brain_obj_id, brain_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
+				}
 
 				// PIN REF //
 				bool is_section_probe_detected = trk_info.is_detected_probe;
@@ -1123,12 +1108,15 @@ int main()
 						}
 					}
 
-					glm::fvec3 p1 = probe_end;
-					glm::fvec3 p2 = probe_end - probe_dir * 0.2f;
+					glm::fvec3 probeP1ws = (probe_end);
+					glm::fvec3 probeP2ws = (probe_end - probe_dir * 0.5f);
+					glm::fmat4 ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
+					glm::fmat4 headfrm2os = glm::inverse(mat_os2headfrm) * ws2headfrm;
+					glm::fvec3 probeP1ws2os = headfrm2os * glm::fvec4(probeP1ws, 1.f);
+					glm::fvec3 probeP2ws2os = headfrm2os * glm::fvec4(probeP2ws, 1.f);
 
-					s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(p1.x, p1.y, p1.z);
-					s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(p2.x, p2.y, p2.z);
-
+					s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(probeP1ws2os.x, probeP1ws2os.y, probeP1ws2os.z);
+					s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(probeP2ws2os.x, probeP2ws2os.y, probeP2ws2os.z);
 
 					if (show_csection)
 					{
@@ -1178,10 +1166,10 @@ int main()
 					}
 
 					glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir * 0.2f };
-					float cyl_r = 0.003f;
+					float cyl_r = 0.0015f;
 					glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
 					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
-					vzm::GenerateSpheresObject(__FP glm::fvec4(probe_end, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_end_id);
+					//vzm::GenerateSpheresObject(__FP glm::fvec4(probe_end, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_end_id);
 
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, obj_state);
