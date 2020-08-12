@@ -106,7 +106,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../include;../include/rs_include;$(OPENCV_4)\Include;E:\K-AR\설치파일\opencv;E:\K-AR\설치파일\boost_1_65_1;$(ProjectDir)math</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./math;../include;../include/rs_include;$(OPENCV_4)\Include;E:\K-AR\설치파일\opencv;E:\K-AR\설치파일\boost_1_65_1;$(ProjectDir)math</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,7 +145,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../include;../include/rs_include;$(OPENCV_4)\Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./math;../include;../include/rs_include;$(OPENCV_4)\Include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

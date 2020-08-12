@@ -33,7 +33,7 @@ using namespace cv;
 #include "../kar_helpers.hpp"
 #include "MouseEvents.hpp"
 
-#include "softbody/Simulation.h"
+#include "Simulation.h"
 
 // This example will require several standard data-structures and algorithms:
 #define _USE_MATH_DEFINES
@@ -80,6 +80,7 @@ int main()
 	g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\demo.obj";
 	g_info.model_path = "..\\Data\\skin.obj";
+//	g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
 
 #if defined(_DEBUG) | defined(DEBUG)
