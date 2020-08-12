@@ -99,6 +99,7 @@ int main()
 
 	vzm::InitEngineLib();
 
+	
 	vzm::LoadModelFile(g_info.model_path, g_info.model_obj_id);
 	g_info.is_meshmodel = true;
 	vzm::ValidatePickTarget(g_info.model_obj_id);
