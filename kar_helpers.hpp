@@ -709,13 +709,16 @@ struct GlobalInfo
 	int model_scene_id; // arbitrary integer
 	int csection_scene_id; // arbitrary integer
 	int stg_scene_id; // arbitrary integer
+	int zoom_scene_id;
 
 	// cv window name
 	string window_name_rs_view;
 	string window_name_ws_view;
 	string window_name_ms_view;
+	string window_name_hm_view;
 	string window_name_stg_view;
-	
+	string window_name_zs_view;
+
 	// file path
 	string optrack_calib;
 	string optrack_env;
