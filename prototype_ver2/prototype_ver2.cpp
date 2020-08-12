@@ -68,10 +68,12 @@ int main()
 	g_info.rs_scene_id = 2;
 	g_info.model_scene_id = 3;
 	g_info.csection_scene_id = 4;
+	g_info.zoom_scene_id = 5;
 
 	g_info.window_name_rs_view = "RealSense VIEW";
 	g_info.window_name_ws_view = "World VIEW";
 	g_info.window_name_ms_view = "Model VIEW";
+	g_info.window_name_zs_view = "Zoom View";
 
 	// load txt file
 	g_info.optrack_calib = "D:\\Document\\OptiTrack\\my_test_200812_1.cal";
@@ -162,6 +164,14 @@ int main()
 	__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
 	vzm::SetCameraParameters(g_info.model_scene_id, cam_params_model, model_cam_id);
 
+	///////////////////////////////////////////////////////////////
+	int zoom_cam_id = 1;
+	vzm::CameraParameters zoom_cam_params;
+	zoom_cam_params = cam_params;
+
+	vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
+	///////////////////////////////////////////////////////////////
+
 	vzm::SceneEnvParameters scn_env_params;
 	scn_env_params.is_on_camera = false;
 	scn_env_params.is_pointlight = false;
@@ -178,6 +188,12 @@ int main()
 	vzm::SetSceneEnvParameters(g_info.model_scene_id, ms_scn_env_params);
 	vzm::SceneEnvParameters csection_scn_env_params = scn_env_params;
 	vzm::SetSceneEnvParameters(g_info.csection_scene_id, csection_scn_env_params);
+
+	vzm::SceneEnvParameters zoom_scn_env_params = scn_env_params;
+	vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
+
+
+
 
 	vzm::ObjStates obj_state;
 	obj_state.emission = 0.4f;
@@ -218,6 +234,7 @@ int main()
 	cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 	cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 	cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
+	cv::namedWindow(g_info.window_name_zs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 
 	vzm::ObjStates model_state = obj_state;
 	model_state.color[3] = 0.8;
@@ -249,6 +266,11 @@ int main()
 	}
 	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_obj_id, model_state);
 	Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
+
+
+	////////
+	Show_Window(g_info.window_name_zs_view, g_info.zoom_scene_id, zoom_cam_id);
+
 
 	// Colorizer is used to visualize depth data
 	rs2::colorizer color_map;
@@ -514,6 +536,12 @@ int main()
 	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texX_obj_id, grid_obj_state);
 	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(0.3, 0.3, 1, 0.6);
 	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texZ_obj_id, grid_obj_state);
+
+
+	/////////////////////////////////////////
+	vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, coord_grid_obj_id, grid_obj_state);
+	vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, axis_lines_obj_id, grid_obj_state);
+	/////////////////////////////////////////
 
 	// params for the main thread
 	int key_pressed = -1;
@@ -1062,7 +1090,8 @@ int main()
 						pos_xyz_list[j + 2] = v2;
 					}
 					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.brain_obj_id);
-					//printf("%f %f %f\n", s.softBodies[0]->m_surfaceMeshFace[0].m_n[0]->m_x.x(), s.softBodies[0]->m_surfaceMeshFace[0].m_n[0]->m_x.y(), s.softBodies[0]->m_surfaceMeshFace[0].m_n[0]->m_x.z());
+					delete[] pos_xyz_list;
+					delete[] nrl_xyz_list;
 
 					// ventricle //
 					vzm::GetPModelData(g_info.ventricle_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
@@ -1082,14 +1111,20 @@ int main()
 						}
 					}
 					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.ventricle_obj_id);
+					delete[] pos_xyz_list;
+					delete[] nrl_xyz_list;
 
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, model_obj_ws_id, model_obj_state);
 
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.brain_obj_id, brain_obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.brain_obj_id, brain_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, g_info.brain_obj_id, brain_obj_state);
+
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
 				}
 
 				// PIN REF //
@@ -1123,10 +1158,13 @@ int main()
 					*/
 
 					// cam //
-					__cv3__ cam_params.pos = probe_end;
-					__cv3__ cam_params.view = -probe_dir;
+					__cv3__ zoom_cam_params.pos = probe_end;
+					__cv3__ zoom_cam_params.view = probe_dir;
+					glm::fvec3 right = glm::normalize(glm::cross(probe_dir, glm::fvec3(0, 1, 0)));
+					glm::fvec3 up = glm::normalize(glm::cross(right, probe_dir));
+					__cv3__ zoom_cam_parmas.up = up;
 
-					vzm::SetCameraParameters(g_info.ws_scene_id, cam_params, ov_cam_id);
+					vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
 
 
 					if (show_csection)
