@@ -710,6 +710,8 @@ struct GlobalInfo
 
 	int rs_pc_id;
 
+	int brain_obj_id, ventricle_obj_id;
+
 	// scene definition
 	int ws_scene_id; // arbitrary integer
 	int rs_scene_id; // arbitrary integer
@@ -738,6 +740,9 @@ struct GlobalInfo
 		is_meshmodel = true;
 		align_matching_model = false;
 		rs_pc_id = 0;
+
+		brain_obj_id = 0;
+		ventricle_obj_id = 0;
 	}
 };
 
