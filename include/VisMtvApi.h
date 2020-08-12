@@ -195,7 +195,7 @@ namespace vzm
 	// cam id is corresponding to a specific renderer and ip states
 	__dojostatic bool SetCameraParameters(const int scene_id, const CameraParameters& cam_params, const int cam_id = 0);
 	__dojostatic bool GetCameraParameters(const int scene_id, CameraParameters& cam_params, const int cam_id = 0);
-	__dojostatic bool GetCamProjMatrix(const int scene_id, const int cam_id, float* mat_ws2ss, float* mat_ss2ws = NULL);
+	__dojostatic bool GetCamProjMatrix(const int scene_id, const int cam_id, float* mat_ws2ss, float* mat_ss2ws = NULL, bool is_col_major = true);
 
 	__dojostatic bool RenderScene(const int scene_id, const int cam_id = 0);
 	__dojostatic bool GetRenderBufferPtrs(const int scene_id, unsigned char** ptr_rgba, float** ptr_zdepth, int* fbuf_w, int* fbuf_h, const int cam_id = 0);
@@ -206,6 +206,7 @@ namespace vzm
 	// picking
 	__dojostatic bool ValidatePickTarget(const int obj_id);
 	__dojostatic bool PickObject(int& pick_obj_id, float* pos_pick, const int x, const int y, const int scene_id, const int cam_id = 0);
+	__dojostatic bool Pick1stHitSurfaceUsingDepthMap(float* pos_pick, const int x, const int y, const float valid_depth_range, const int scene_id, const int cam_id);
 
 	// only for the contributor's (by DongJoon Kim) test info.
 	__dojostatic void DebugTestSet(const std::string& _script, const void* _pvalue, const size_t size_bytes, const int scene_id, const int cam_id, const int obj_id = -1);
