@@ -249,7 +249,7 @@ namespace helpers
 		float* cam_pos, float* cam_view, float* cam_up, float* fx, float* fy, float* sc, float* cx, float* cy);
 
 	__dojostatic bool ComputeArCameraCalibrateInfo(const float* mat_camrb2ws, const float* calrb_xyz_ws, const float* calrb_xy_ss, const int num_mks,
-		float* cam_pos_crbs, float* cam_view_crbs, float* cam_up_crbs, vzm::CameraParameters& cam_ar_mode_params);
+		const float* mat_camcs2camrbs, vzm::CameraParameters* cam_ar_mode_params = NULL);
 
 	struct cam_pose
 	{
