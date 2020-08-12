@@ -421,28 +421,15 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 		}
 };
 
-
-enum CALIB_STATE
-{
-	INITIALIZE,
-	UPDATE
-};
-
 #define double_vec3(D) ((double*)D.data)[0], ((double*)D.data)[1], ((double*)D.data)[2]
 bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm::fvec3>& points_3dws, const glm::fmat4x4& mat_ws2clf,
-	const float fx, const float fy, const float cx, const float cy, CALIB_STATE cmode, glm::fmat4x4& mat_rscs2clf, float* err, int* num_samples)
+	const float fx, const float fy, const float cx, const float cy, glm::fmat4x4& mat_rscs2clf, float* err, int* num_samples,
+	vector<glm::fvec3>& points_buf_3d_clf, vector<glm::fvec2>& points_buf_2d
+)
 {
 	if (points_2d.size() == 0) return false;
 	if (points_2d.size() != points_3dws.size()) return false;
 	using namespace glm;
-
-	static vector<fvec3> points_buf_3d_clf;
-	static vector<fvec2> points_buf_2d;
-	if (cmode == INITIALIZE)
-	{
-		points_buf_3d_clf.clear();
-		points_buf_2d.clear();
-	}
 
 	int num_incoming_pts = (int)points_3dws.size();
 	vector<fvec3> points_3dclf(num_incoming_pts);
@@ -674,9 +661,12 @@ struct OpttrkData
 	vzm::ObjStates obj_state;
 	int cb_spheres_id;
 	vector<Point3f> calib_3d_pts;
+	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
+	int stg_calib_mk_id;
 
 	OpttrkData()
 	{
+		stg_calib_mk_id = -1;
 		cb_spheres_id = 0;
 		obj_state.emission = 0.4f;
 		obj_state.diffusion = 0.6f;
@@ -687,16 +677,17 @@ struct OpttrkData
 	}
 };
 
-ENUM(RsMouseMode, NONE, ADD_CALIB_POINTS, GATHERING_POINTS, PIN_ORIENTATION)
+ENUM(MsMouseMode, NONE, ADD_CALIB_POINTS, GATHERING_POINTS, PIN_ORIENTATION, STG_CALIBRATION)
 
 struct GlobalInfo
 {
 	map<int, glm::fvec3> vzmobjid2mkid;
 
-	RsMouseMode rs_ms_mode;
+	MsMouseMode manual_set_mode;
 	bool skip_main_thread;
 	OpttrkData otrk_data;
-	bool is_calib_cam;
+	bool is_calib_rs_cam;
+	bool is_calib_stg_cam;
 
 	glm::fvec3 pos_probe_pin;
 
@@ -717,6 +708,7 @@ struct GlobalInfo
 	int rs_scene_id; // arbitrary integer
 	int model_scene_id; // arbitrary integer
 	int csection_scene_id; // arbitrary integer
+	int stg_scene_id; // arbitrary integer
 	int zoom_scene_id;
 
 	// cv window name
@@ -724,8 +716,9 @@ struct GlobalInfo
 	string window_name_ws_view;
 	string window_name_ms_view;
 	string window_name_hm_view;
+	string window_name_stg_view;
 	string window_name_zs_view;
-	
+
 	// file path
 	string optrack_calib;
 	string optrack_env;
@@ -735,9 +728,10 @@ struct GlobalInfo
 
 	GlobalInfo()
 	{
-		rs_ms_mode = NONE;
+		manual_set_mode = NONE;
 		skip_main_thread = false;
-		is_calib_cam = false;
+		is_calib_rs_cam = false;
+		is_calib_stg_cam = false;
 		model_obj_id = 0;
 		gathered_model_point_id = 0;
 		is_meshmodel = true;
