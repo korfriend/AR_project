@@ -78,11 +78,17 @@ int main()
 	g_info.optrack_env = "D:\\Document\\OptiTrack\\my_test_200812_1.motive";
 	g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
 	g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
+
+#define SS_HEAD
+
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\demo.obj";
-	//g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
+#ifdef SS_HEAD
+	g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
+#else
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
 	g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_front_points(nrl)_simple1.ply";
 	string volume_model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
+#endif
 
 #if defined(_DEBUG) | defined(DEBUG)
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -102,14 +108,18 @@ int main()
 	vzm::InitEngineLib();
 
 	int volume_obj_id = 0;
-	//vzm::LoadModelFile(volume_model_path, volume_obj_id);
-	//vzm::LoadModelFile(g_info.model_path, g_info.model_obj_id);
+#ifdef SS_HEAD
+	vzm::LoadModelFile(g_info.model_path, g_info.model_obj_id);
+	g_info.is_meshmodel = true;
+#else
 	vzm::LoadModelFile(volume_model_path, g_info.model_obj_id);
+	//vzm::LoadModelFile(volume_model_path, volume_obj_id);
 	g_info.is_meshmodel = false;
+#endif
+
 	vzm::ValidatePickTarget(g_info.model_obj_id);
 	int model_obj_ws_id = 0;
 	vzm::GenerateCopiedObject(g_info.model_obj_id, model_obj_ws_id);
-	//model_obj_ws_id = volume_obj_id;
 
 	vzm::CameraParameters cam_params;
 	if (!optitrk::InitOptiTrackLib())
@@ -143,12 +153,12 @@ int main()
 	vzm::CameraParameters cam_params_model = cam_params;
 	cam_params_model.np = 0.01f;
 	cam_params_model.fp = 10.0f;
-	//__cv3__ cam_params_model.pos = glm::fvec3(0.3f, 0, 0);
-	//__cv3__ cam_params_model.up = glm::fvec3(0, 1.f, 0);
-	//__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
-	__cv3__ cam_params_model.pos = glm::fvec3(0.0f, -0.5f, 0);
-	__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
-	__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
+	__cv3__ cam_params_model.pos = glm::fvec3(0.3f, 0, 0);
+	__cv3__ cam_params_model.up = glm::fvec3(0, 1.f, 0);
+	__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
+	//__cv3__ cam_params_model.pos = glm::fvec3(0.0f, -0.5f, 0);
+	//__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
+	//__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
 	vzm::SetCameraParameters(g_info.model_scene_id, cam_params_model, model_cam_id);
 
 	vzm::SceneEnvParameters scn_env_params;
@@ -349,6 +359,7 @@ int main()
 	int rs_cam_id = 1; // arbitrary integer
 	vzm::SetCameraParameters(g_info.rs_scene_id, rs_cam_params, rs_cam_id);
 
+	int stg_cam_id = 1; // arbitrary integer
 
 	glm::fmat4x4 mat_ircs2irss, mat_irss2ircs;
 	if (stream_depth)
@@ -634,7 +645,7 @@ int main()
 				for (int i = 0; i < g_info.otrk_data.calib_3d_pts.size(); i++)
 				{
 					Point3f pt = g_info.otrk_data.calib_3d_pts[i];
-					sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.005));
+					sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.02));
 					sphers_rgb.push_back(marker_color(i, (int)g_info.otrk_data.calib_3d_pts.size() / 2));
 				}
 				if (sphers_xyzr.size() > 0)
@@ -933,7 +944,7 @@ int main()
 			}
 
 			static vector<int> mk_pickable_sphere_ids;
-			if (g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
+			if (g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS || g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
 			{
 				auto marker_color_B = [](int idx, int w)
 				{
@@ -989,22 +1000,17 @@ int main()
 					// crbs means Camera RigidBody Space
 					glm::fvec3 pos_crbs, view_crbs, up_crbs;
 					vzm::CameraParameters cam_state_calbirated;
-					helpers::ComputeArCameraCalibrateInfo(__FP mat_clf2ws, __FP point3d[0], __FP point2d[0], num_stg_calib_pairs, __FP pos_crbs, __FP view_crbs, __FP up_crbs, cam_state_calbirated);
+					helpers::ComputeArCameraCalibrateInfo(__FP mat_clf2ws, __FP point3d[0], __FP point2d[0], num_stg_calib_pairs, 
+						__FP mat_stgcs2clf, &cam_state_calbirated);
 
 					g_info.is_calib_stg_cam = true;
-					// mat_stgcs2clf
+					cam_state_calbirated.w = stg_w;
+					cam_state_calbirated.h = stg_h;
+					vzm::SetCameraParameters(g_info.stg_scene_id, cam_state_calbirated, stg_cam_id);
 					// TO DO //
-
-
-
-
-
-
-
 					//bool is_success = CalibrteCamLocalFrame(*(vector<glm::fvec2>*)&point2d, *(vector<glm::fvec3>*)&point3d, mat_ws2clf,
 					//	rgb_intrinsics.fx, rgb_intrinsics.fy, rgb_intrinsics.ppx, rgb_intrinsics.ppy,
 					//	mat_rscs2clf, &pnp_err, &calib_samples, 3d, 2d);
-					
 				}
 			}
 			else
@@ -1187,39 +1193,63 @@ int main()
 				}
 			}
 
-			vzm::CameraParameters _rs_cam_params;
-			vzm::GetCameraParameters(g_info.rs_scene_id, _rs_cam_params, rs_cam_id);
-			ComputeCameraStates(mat_rscs2clf, mat_clf2ws, _rs_cam_params);
-			vzm::SetCameraParameters(g_info.rs_scene_id, _rs_cam_params, rs_cam_id);
+			// RS
+			{
+				if (g_info.is_calib_rs_cam)
+				{
+					vzm::CameraParameters _rs_cam_params;
+					vzm::GetCameraParameters(g_info.rs_scene_id, _rs_cam_params, rs_cam_id);
+					ComputeCameraStates(mat_rscs2clf, mat_clf2ws, _rs_cam_params);
+					vzm::SetCameraParameters(g_info.rs_scene_id, _rs_cam_params, rs_cam_id);
 
-			scn_env_params.is_on_camera = false;
-			__cv3__ scn_env_params.pos_light = __cv3__ _rs_cam_params.pos;
-			__cv3__ scn_env_params.dir_light = __cv3__ _rs_cam_params.view;
-			vzm::SetSceneEnvParameters(g_info.ws_scene_id, scn_env_params);
-			
-			vzm::RenderScene(g_info.rs_scene_id, rs_cam_id);
-			unsigned char* ptr_rgba;
-			float* ptr_zdepth;
-			int rs_w, rs_h;
-			if (vzm::GetRenderBufferPtrs(g_info.rs_scene_id, &ptr_rgba, &ptr_zdepth, &rs_w, &rs_h, rs_cam_id))
-				copy_back_ui_buffer(imagebgr.data, ptr_rgba, rs_w, rs_h, false);
-			
-			cv::putText(imagebgr, "PnP reprojection error : " + to_string(pnp_err) + " pixels, # samples : " + to_string(calib_samples),
-				cv::Point(3, 25), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-			cv::putText(imagebgr, "Calibration Points : " + to_string(g_info.otrk_data.calib_3d_pts.size()),
-				cv::Point(3, 50), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(185, 255, 255));
-			cv::putText(imagebgr, "# of calibrations : " + to_string(num_calib),
-				cv::Point(3, 75), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-			cv::putText(imagebgr, "match model : " + match_model_name, cv::Point(3, 125), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-			cv::putText(imagebgr, "mouse mode : " + EtoString(g_info.manual_set_mode), cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-			string b_calib_toggle = calib_toggle ? "true" : "false";
-			cv::putText(imagebgr, "Calibration Toggle : " + b_calib_toggle + ", Postpone : " + to_string(postpone) + " ms",
-				cv::Point(3, 100), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-			
-			if (g_info.is_calib_rs_cam && !trk_info.is_detected_rscam)
-				cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(400, 50), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
+					vzm::RenderScene(g_info.rs_scene_id, rs_cam_id);
+					unsigned char* ptr_rgba;
+					float* ptr_zdepth;
+					int rs_w, rs_h;
+					if (vzm::GetRenderBufferPtrs(g_info.rs_scene_id, &ptr_rgba, &ptr_zdepth, &rs_w, &rs_h, rs_cam_id))
+						copy_back_ui_buffer(imagebgr.data, ptr_rgba, rs_w, rs_h, false);
 
-			imshow(g_info.window_name_rs_view, imagebgr);
+
+					scn_env_params.is_on_camera = false;
+					__cv3__ scn_env_params.pos_light = __cv3__ _rs_cam_params.pos;
+					__cv3__ scn_env_params.dir_light = __cv3__ _rs_cam_params.view;
+					vzm::SetSceneEnvParameters(g_info.ws_scene_id, scn_env_params);
+				}
+				cv::putText(imagebgr, "PnP reprojection error : " + to_string(pnp_err) + " pixels, # samples : " + to_string(calib_samples),
+					cv::Point(3, 25), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				cv::putText(imagebgr, "Calibration Points : " + to_string(g_info.otrk_data.calib_3d_pts.size()),
+					cv::Point(3, 50), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(185, 255, 255));
+				cv::putText(imagebgr, "# of calibrations : " + to_string(num_calib),
+					cv::Point(3, 75), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				cv::putText(imagebgr, "match model : " + match_model_name, cv::Point(3, 125), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				cv::putText(imagebgr, "mouse mode : " + EtoString(g_info.manual_set_mode), cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				string b_calib_toggle = calib_toggle ? "true" : "false";
+				cv::putText(imagebgr, "Calibration Toggle : " + b_calib_toggle + ", Postpone : " + to_string(postpone) + " ms",
+					cv::Point(3, 100), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+
+				if (g_info.is_calib_rs_cam && !trk_info.is_detected_rscam)
+					cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(400, 50), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
+				imshow(g_info.window_name_rs_view, imagebgr);
+			}
+
+			if (g_info.is_calib_stg_cam)
+			{
+				vzm::CameraParameters _stg_cam_params;
+				vzm::GetCameraParameters(g_info.stg_scene_id, _stg_cam_params, stg_cam_id);
+				ComputeCameraStates(mat_stgcs2clf, mat_clf2ws, _stg_cam_params);
+				vzm::SetCameraParameters(g_info.stg_scene_id, _stg_cam_params, stg_cam_id);
+
+				vzm::RenderScene(g_info.rs_scene_id, rs_cam_id);
+				unsigned char* ptr_rgba;
+				float* ptr_zdepth;
+				int rs_w, rs_h;
+				if (vzm::GetRenderBufferPtrs(g_info.rs_scene_id, &ptr_rgba, &ptr_zdepth, &rs_w, &rs_h, rs_cam_id))
+				{
+					Mat image_stg(Size(w, h), CV_8UC4, (void*)ptr_rgba, Mat::AUTO_STEP);
+					imshow(g_info.window_name_stg_view, image_stg);
+				}
+			}
+
 			/**/
 		}
 

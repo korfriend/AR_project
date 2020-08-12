@@ -42,51 +42,83 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 	static helpers::arcball aball_ov;
 	if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
 	{
-		if (flags & EVENT_FLAG_CTRLKEY && eginfo->ginfo.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
+		if (flags & EVENT_FLAG_CTRLKEY)
 		{
-			vector<Point3f>& point3ds = eginfo->ginfo.otrk_data.calib_3d_pts;
-			if (event == EVENT_LBUTTONDOWN)
+			if (eginfo->ginfo.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
 			{
-				int pick_obj = 0;
-				glm::fvec3 pos_pick;
-				vzm::PickObject(pick_obj, __FP pos_pick, x, y, eginfo->scene_id, eginfo->cam_id);
-				cout << "PICK ID : " << pick_obj << endl;
-
-				if (pick_obj != 0)
+				vector<Point3f>& point3ds = eginfo->ginfo.otrk_data.calib_3d_pts;
+				if (event == EVENT_LBUTTONDOWN)
 				{
-					glm::fvec3 mk_pt = eginfo->ginfo.vzmobjid2mkid[pick_obj];
-					cout << "----> " << eginfo->ginfo.vzmobjid2mkid.size() << endl;
-					TESTOUT("==> ", mk_pt);
-					if (mk_pt != glm::fvec3(0))
-					{
-						const float zig_hight = 0.03;
-						const float mk_r = 0.009;
+					int pick_obj = 0;
+					glm::fvec3 pos_pick;
+					vzm::PickObject(pick_obj, __FP pos_pick, x, y, eginfo->scene_id, eginfo->cam_id);
+					cout << "PICK ID : " << pick_obj << endl;
 
-						glm::fvec3 pt = mk_pt - glm::fvec3(0, 1, 0) * (zig_hight + mk_r);
-						TESTOUT("mk position " + to_string(point3ds.size()), pt);
-						point3ds.push_back(Point3f(pt.x, pt.y, pt.z));
+					if (pick_obj != 0)
+					{
+						glm::fvec3 mk_pt = eginfo->ginfo.vzmobjid2mkid[pick_obj];
+						cout << "----> " << eginfo->ginfo.vzmobjid2mkid.size() << endl;
+						TESTOUT("==> ", mk_pt);
+						if (mk_pt != glm::fvec3(0))
+						{
+							const float zig_hight = 0.03;
+							const float mk_r = 0.009;
+
+							glm::fvec3 pt = mk_pt - glm::fvec3(0, 1, 0) * (zig_hight + mk_r);
+							TESTOUT("mk position " + to_string(point3ds.size()), pt);
+							point3ds.push_back(Point3f(pt.x, pt.y, pt.z));
+						}
 					}
 				}
-			}
-			else
-			{
-				if (point3ds.size() > 0)
-					point3ds.pop_back();
-			}
-
-			ofstream outfile(eginfo->ginfo.cb_positions);
-			if (outfile.is_open())
-			{
-				outfile.clear();
-				for (int i = 0; i < point3ds.size(); i++)
+				else
 				{
-					string line = to_string(point3ds[i].x) + " " +
-						to_string(point3ds[i].y) + " " +
-						to_string(point3ds[i].z);
-					outfile << line << endl;
+					if (point3ds.size() > 0)
+						point3ds.pop_back();
+				}
+
+				ofstream outfile(eginfo->ginfo.cb_positions);
+				if (outfile.is_open())
+				{
+					outfile.clear();
+					for (int i = 0; i < point3ds.size(); i++)
+					{
+						string line = to_string(point3ds[i].x) + " " +
+							to_string(point3ds[i].y) + " " +
+							to_string(point3ds[i].z);
+						outfile << line << endl;
+					}
+				}
+				outfile.close();
+			}
+			else if (eginfo->ginfo.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+			{
+				if (event == EVENT_LBUTTONDOWN)
+				{
+					int pick_obj = 0;
+					glm::fvec3 pos_pick;
+					vzm::PickObject(pick_obj, __FP pos_pick, x, y, eginfo->scene_id, eginfo->cam_id);
+					cout << "PICK ID : " << pick_obj << endl;
+
+					if (pick_obj != 0)
+					{
+						glm::fvec3 mk_pt = eginfo->ginfo.vzmobjid2mkid[pick_obj];
+						for (int i = 0; i < (int)eginfo->ginfo.vzmobjid2mkid.size(); i++)
+						{
+							glm::fvec3 mk_candi_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(i);
+							if (glm::length(mk_candi_pt - mk_pt) < 0.005f)
+							{
+								eginfo->ginfo.otrk_data.stg_calib_mk_id = i;
+								break;
+							}
+						}
+						cout << "STG_CALIBRATION MARKER ID ----> " << eginfo->ginfo.otrk_data.stg_calib_mk_id << " / " << eginfo->ginfo.vzmobjid2mkid.size() << endl;
+					}
+				}
+				else
+				{
+					eginfo->ginfo.otrk_data.stg_calib_mk_id = -1;
 				}
 			}
-			outfile.close();
 		}
 		else
 		{
@@ -315,6 +347,34 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 	//		}
 	//	}
 	//}
+}
+
+void CallBackFunc_StgMouse(int event, int x, int y, int flags, void* userdata)
+{
+	EventGlobalInfo* eginfo = (EventGlobalInfo*)userdata;
+	OpttrkData& otrk_data = eginfo->ginfo.otrk_data;// *(opttrk_data*)userdata;
+
+	//vector<Point3f>& point3ds = otrk_data.stg_calib_pt_pairs;
+
+	if (!otrk_data.trk_info.is_updated) return;
+
+	vzm::ObjStates sobj_state;
+	sobj_state.color[3] = 1.0f;
+	sobj_state.emission = 0.5f;
+	sobj_state.diffusion = 0.5f;
+	sobj_state.specular = 0.0f;
+
+	if (eginfo->ginfo.manual_set_mode == STG_CALIBRATION)
+	{
+		if (otrk_data.stg_calib_mk_id < 0) return;
+
+		if (event == EVENT_LBUTTONDOWN)
+		{
+			glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(otrk_data.stg_calib_mk_id);
+			otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(Point2f(x, y), Point3f(mk_pt.x, mk_pt.y, mk_pt.z)));
+			cout << "# of STG calib point pairs : " << otrk_data.stg_calib_pt_pairs.size() << endl;
+		}
+	}
 }
 
 void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
