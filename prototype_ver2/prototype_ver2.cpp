@@ -33,7 +33,7 @@ using namespace cv;
 #include "../kar_helpers.hpp"
 #include "MouseEvents.hpp"
 
-#include "Simulation.h"
+#include "softbody/Simulation.h"
 
 // This example will require several standard data-structures and algorithms:
 #define _USE_MATH_DEFINES
@@ -101,7 +101,7 @@ int main()
 
 	
 	vzm::LoadModelFile(g_info.model_path, g_info.model_obj_id);
-	g_info.is_modelvolume = true;
+	g_info.is_meshmodel = true;
 	vzm::ValidatePickTarget(g_info.model_obj_id);
 	int model_obj_ws_id = 0;
 	vzm::GenerateCopiedObject(g_info.model_obj_id, model_obj_ws_id);
@@ -221,7 +221,7 @@ int main()
 	model_state.color[3] = 0.8;
 	glm::fmat4x4 mat_s = glm::scale(glm::fvec3(0.001));
 	__cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
-	if (g_info.is_modelvolume)
+	//if (g_info.is_meshmodel)
 	{
 		int vr_tmap_id, mpr_tmap_id;
 		std::vector<glm::fvec2> alpha_ctrs;

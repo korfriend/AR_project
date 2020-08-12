@@ -646,7 +646,7 @@ struct track_info
 	glm::fmat4x4 mat_headfrm2ws;
 	bool is_detected_sshead;
 
-	//"breast_body"
+	//"breastbody"
 	glm::fmat4x4 mat_bodyfrm2ws;
 	bool is_detected_brbody;
 
@@ -701,11 +701,12 @@ struct GlobalInfo
 	glm::fvec3 pos_probe_pin;
 
 	// model related
-	bool is_modelvolume;
+	bool is_meshmodel;
 	int model_obj_id;
 	vector<glm::fvec3> model_pick_pts;
 	bool align_matching_model;
 	glm::fmat4x4 mat_match_model2ws;
+	int gathered_model_point_id;
 
 	int rs_pc_id;
 
@@ -735,7 +736,8 @@ struct GlobalInfo
 		skip_main_thread = false;
 		is_calib_cam = false;
 		model_obj_id = 0;
-		is_modelvolume = false;
+		gathered_model_point_id = 0;
+		is_meshmodel = true;
 		align_matching_model = false;
 		rs_pc_id = 0;
 

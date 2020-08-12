@@ -77,8 +77,10 @@ int main()
 	g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
 	g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\demo.obj";
-	//g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
-	g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
+	g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
+	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
+	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_front_points(nrl)_simple1.ply";
+	string volume_model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
 
 #if defined(_DEBUG) | defined(DEBUG)
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -97,11 +99,14 @@ int main()
 
 	vzm::InitEngineLib();
 
+	int volume_obj_id = 0;
+	vzm::LoadModelFile(volume_model_path, volume_obj_id);
 	vzm::LoadModelFile(g_info.model_path, g_info.model_obj_id);
-	g_info.is_modelvolume = true;
+	g_info.is_meshmodel = true;
 	vzm::ValidatePickTarget(g_info.model_obj_id);
 	int model_obj_ws_id = 0;
 	vzm::GenerateCopiedObject(g_info.model_obj_id, model_obj_ws_id);
+	model_obj_ws_id = volume_obj_id;
 
 	vzm::CameraParameters cam_params;
 	if (!optitrk::InitOptiTrackLib())
@@ -199,13 +204,15 @@ int main()
 
 	vzm::ObjStates model_state = obj_state;
 	model_state.color[3] = 0.8;
-	glm::fmat4x4 mat_s = glm::scale(glm::fvec3(0.001));
+	double scale_factor = 0.001;
+	glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
 	__cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
-	if (g_info.is_modelvolume)
+	model_state.point_thickness = 10;
+	//if (!g_info.is_meshmodel)
 	{
 		int vr_tmap_id, mpr_tmap_id;
 		std::vector<glm::fvec2> alpha_ctrs;
-		alpha_ctrs.push_back(glm::fvec2(0, 17760));
+		alpha_ctrs.push_back(glm::fvec2(0, 7760));
 		alpha_ctrs.push_back(glm::fvec2(1, 21700));
 		alpha_ctrs.push_back(glm::fvec2(1, 65536));
 		alpha_ctrs.push_back(glm::fvec2(0, 65537));
@@ -224,6 +231,11 @@ int main()
 		vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], mpr_tmap_id);
 		model_state.associated_obj_ids["VR_OTF"] = vr_tmap_id;
 		model_state.associated_obj_ids["MPR_WINDOWING"] = mpr_tmap_id;
+
+		double sample_rate = 1. / scale_factor;
+		vzm::DebugTestSet("_double_UserSampleRate", &sample_rate, sizeof(double), g_info.model_scene_id, model_cam_id);
+		bool apply_samplerate2grad = true;
+		vzm::DebugTestSet("_bool_ApplySampleRateToGradient", &apply_samplerate2grad, sizeof(bool), g_info.model_scene_id, model_cam_id);
 	}
 	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_obj_id, model_state);
 	Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
@@ -435,7 +447,7 @@ int main()
 			cur_trk_info.is_detected_probe = optitrk::GetRigidBodyLocationByName("probe", (float*)&cur_trk_info.mat_probe2ws);
 			cur_trk_info.is_detected_sstool = optitrk::GetRigidBodyLocationByName("ss_tool_v1", (float*)&cur_trk_info.mat_tfrm2ws);
 			cur_trk_info.is_detected_sshead = optitrk::GetRigidBodyLocationByName("ss_head", (float*)&cur_trk_info.mat_headfrm2ws);
-			cur_trk_info.is_detected_brbody = optitrk::GetRigidBodyLocationByName("breast_body", (float*)&cur_trk_info.mat_bodyfrm2ws);
+			cur_trk_info.is_detected_brbody = optitrk::GetRigidBodyLocationByName("breastbody", (float*)&cur_trk_info.mat_bodyfrm2ws);
 
 			//cout << cur_trk_info.is_detected_rscam << ", " << cur_trk_info.is_detected_probe << endl;
 
@@ -476,6 +488,7 @@ int main()
 	bool calib_toggle = false;
 	int num_calib = 0;
 	int calib_samples = 0;
+	int match_model_switch = 0; // 0: ss_head, 1: breastbody
 	glm::fmat4x4 mat_rscs2clf;
 
 	while (key_pressed != 'q' && key_pressed != 27)
@@ -495,6 +508,7 @@ int main()
 		case 109: show_mks = !show_mks; break; // m
 		case 99: calib_toggle = !calib_toggle; break; // c
 		case 115: show_csection = !show_csection; break; // s
+		case 116: match_model_switch = (++match_model_switch) % 2; break; // t
 			// RsMouseMode
 		case 49: g_info.rs_ms_mode = RsMouseMode::NONE; break; // 1
 		case 50: g_info.rs_ms_mode = RsMouseMode::ADD_CALIB_POINTS; break; // 2
@@ -953,7 +967,15 @@ int main()
 				}
 			}
 
-			if (trk_info.is_detected_sshead)
+			bool model_match_rb = false;
+			glm::fmat4x4 mat_matchmodelfrm2ws;
+			string match_model_name;
+			switch (match_model_switch)
+			{
+			case 0: model_match_rb = trk_info.is_detected_sshead; mat_matchmodelfrm2ws = trk_info.mat_headfrm2ws; match_model_name = "BRAIN HEAD"; break;
+			case 1: model_match_rb = trk_info.is_detected_brbody; mat_matchmodelfrm2ws = trk_info.mat_bodyfrm2ws; match_model_name = "BREAST BODY"; break;
+			}
+			if (model_match_rb)
 			{
 				static glm::fmat4x4 mat_os2headfrm;
 				vzm::ObjStates model_obj_state;
@@ -962,12 +984,12 @@ int main()
 				if (g_info.align_matching_model)
 				{
 					cout << "register rigid model!" << endl;
-					glm::fmat4x4 mat_ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
+					glm::fmat4x4 mat_ws2headfrm = glm::inverse(mat_matchmodelfrm2ws);
 					mat_os2headfrm = mat_ws2headfrm * g_info.mat_match_model2ws;
 					g_info.align_matching_model = false;
 				}
 
-				__cm4__ model_obj_state.os2ws = trk_info.mat_headfrm2ws * mat_os2headfrm;
+				__cm4__ model_obj_state.os2ws = mat_matchmodelfrm2ws * mat_os2headfrm;
 
 				// REFACTORING 필요!!!!
 				//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
@@ -1074,6 +1096,7 @@ int main()
 				cv::Point(3, 50), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(185, 255, 255));
 			cv::putText(imagebgr, "# of calibrations : " + to_string(num_calib),
 				cv::Point(3, 75), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+			cv::putText(imagebgr, "match model : " + match_model_name, cv::Point(3, 125), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
 			cv::putText(imagebgr, "mouse mode : " + EtoString(g_info.rs_ms_mode), cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
 			string b_calib_toggle = calib_toggle ? "true" : "false";
 			cv::putText(imagebgr, "Calibration Toggle : " + b_calib_toggle + ", Postpone : " + to_string(postpone) + " ms",

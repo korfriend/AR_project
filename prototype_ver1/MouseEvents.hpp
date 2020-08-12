@@ -325,7 +325,6 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 
 	static vector<glm::fvec3> pick_pts;
 	static int spheres_id = 0;
-	static int gathered_point_id = 0;
 
 	static int x_old = -1;
 	static int y_old = -1;
@@ -339,25 +338,37 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 	static helpers::arcball aball_ov;
 	if (flags & EVENT_FLAG_CTRLKEY)
 	{
-		if (event == EVENT_LBUTTONUP || event == EVENT_RBUTTONUP)
+		if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
 		{
 			if (eginfo->ginfo.model_obj_id == 0)
 				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "NO MESH!!");
 			if (flags & EVENT_FLAG_CTRLKEY)
 			{
-				if (event == EVENT_LBUTTONUP)
+				if (event == EVENT_LBUTTONDOWN)
 				{
-					int pick_obj = 0;
-					glm::fvec3 pos_pick;
-					vzm::PickObject(pick_obj, __FP pos_pick, x, y, eginfo->scene_id, eginfo->cam_id);
-					if (pick_obj != 0)
+					if (eginfo->ginfo.is_meshmodel) // which means it is a primitive-type object
 					{
-						cout << "picked : " << pick_obj << endl;
-						TESTOUT("world position : ", pos_pick);
-						pick_pts.push_back(pos_pick);
+						int pick_obj = 0;
+						glm::fvec3 pos_pick;
+						vzm::PickObject(pick_obj, __FP pos_pick, x, y, eginfo->scene_id, eginfo->cam_id);
+						if (pick_obj != 0)
+						{
+							cout << "picked : " << pick_obj << endl;
+							TESTOUT("world position : ", pos_pick);
+							pick_pts.push_back(pos_pick);
+						}
+					}
+					else
+					{
+						glm::fvec3 pos_pick;
+						if (vzm::Pick1stHitSurfaceUsingDepthMap(__FP pos_pick, x, y, 1000.f, eginfo->scene_id, eginfo->cam_id))
+						{
+							TESTOUT("world position : ", pos_pick);
+							pick_pts.push_back(pos_pick);
+						}
 					}
 				}
-				else if (event == EVENT_RBUTTONUP)
+				else if (event == EVENT_RBUTTONDOWN)
 				{
 					if (pick_pts.size() > 0)
 						pick_pts.pop_back();
@@ -394,18 +405,20 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 	else if (flags & EVENT_FLAG_ALTKEY)
 	{
 		if (pick_pts.size() == 0) return;
-		if (event == EVENT_LBUTTONUP)
+		if (event == EVENT_LBUTTONDOWN)
 		{
 			if (eginfo->ginfo.model_obj_id == 0)
 				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "NO MESH!!");
-			vzm::DeleteObject(gathered_point_id);
+			vzm::DeleteObject(eginfo->ginfo.gathered_model_point_id);
+
 			vzm::ObjStates model_obj_state;
 			vzm::GetSceneObjectState(eginfo->scene_id, eginfo->ginfo.model_obj_id, model_obj_state);
 			glm::fmat4x4 mat_ws2os = glm::inverse(*(glm::fmat4x4*)model_obj_state.os2ws);
 			for (int i = 0; i < (int)pick_pts.size(); i++)
 			{
 				glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, pick_pts[i]);
-				vzmproc::GenerateSamplePoints(eginfo->ginfo.model_obj_id, (float*)&pos_pick_os, 10.f, 0.3f, gathered_point_id);
+				// note that the model's os is defined in mm unit
+				vzmproc::GenerateSamplePoints(eginfo->ginfo.model_obj_id, (float*)&pos_pick_os, 30.f, 0.3f, eginfo->ginfo.gathered_model_point_id);
 			}
 
 			vzm::ObjStates sobj_state;
@@ -413,9 +426,10 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 			sobj_state.emission = 0.5f;
 			sobj_state.diffusion = 0.5f;
 			sobj_state.specular = 0.0f;
-			sobj_state.point_thickness = 5.f;
+			sobj_state.point_thickness = 10.f;
 			*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
-			vzm::ReplaceOrAddSceneObject(eginfo->scene_id, gathered_point_id, sobj_state);
+			vzm::ReplaceOrAddSceneObject(eginfo->scene_id, eginfo->ginfo.gathered_model_point_id, sobj_state);
+			
 			Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)pick_pts.size()));
 		}
 	}
