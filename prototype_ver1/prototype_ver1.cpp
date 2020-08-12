@@ -77,9 +77,9 @@ int main()
 	g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
 	g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\demo.obj";
-	g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
+	//g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
-	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_front_points(nrl)_simple1.ply";
+	g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_front_points(nrl)_simple1.ply";
 	string volume_model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
 
 #if defined(_DEBUG) | defined(DEBUG)
@@ -100,13 +100,14 @@ int main()
 	vzm::InitEngineLib();
 
 	int volume_obj_id = 0;
-	vzm::LoadModelFile(volume_model_path, volume_obj_id);
-	vzm::LoadModelFile(g_info.model_path, g_info.model_obj_id);
-	g_info.is_meshmodel = true;
+	//vzm::LoadModelFile(volume_model_path, volume_obj_id);
+	//vzm::LoadModelFile(g_info.model_path, g_info.model_obj_id);
+	vzm::LoadModelFile(volume_model_path, g_info.model_obj_id);
+	g_info.is_meshmodel = false;
 	vzm::ValidatePickTarget(g_info.model_obj_id);
 	int model_obj_ws_id = 0;
 	vzm::GenerateCopiedObject(g_info.model_obj_id, model_obj_ws_id);
-	model_obj_ws_id = volume_obj_id;
+	//model_obj_ws_id = volume_obj_id;
 
 	vzm::CameraParameters cam_params;
 	if (!optitrk::InitOptiTrackLib())
@@ -140,9 +141,12 @@ int main()
 	vzm::CameraParameters cam_params_model = cam_params;
 	cam_params_model.np = 0.01f;
 	cam_params_model.fp = 10.0f;
-	__cv3__ cam_params_model.pos = glm::fvec3(0.3f, 0, 0);
-	__cv3__ cam_params_model.up = glm::fvec3(0, 1.f, 0);
-	__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
+	//__cv3__ cam_params_model.pos = glm::fvec3(0.3f, 0, 0);
+	//__cv3__ cam_params_model.up = glm::fvec3(0, 1.f, 0);
+	//__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
+	__cv3__ cam_params_model.pos = glm::fvec3(0.0f, -0.5f, 0);
+	__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
+	__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
 	vzm::SetCameraParameters(g_info.model_scene_id, cam_params_model, model_cam_id);
 
 	vzm::SceneEnvParameters scn_env_params;
@@ -208,12 +212,13 @@ int main()
 	glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
 	__cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
 	model_state.point_thickness = 10;
+	vzm::ObjStates model_ws_state;
 	//if (!g_info.is_meshmodel)
 	{
-		int vr_tmap_id, mpr_tmap_id;
+		int vr_tmap_id = 0, vr_tmap_id1 = 0, mpr_tmap_id = 0;
 		std::vector<glm::fvec2> alpha_ctrs;
 		alpha_ctrs.push_back(glm::fvec2(0, 7760));
-		alpha_ctrs.push_back(glm::fvec2(1, 21700));
+		alpha_ctrs.push_back(glm::fvec2(1, 11700));
 		alpha_ctrs.push_back(glm::fvec2(1, 65536));
 		alpha_ctrs.push_back(glm::fvec2(0, 65537));
 		std::vector<glm::fvec4> rgb_ctrs;
@@ -223,6 +228,9 @@ int main()
 		rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 21000));
 		rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 65536));
 		vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id);
+		alpha_ctrs[0] = glm::fvec2(0, 17760);
+		alpha_ctrs[1] = glm::fvec2(1, 21700);
+		vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id1);
 
 		alpha_ctrs[0] = glm::fvec2(0, 100);
 		alpha_ctrs[1] = glm::fvec2(1, 30000);
@@ -232,10 +240,13 @@ int main()
 		model_state.associated_obj_ids["VR_OTF"] = vr_tmap_id;
 		model_state.associated_obj_ids["MPR_WINDOWING"] = mpr_tmap_id;
 
+		model_ws_state = model_state;
+		model_ws_state.associated_obj_ids["VR_OTF"] = vr_tmap_id1;
+
 		double sample_rate = 1. / scale_factor;
-		vzm::DebugTestSet("_double_UserSampleRate", &sample_rate, sizeof(double), g_info.model_scene_id, model_cam_id);
+		vzm::DebugTestSet("_double_UserSampleRate", &sample_rate, sizeof(double), -1, -1);// g_info.model_scene_id, model_cam_id);
 		bool apply_samplerate2grad = true;
-		vzm::DebugTestSet("_bool_ApplySampleRateToGradient", &apply_samplerate2grad, sizeof(bool), g_info.model_scene_id, model_cam_id);
+		vzm::DebugTestSet("_bool_ApplySampleRateToGradient", &apply_samplerate2grad, sizeof(bool), -1, -1);//g_info.model_scene_id, model_cam_id);
 	}
 	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_obj_id, model_state);
 	Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
@@ -977,19 +988,19 @@ int main()
 			}
 			if (model_match_rb)
 			{
-				static glm::fmat4x4 mat_os2headfrm;
-				vzm::ObjStates model_obj_state;
-				vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_obj_id, model_obj_state);
+				static glm::fmat4x4 mat_os2matchmodefrm = __cm4__ (model_state.os2ws);
+				vzm::ObjStates model_obj_state = model_ws_state;
+				//vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_obj_id, model_obj_state);
 
 				if (g_info.align_matching_model)
 				{
 					cout << "register rigid model!" << endl;
-					glm::fmat4x4 mat_ws2headfrm = glm::inverse(mat_matchmodelfrm2ws);
-					mat_os2headfrm = mat_ws2headfrm * g_info.mat_match_model2ws;
+					glm::fmat4x4 mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);
+					mat_os2matchmodefrm = mat_ws2matchmodelfrm * g_info.mat_match_model2ws;
 					g_info.align_matching_model = false;
 				}
 
-				__cm4__ model_obj_state.os2ws = mat_matchmodelfrm2ws * mat_os2headfrm;
+				__cm4__ model_obj_state.os2ws = mat_matchmodelfrm2ws * mat_os2matchmodefrm;
 
 				// REFACTORING 필요!!!!
 				//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
