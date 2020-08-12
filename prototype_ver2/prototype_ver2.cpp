@@ -137,6 +137,9 @@ int main()
 	cout << "cam0 frame rate setting ==> " << optitrk::SetCameraFrameRate(0, 120) << endl;
 	cout << "cam1 frame rate setting ==> " << optitrk::SetCameraFrameRate(1, 120) << endl;
 
+	optitrk::SetCameraSettings(0, 2, 40, 100);
+	optitrk::SetCameraSettings(1, 2, 40, 100);
+
 	__cv3__ cam_params.pos = glm::fvec3(1.0, 2.0, 1.5f);
 	glm::fvec3 t_up = glm::fvec3(0, 1.f, 0);
 	__cv3__ cam_params.view = glm::normalize(glm::fvec3(0, 1, 0) - __cv3__ cam_params.pos);
@@ -190,7 +193,7 @@ int main()
 	vzm::SetSceneEnvParameters(g_info.csection_scene_id, csection_scn_env_params);
 
 	vzm::SceneEnvParameters zoom_scn_env_params = scn_env_params;
-	vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
+	vzm::SetSceneEnvParameters(g_info.zoom_scene_id, zoom_scn_env_params);
 
 
 
@@ -633,22 +636,21 @@ int main()
 				}
 				infile.close();
 
-				if (trk_info.is_detected_sstool)
-				{
-					ss_tool_info.pos_centers_tfrm.clear();
+
+
+				ss_tool_info.pos_centers_tfrm.clear();
 				
-					infile = std::ifstream(g_info.sst_positions);
-					line = "";
-					while (getline(infile, line))
-					{
-						std::istringstream iss(line);
-						float a, b, c;
-						if (!(iss >> a >> b >> c)) { break; } // error
-						ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
-						// process pair (a,b)
-					}
-					infile.close();
+				infile = std::ifstream(g_info.sst_positions);
+				line = "";
+				while (getline(infile, line))
+				{
+					std::istringstream iss(line);
+					float a, b, c;
+					if (!(iss >> a >> b >> c)) { break; } // error
+					ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
+					// process pair (a,b)
 				}
+				infile.close();
 			}
 
 			auto marker_color = [](int idx, int w)
@@ -1159,15 +1161,16 @@ int main()
 					s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(probeP1ws2os.x, probeP1ws2os.y, probeP1ws2os.z);
 					s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(probeP2ws2os.x, probeP2ws2os.y, probeP2ws2os.z);
 					*/
-
+					/*
 					// cam //
 					__cv3__ zoom_cam_params.pos = probe_end;
 					__cv3__ zoom_cam_params.view = probe_dir;
 					glm::fvec3 right = glm::normalize(glm::cross(probe_dir, glm::fvec3(0, 1, 0)));
 					glm::fvec3 up = glm::normalize(glm::cross(right, probe_dir));
-					__cv3__ zoom_cam_parmas.up = up;
+					__cv3__ zoom_cam_params.up = up;
 
 					vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
+					*/
 
 
 					if (show_csection)
@@ -1239,41 +1242,69 @@ int main()
 				}
 
 
-				static int section_ssu_tool_line_id = 0;
-				if (trk_info.is_detected_sstool) {
+				static int section_ssu_tool_line_id = 0, section_ssu_tool_end_id = 0, section_ssu_tool_p2_id = 0, section_ssu_tool_line2_id = 0;
+				if (trk_info.is_detected_sstool && ss_tool_info.pos_centers_tfrm.size()) {
 					glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
 
 					glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
 					glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
 
 					glm::fvec3 sstool_dir = glm::normalize(sstool_p2_ws - sstool_p1_ws);
-					sstool_p2_ws = sstool_p1_ws - sstool_dir * 0.5f;
+					sstool_p2_ws = sstool_p1_ws + sstool_dir * 0.2f;
 
-					glm::fmat4 ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
-					glm::fmat4 headfrm2os = glm::inverse(mat_os2headfrm) * ws2headfrm;
+					if (bAlign) {
+						glm::fmat4 ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
+						glm::fmat4 headfrm2os = glm::inverse(mat_os2headfrm) * ws2headfrm;
 
-					glm::fvec3 sstool_p1_ws2os = headfrm2os * glm::fvec4(sstool_p1_ws, 1.f);
-					glm::fvec3 sstool_p2_ws2os = headfrm2os * glm::fvec4(sstool_p2_ws, 1.f);
+						glm::fvec3 sstool_p1_ws2os = headfrm2os * glm::fvec4(sstool_p1_ws, 1.f);
+						glm::fvec3 sstool_p2_ws2os = headfrm2os * glm::fvec4(sstool_p2_ws, 1.f);
 
-					int iToolIdx = -1;
-					for (int i = 0, ni = s.rigidBodies.size(); i < ni; i++) {
-						if (s.rigidBodies[i]->getType() == CiRigidBody::bodyType::TOOL) {
-							iToolIdx = i;
-							break;
+						int iToolIdx = -1;
+						for (int i = 0, ni = s.rigidBodies.size(); i < ni; i++) {
+							if (s.rigidBodies[i]->getType() == CiRigidBody::bodyType::TOOL) {
+								iToolIdx = i;
+								break;
+							}
 						}
+
+						//printf("%f %f %f\n", sstool_p1_ws2os.x, sstool_p1_ws2os.y, sstool_p1_ws2os.z);
+
+						s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(sstool_p1_ws2os.x, sstool_p1_ws2os.y, sstool_p1_ws2os.z);
+						s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(sstool_p2_ws2os.x, sstool_p2_ws2os.y, sstool_p2_ws2os.z);
+
+						// cam //
+						__cv3__ zoom_cam_params.pos = sstool_p1_ws + sstool_dir * 0.1f;
+						__cv3__ zoom_cam_params.view = -sstool_dir;
+						glm::fvec3 right = glm::normalize(glm::cross(-sstool_dir, glm::fvec3(0, 1, 0)));
+						glm::fvec3 up = glm::normalize(glm::cross(right, -sstool_dir));
+						__cv3__ zoom_cam_params.up = up;
+
+						vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
 					}
 
-					s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(sstool_p1_ws2os.x, sstool_p1_ws2os.y, sstool_p1_ws2os.z);
-					s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(sstool_p2_ws2os.x, sstool_p2_ws2os.y, sstool_p2_ws2os.z);
 
-
-					glm::fvec3 cyl_p01[2] = { sstool_p1_ws, sstool_p1_ws - sstool_dir * 0.2f };
+					glm::fvec3 cyl_p01[2] = { sstool_p1_ws, sstool_p1_ws + sstool_dir * 0.2f };
 					float cyl_r = 0.0015f;
 					glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
-					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
-
+					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_line_id);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_line_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_line_id, obj_state);
+
+
+					cyl_r = 0.00015f;
+					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_line2_id);
+					vzm::ObjStates zoom_state = obj_state;
+					zoom_state.color[3] = 0.1;
+					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_line_id, zoom_state);
+
+
+					vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0045f), __FP glm::fvec3(1, 0, 0), 1, section_ssu_tool_end_id);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_end_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_end_id, obj_state);
+
+					vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p2_ws, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_ssu_tool_p2_id);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_p2_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_p2_id, obj_state);
 				}
 				
 			}
@@ -1316,6 +1347,7 @@ int main()
 		vzm::DebugTestSet("_bool_ReloadHLSLObjFiles", &recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::DebugTestSet("_bool_TestOit", &use_new_version, sizeof(bool), -1, -1);
 		Show_Window(g_info.window_name_ws_view, g_info.ws_scene_id, ov_cam_id);
+		Show_Window(g_info.window_name_zs_view, g_info.zoom_scene_id, zoom_cam_id);
 		switch (key_pressed)
 		{
 		case 100: recompile_hlsl = false; break;

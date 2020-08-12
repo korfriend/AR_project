@@ -990,6 +990,7 @@ int main()
 				glm::fvec3 pos_stg_calib_mk = g_info.otrk_data.trk_info.GetMkPos(g_info.otrk_data.stg_calib_mk_id);
 				vzm::GenerateSpheresObject(__FP glm::fvec4(pos_stg_calib_mk, 0.02), __FP glm::fvec3(1), 1, mk_stg_calib_sphere_id);
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_stg_calib_sphere_id, obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_stg_calib_sphere_id, obj_state);
 
 				int num_stg_calib_pairs = (int)g_info.otrk_data.stg_calib_pt_pairs.size();
 				if (num_stg_calib_pairs >= 12)
@@ -1025,6 +1026,7 @@ int main()
 				vzm::ObjStates cstate = obj_state;
 				cstate.is_visible = false;
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_stg_calib_sphere_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_stg_calib_sphere_id, cstate);
 			}
 
 
