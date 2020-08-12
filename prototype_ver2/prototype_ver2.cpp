@@ -531,6 +531,9 @@ int main()
 	int calib_samples = 0;
 	glm::fmat4x4 mat_rscs2clf;
 
+	vector<glm::fvec3> points_rs_buf_3d_clf;
+	vector<glm::fvec2> points_rs_buf_2d;
+
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		key_pressed = cv::waitKey(1);
@@ -548,11 +551,11 @@ int main()
 		case 109: show_mks = !show_mks; break; // m
 		case 99: calib_toggle = !calib_toggle; break; // c
 		case 115: show_csection = !show_csection; break; // s
-			// RsMouseMode
-		case 49: g_info.rs_ms_mode = RsMouseMode::NONE; break; // 1
-		case 50: g_info.rs_ms_mode = RsMouseMode::ADD_CALIB_POINTS; break; // 2
-		case 51: g_info.rs_ms_mode = RsMouseMode::GATHERING_POINTS; break; // 3
-		case 52: g_info.rs_ms_mode = RsMouseMode::PIN_ORIENTATION; break; // 4
+			// MsMouseMode
+		case 49: g_info.manual_set_mode = MsMouseMode::NONE; break; // 1
+		case 50: g_info.manual_set_mode = MsMouseMode::ADD_CALIB_POINTS; break; // 2
+		case 51: g_info.manual_set_mode = MsMouseMode::GATHERING_POINTS; break; // 3
+		case 52: g_info.manual_set_mode = MsMouseMode::PIN_ORIENTATION; break; // 4
 		}
 
 		vzm::DisplayConsoleMessages(show_apis_console);
@@ -625,7 +628,7 @@ int main()
 				return glm::fvec3((idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1), 1);
 			};
 
-			if (g_info.rs_ms_mode == RsMouseMode::ADD_CALIB_POINTS)
+			if (g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
 			{
 				vector<glm::fvec4> sphers_xyzr;
 				vector<glm::fvec3> sphers_rgb;
@@ -706,10 +709,10 @@ int main()
 						prev_mat_clf2ws = mat_clf2ws;
 						bool is_success = CalibrteCamLocalFrame(*(vector<glm::fvec2>*)&point2d, *(vector<glm::fvec3>*)&point3d, mat_ws2clf,
 							rgb_intrinsics.fx, rgb_intrinsics.fy, rgb_intrinsics.ppx, rgb_intrinsics.ppy,
-							do_initialize_trk_points ? CALIB_STATE::INITIALIZE : CALIB_STATE::UPDATE, mat_rscs2clf, &pnp_err, &calib_samples);
+							mat_rscs2clf, &pnp_err, &calib_samples, points_rs_buf_3d_clf, points_rs_buf_2d);
 						if (is_success)
 						{
-							g_info.is_calib_cam = true;
+							g_info.is_calib_rs_cam = true;
 							num_calib++;
 						}
 
@@ -885,7 +888,7 @@ int main()
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.rs_pc_id, obj_state_pts);
 			}
 
-			if (g_info.is_calib_cam)
+			if (g_info.is_calib_rs_cam)
 			{
 				g_info.pos_probe_pin = tr_pt(trk_info.mat_probe2ws, glm::fvec3());
 				glm::fmat4x4 mat_rscs2ws = mat_clf2ws * mat_rscs2clf;
@@ -924,7 +927,7 @@ int main()
 			}
 
 			static vector<int> mk_pickable_sphere_ids;
-			if (g_info.rs_ms_mode == RsMouseMode::ADD_CALIB_POINTS)
+			if (g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
 			{
 				auto marker_color_B = [](int idx, int w)
 				{
@@ -1260,12 +1263,12 @@ int main()
 				cv::Point(3, 50), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(185, 255, 255));
 			cv::putText(imagebgr, "# of calibrations : " + to_string(num_calib),
 				cv::Point(3, 75), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-			cv::putText(imagebgr, "mouse mode : " + EtoString(g_info.rs_ms_mode), cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+			cv::putText(imagebgr, "mouse mode : " + EtoString(g_info.manual_set_mode), cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
 			string b_calib_toggle = calib_toggle ? "true" : "false";
 			cv::putText(imagebgr, "Calibration Toggle : " + b_calib_toggle + ", Postpone : " + to_string(postpone) + " ms",
 				cv::Point(3, 100), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
 
-			if (g_info.is_calib_cam && !trk_info.is_detected_rscam)
+			if (g_info.is_calib_rs_cam && !trk_info.is_detected_rscam)
 				cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(400, 50), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
 
 			imshow(g_info.window_name_rs_view, imagebgr);

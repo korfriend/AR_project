@@ -42,7 +42,7 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 	static helpers::arcball aball_ov;
 	if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
 	{
-		if (flags & EVENT_FLAG_CTRLKEY && eginfo->ginfo.rs_ms_mode == RsMouseMode::ADD_CALIB_POINTS)
+		if (flags & EVENT_FLAG_CTRLKEY && eginfo->ginfo.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
 		{
 			vector<Point3f>& point3ds = eginfo->ginfo.otrk_data.calib_3d_pts;
 			if (event == EVENT_LBUTTONDOWN)
@@ -153,7 +153,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 	sobj_state.diffusion = 0.5f;
 	sobj_state.specular = 0.0f;
 
-	if (eginfo->ginfo.rs_ms_mode == ADD_CALIB_POINTS)
+	if (eginfo->ginfo.manual_set_mode == ADD_CALIB_POINTS)
 	{
 		if (event == EVENT_LBUTTONDOWN)
 		{
@@ -189,7 +189,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			outfile.close();
 		}
 	}
-	else if (eginfo->ginfo.rs_ms_mode == GATHERING_POINTS)
+	else if (eginfo->ginfo.manual_set_mode == GATHERING_POINTS)
 	{
 		if (flags & EVENT_FLAG_CTRLKEY)
 		{
@@ -286,7 +286,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			}
 		}
 	}
-	//else if (eginfo->ginfo.rs_ms_mode == PIN_ORIENTATION)
+	//else if (eginfo->ginfo.manual_set_mode == PIN_ORIENTATION)
 	//{
 	//	if (event == EVENT_LBUTTONDOWN)
 	//	{
