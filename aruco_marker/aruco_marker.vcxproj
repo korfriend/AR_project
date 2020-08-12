@@ -78,13 +78,13 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>../include;$(OPENCV_4)\Include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../include;$(OPENCV_4)\Include;E:\K-AR\설치파일\opencv</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(OPENCV_4)\x64\vc15\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(OPENCV_4)\x64\vc15\lib;E:\K-AR\설치파일\opencv\vc15\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_aruco420.lib;opencv_highgui420.lib;opencv_core420.lib;opencv_imgcodecs420.lib;opencv_imgproc420.lib;opencv_calib3d420.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
