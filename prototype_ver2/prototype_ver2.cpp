@@ -602,22 +602,22 @@ int main()
 				}
 				infile.close();
 
-				//if (trk_info.is_detected_sstool)
-				//{
-				//	ss_tool_info.pos_centers_tfrm.clear();
-				//
-				//	infile = std::ifstream(sst_positions);
-				//	line = "";
-				//	while (getline(infile, line))
-				//	{
-				//		std::istringstream iss(line);
-				//		float a, b, c;
-				//		if (!(iss >> a >> b >> c)) { break; } // error
-				//		ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
-				//		// process pair (a,b)
-				//	}
-				//	infile.close();
-				//}
+				if (trk_info.is_detected_sstool)
+				{
+					ss_tool_info.pos_centers_tfrm.clear();
+				
+					infile = std::ifstream(g_info.sst_positions);
+					line = "";
+					while (getline(infile, line))
+					{
+						std::istringstream iss(line);
+						float a, b, c;
+						if (!(iss >> a >> b >> c)) { break; } // error
+						ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
+						// process pair (a,b)
+					}
+					infile.close();
+				}
 			}
 
 			auto marker_color = [](int idx, int w)
@@ -984,6 +984,7 @@ int main()
 			//set_rb_axis(trk_info.is_detected_probe, trk_info.mat_probe2ws, probe_lf_axis);
 			//set_rb_axis(trk_info.is_detected_sstool, trk_info.mat_tfrm2ws, sstool_lf_axis);
 
+			/*
 			if (trk_info.is_detected_sstool)
 			{
 				if (ss_tool_info.pos_centers_tfrm.size() > 0)
@@ -1005,6 +1006,7 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ss_tool_info.ss_tool_guide_points_id, cobjstate);
 				}
 			}
+			*/
 
 			if (trk_info.is_detected_sshead)
 			{
@@ -1099,7 +1101,8 @@ int main()
 					glm::fvec3 probe_end = tr_pt(mat_section_probe2ws, glm::fvec3(0));
 					glm::fvec3 probe_dir = glm::normalize(tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1)));
 
-					//
+					/////////// (probe 사용할 경우) ///////////
+					/*
 					int iToolIdx = -1;
 					for (int i = 0, ni = s.rigidBodies.size(); i < ni; i++) {
 						if (s.rigidBodies[i]->getType() == CiRigidBody::bodyType::TOOL) {
@@ -1117,6 +1120,14 @@ int main()
 
 					s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(probeP1ws2os.x, probeP1ws2os.y, probeP1ws2os.z);
 					s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(probeP2ws2os.x, probeP2ws2os.y, probeP2ws2os.z);
+					*/
+
+					// cam //
+					__cv3__ cam_params.pos = probe_end;
+					__cv3__ cam_params.view = -probe_dir;
+
+					vzm::SetCameraParameters(g_info.ws_scene_id, cam_params, ov_cam_id);
+
 
 					if (show_csection)
 					{
@@ -1173,8 +1184,8 @@ int main()
 
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, obj_state);
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, obj_state);
-					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, obj_state);
+					//vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, obj_state);
+					//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, obj_state);
 				}
 				else
 				{
@@ -1186,6 +1197,43 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, cobj_state);
 				}
 
+
+				static int section_ssu_tool_line_id = 0;
+				if (trk_info.is_detected_sstool) {
+					glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
+
+					glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
+					glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
+
+					glm::fvec3 sstool_dir = glm::normalize(sstool_p2_ws - sstool_p1_ws);
+					sstool_p2_ws = sstool_p1_ws - sstool_dir * 0.5f;
+
+					glm::fmat4 ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
+					glm::fmat4 headfrm2os = glm::inverse(mat_os2headfrm) * ws2headfrm;
+
+					glm::fvec3 sstool_p1_ws2os = headfrm2os * glm::fvec4(sstool_p1_ws, 1.f);
+					glm::fvec3 sstool_p2_ws2os = headfrm2os * glm::fvec4(sstool_p2_ws, 1.f);
+
+					int iToolIdx = -1;
+					for (int i = 0, ni = s.rigidBodies.size(); i < ni; i++) {
+						if (s.rigidBodies[i]->getType() == CiRigidBody::bodyType::TOOL) {
+							iToolIdx = i;
+							break;
+						}
+					}
+
+					s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(sstool_p1_ws2os.x, sstool_p1_ws2os.y, sstool_p1_ws2os.z);
+					s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(sstool_p2_ws2os.x, sstool_p2_ws2os.y, sstool_p2_ws2os.z);
+
+
+					glm::fvec3 cyl_p01[2] = { sstool_p1_ws, sstool_p1_ws - sstool_dir * 0.2f };
+					float cyl_r = 0.0015f;
+					glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
+					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
+
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_line_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_line_id, obj_state);
+				}
 				
 			}
 

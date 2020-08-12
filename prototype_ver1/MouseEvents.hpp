@@ -307,7 +307,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			}
 		}
 	}
-	//else if (eginfo->ginfo.manual_set_mode == PIN_ORIENTATION)
+	//else if (eginfo->ginfo.rs_ms_mode == PIN_ORIENTATION)
 	//{
 	//	if (event == EVENT_LBUTTONDOWN)
 	//	{
