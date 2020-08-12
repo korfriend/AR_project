@@ -667,3 +667,76 @@ struct track_info
 		return ((glm::fvec3*)&mk_xyz_list[0])[idx];
 	}
 };
+
+struct OpttrkData
+{
+	track_info trk_info; // available when USE_OPTITRACK
+	vzm::ObjStates obj_state;
+	int cb_spheres_id;
+	vector<Point3f> calib_3d_pts;
+
+	OpttrkData()
+	{
+		cb_spheres_id = 0;
+		obj_state.emission = 0.4f;
+		obj_state.diffusion = 0.6f;
+		obj_state.specular = 0.2f;
+		obj_state.sp_pow = 30.f;
+		__cv4__ obj_state.color = glm::fvec4(1.f, 1.f, 1.f, 1.f);
+		__cm4__ obj_state.os2ws = glm::fmat4x4();
+	}
+};
+
+ENUM(RsMouseMode, NONE, ADD_CALIB_POINTS, GATHERING_POINTS, PIN_ORIENTATION)
+
+struct GlobalInfo
+{
+	map<int, glm::fvec3> vzmobjid2mkid;
+
+	RsMouseMode rs_ms_mode;
+	bool skip_main_thread;
+	OpttrkData otrk_data;
+	bool is_calib_cam;
+
+	glm::fvec3 pos_probe_pin;
+
+	// model related
+	bool is_modelvolume;
+	int model_obj_id;
+	vector<glm::fvec3> model_pick_pts;
+	bool align_matching_model;
+	glm::fmat4x4 mat_match_model2ws;
+
+	int rs_pc_id;
+
+	// scene definition
+	int ws_scene_id; // arbitrary integer
+	int rs_scene_id; // arbitrary integer
+	int model_scene_id; // arbitrary integer
+	int csection_scene_id; // arbitrary integer
+
+	// cv window name
+	string window_name_rs_view;
+	string window_name_ws_view;
+	string window_name_ms_view;
+	
+	// file path
+	string optrack_calib;
+	string optrack_env;
+	string cb_positions;
+	string sst_positions;
+	string model_path;
+
+	GlobalInfo()
+	{
+		rs_ms_mode = NONE;
+		skip_main_thread = false;
+		is_calib_cam = false;
+		model_obj_id = 0;
+		is_modelvolume = false;
+		align_matching_model = false;
+		rs_pc_id = 0;
+	}
+};
+
+#define TESTOUT(NAME, P) {cout << NAME << P.x << ", " << P.y << ", " << P.z << endl;}
