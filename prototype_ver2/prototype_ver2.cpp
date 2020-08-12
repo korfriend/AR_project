@@ -507,11 +507,11 @@ int main()
 				pos_xyz_list[j + 1] = v1;
 				pos_xyz_list[j + 2] = v2;
 
-				rgb_list[j] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
-				rgb_list[j + 1] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
-				rgb_list[j + 2] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
+				//rgb_list[j] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
+				//rgb_list[j + 1] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
+				//rgb_list[j + 2] = glm::fvec4(0.114f, 0.8f, 1.f, 0.45f);
 			}
-			vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, (float*)rgb_list, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.brain_obj_id);
+			vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.brain_obj_id);
 			delete[] pos_xyz_list;
 			delete[] nrl_xyz_list;
 			delete[] idx_prims;
@@ -541,13 +541,13 @@ int main()
 					pos_xyz_list[j + 1] = v1;
 					pos_xyz_list[j + 2] = v2;
 
-					rgb_list[j] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
-					rgb_list[j + 1] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
-					rgb_list[j + 2] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
+					//rgb_list[j] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
+					//rgb_list[j + 1] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
+					//rgb_list[j + 2] = glm::fvec4(0.164f, 0.164f, 0.92f, 0.66f);
 				}
 			}
 
-			vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, (float*)rgb_list, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.ventricle_obj_id);
+			vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.ventricle_obj_id);
 
 
 
@@ -1078,6 +1078,10 @@ int main()
 				vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_obj_id, model_obj_state);
 				vzm::GetSceneObjectState(g_info.model_scene_id, g_info.brain_obj_id, brain_obj_state);
 				vzm::GetSceneObjectState(g_info.model_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
+
+				model_obj_state.color[3] = 0.5;
+				brain_obj_state.color[3] = 0.7;
+				ventricle_obj_state.color[3] = 1.0;
 
 				if (g_info.align_matching_model)
 				{
