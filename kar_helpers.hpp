@@ -679,6 +679,14 @@ struct OpttrkData
 
 ENUM(MsMouseMode, NONE, ADD_CALIB_POINTS, GATHERING_POINTS, PIN_ORIENTATION, STG_CALIBRATION)
 
+// added by dojo at 200813
+struct SS_Tool_Guide_Pts
+{
+	int ss_tool_guide_points_id;
+	vector<glm::fvec3> pos_centers_tfrm;
+	SS_Tool_Guide_Pts() { ss_tool_guide_points_id = 0; }
+};
+
 struct GlobalInfo
 {
 	map<int, glm::fvec3> vzmobjid2mkid;
@@ -701,6 +709,7 @@ struct GlobalInfo
 
 	int rs_pc_id;
 
+	SS_Tool_Guide_Pts ss_tool_info;
 	int brain_obj_id, ventricle_obj_id;
 
 	// scene definition

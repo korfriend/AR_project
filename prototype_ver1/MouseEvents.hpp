@@ -323,17 +323,17 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				glm::fvec3 pt = otrk_data.trk_info.GetProbePinPoint();
 	
 				glm::fmat4x4 mat_ws2tfrm = glm::inverse(otrk_data.trk_info.mat_tfrm2ws);
-				ss_tool_info.pos_centers_tfrm.push_back(tr_pt(mat_ws2tfrm, pt));
+				eginfo->ginfo.ss_tool_info.pos_centers_tfrm.push_back(tr_pt(mat_ws2tfrm, pt));
 	
 				ofstream outfile(eginfo->ginfo.sst_positions);
 				if (outfile.is_open())
 				{
 					outfile.clear();
-					for (int i = 0; i < ss_tool_info.pos_centers_tfrm.size(); i++)
+					for (int i = 0; i < eginfo->ginfo.ss_tool_info.pos_centers_tfrm.size(); i++)
 					{
-						string line = to_string(ss_tool_info.pos_centers_tfrm[i].x) + " " +
-							to_string(ss_tool_info.pos_centers_tfrm[i].y) + " " +
-							to_string(ss_tool_info.pos_centers_tfrm[i].z);
+						string line = to_string(eginfo->ginfo.ss_tool_info.pos_centers_tfrm[i].x) + " " +
+							to_string(eginfo->ginfo.ss_tool_info.pos_centers_tfrm[i].y) + " " +
+							to_string(eginfo->ginfo.ss_tool_info.pos_centers_tfrm[i].z);
 						outfile << line << endl;
 					}
 				}

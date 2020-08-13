@@ -51,12 +51,12 @@ using namespace cv;
 
 GlobalInfo g_info;
 
-struct SS_Tool_Guide_Pts
-{
-	int ss_tool_guide_points_id;
-	vector<glm::fvec3> pos_centers_tfrm;
-	SS_Tool_Guide_Pts() { ss_tool_guide_points_id = 0; }
-};
+//struct SS_Tool_Guide_Pts
+//{
+//	int ss_tool_guide_points_id;
+//	vector<glm::fvec3> pos_centers_tfrm;
+//	SS_Tool_Guide_Pts() { ss_tool_guide_points_id = 0; }
+//};
 SS_Tool_Guide_Pts ss_tool_info;
 
 ArMarkerTracker ar_marker;
