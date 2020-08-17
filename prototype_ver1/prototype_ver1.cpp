@@ -171,6 +171,8 @@ int main()
 	vzm::SetSceneEnvParameters(g_info.model_scene_id, ms_scn_env_params);
 	vzm::SceneEnvParameters csection_scn_env_params = scn_env_params;
 	vzm::SetSceneEnvParameters(g_info.csection_scene_id, csection_scn_env_params);
+	vzm::SceneEnvParameters stg_scn_env_params = scn_env_params;
+	vzm::SetSceneEnvParameters(g_info.stg_scene_id, stg_scn_env_params);
 
 	vzm::ObjStates obj_state;
 	obj_state.emission = 0.4f;
@@ -213,8 +215,9 @@ int main()
 	cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 	cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 
-	const int stg_w = 640;
-	const int stg_h = 480;
+#define __TEST_VIS_RS
+	int stg_w = 640;
+	int stg_h = 480;
 
 	vzm::ObjStates model_state = obj_state;
 	model_state.color[3] = 0.8;
@@ -540,7 +543,7 @@ int main()
 		case 99: calib_toggle = !calib_toggle; break; // c
 		case 115: show_csection = !show_csection; break; // s
 		case 116: match_model_switch = (++match_model_switch) % 2; break; // t
-		case 120: reset_calib = true; break; // r
+		case 120: reset_calib = true; break; // x
 			// RsMouseMode
 		case 49: g_info.manual_set_mode = MsMouseMode::NONE; break; // 1
 		case 50: g_info.manual_set_mode = MsMouseMode::ADD_CALIB_POINTS; break; // 2
@@ -588,11 +591,15 @@ int main()
 
 			const int w = color.as<rs2::video_frame>().get_width();
 			const int h = color.as<rs2::video_frame>().get_height();
+#ifdef __TEST_VIS_RS
+			stg_w = w;
+			stg_h = h;
+#endif
 
-			Mat image(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
+			Mat image_rs(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
 			Mat imagebgr;
 
-			cvtColor(image, imagebgr, COLOR_BGR2RGB);
+			cvtColor(image_rs, imagebgr, COLOR_BGR2RGB);
 			
 			if (load_calib_points)
 			{
@@ -866,7 +873,7 @@ int main()
 						int _ty = (int)ty;
 						if (_tx < 0 || _ty < 0 || _tx >= w || _ty >= h) 
 							continue;
-						glm::u8vec3* _data = (glm::u8vec3*)image.data;
+						glm::u8vec3* _data = (glm::u8vec3*)image_rs.data;
 						glm::u8vec3 _color0 = _data[_tx + _ty * w];
 						//glm::u8vec3 _color1 = _data[_tx + _ty * w];
 						//glm::u8vec3 _color2 = _data[_tx + _ty * w];
@@ -980,6 +987,12 @@ int main()
 
 			static int mk_stg_calib_sphere_id = 0;
 			static int clf_mk_stg_calib_spheres_id = 0;
+			static int last_calib_pair = 0;
+#ifdef __TEST_VIS_RS
+			// test via RS //
+			Mat img_stg_test;
+			cvtColor(image_rs, img_stg_test, COLOR_BGR2RGB);
+#endif
 			if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION && g_info.otrk_data.stg_calib_mk_id >= 0)
 			{
 				glm::fvec3 pos_stg_calib_mk = g_info.otrk_data.trk_info.GetMkPos(g_info.otrk_data.stg_calib_mk_id);
@@ -987,11 +1000,44 @@ int main()
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_stg_calib_sphere_id, obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_stg_calib_sphere_id, obj_state);
 
+#define __USE_AR_STG_CALIB_TEST
+#ifdef __USE_AR_STG_CALIB_TEST
+				static glm::fmat4x4 prev_mat_clf2ws;
+				glm::fvec3 diff = tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3());
+				if (glm::length(diff) > 0.05)
+				{
+					prev_mat_clf2ws = mat_clf2ws;
+					Mat viewGray;
+					cvtColor(img_stg_test, viewGray, COLOR_RGB2GRAY);
+					std::vector<__MarkerDetInfo> list_det_armks;
+					ar_marker.track_markers(list_det_armks, viewGray.data, viewGray.cols, viewGray.rows, mk_ids);
+					if (list_det_armks.size() > 0)
+					{
+						cout << "find ar mks : " << list_det_armks.size() << endl;
+						for (int i = 0; i < (int)list_det_armks.size(); i++)
+						{
+							__MarkerDetInfo& armk = list_det_armks[i];
+							if (armk.id > g_info.otrk_data.calib_3d_pts.size()) continue;
+
+							Point2f pt2d = Point2f(0, 0);
+							vector<float>& cpts = armk.corners2d;
+							for (int k = 0; k < 4; k++)
+								pt2d += Point2f(cpts[k * 2 + 0], cpts[k * 2 + 1]);
+
+							glm::fvec3 pos3d = tr_pt(mat_ws2clf, __cv3__ &g_info.otrk_data.calib_3d_pts[armk.id - 1]);
+							g_info.otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(pt2d, Point3f(pos3d.x, pos3d.y, pos3d.z)));
+						}
+					}
+
+					cout << "__USE_AR_STG_CALIB_TEST pairs : " << g_info.otrk_data.stg_calib_pt_pairs.size() << endl;
+				}
+#endif
 				int num_stg_calib_pairs = (int)g_info.otrk_data.stg_calib_pt_pairs.size();
+
 				vector<Point2f> point2d;
 				vector<Point3f> point3d;
-				vector<glm::fvec4> clf_mk_spheres_xyzr;
-				vector<glm::fvec3> clf_mk_spheres_rgb;
+				vector<glm::fvec4> ws_mk_spheres_xyzr;
+				vector<glm::fvec3> ws_mk_spheres_rgb;
 				for (int i = 0; i < num_stg_calib_pairs; i++)
 				{
 					pair<Point2f, Point3f>& pr = g_info.otrk_data.stg_calib_pt_pairs[i];
@@ -999,41 +1045,63 @@ int main()
 					Point3f pos_pt = get<1>(pr);
 					point3d.push_back(pos_pt);
 
-
-					//mat_ws2clf
-
-					clf_mk_spheres_xyzr.push_back(glm::fvec4(pos_pt.x, pos_pt.x, pos_pt.x, 0.007));
-					clf_mk_spheres_rgb.push_back(glm::fvec3(0.2, 0.8, 1));
+					glm::fvec3 pos_mk_ws = tr_pt(mat_clf2ws, __cv3__ &pos_pt);
+					ws_mk_spheres_xyzr.push_back(glm::fvec4(pos_mk_ws, 0.007));
+					ws_mk_spheres_rgb.push_back(glm::fvec3(0.2, 0.8, 1));
 				}
 
 				if (num_stg_calib_pairs > 0)
 				{
-					vzm::GenerateSpheresObject(__FP clf_mk_spheres_xyzr[0], __FP clf_mk_spheres_rgb[0], num_stg_calib_pairs, clf_mk_stg_calib_spheres_id);
+					vzm::GenerateSpheresObject(__FP ws_mk_spheres_xyzr[0], __FP ws_mk_spheres_rgb[0], num_stg_calib_pairs, clf_mk_stg_calib_spheres_id);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, clf_mk_stg_calib_spheres_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, clf_mk_stg_calib_spheres_id, obj_state);
 				}
 
-				if (num_stg_calib_pairs >= 12)
+				if (num_stg_calib_pairs >= 12 && last_calib_pair != num_stg_calib_pairs)
 				{
+					cout << "compute STG calibration" << endl;
+					last_calib_pair = num_stg_calib_pairs;
+					vzm::CameraParameters cam_state_calbirated;
+
 					// calculate intrinsics and extrinsics
 					// crbs means Camera RigidBody Space
-					glm::fvec3 pos_crbs, view_crbs, up_crbs;
-					vzm::CameraParameters cam_state_calbirated;
-					helpers::ComputeArCameraCalibrateInfo(__FP mat_clf2ws, __FP point3d[0], __FP point2d[0], num_stg_calib_pairs, 
-						__FP mat_stgcs2clf, &cam_state_calbirated);
+					{
+						glm::fvec3 pos_crbs, view_crbs, up_crbs;
+						glm::fmat4x4 mat_clf2clf;
+						helpers::ComputeArCameraCalibrateInfo(__FP mat_clf2clf, __FP point3d[0], __FP point2d[0], num_stg_calib_pairs,
+							__FP mat_stgcs2clf, &cam_state_calbirated);
 
-					g_info.is_calib_stg_cam = true;
+						// why divide by 4?!
+						cam_state_calbirated.fx /= 4.f;
+						cam_state_calbirated.fy /= 4.f;
+						cam_state_calbirated.cx /= 4.f;
+						cam_state_calbirated.cy /= 4.f;
+						cam_state_calbirated.sc /= 4.f;
+					}
+
 					cam_state_calbirated.w = stg_w;
 					cam_state_calbirated.h = stg_h;
+					cam_state_calbirated.np = 0.1f;
+					cam_state_calbirated.fp = 20.0f;
+					cam_state_calbirated.projection_mode = 3;
+
+					// 
+					__cv3__ cam_state_calbirated.pos = tr_pt(mat_clf2ws, __cv3__ cam_state_calbirated.pos);
+					__cv3__ cam_state_calbirated.up = glm::normalize(tr_vec(mat_clf2ws, __cv3__ cam_state_calbirated.up));
+					__cv3__ cam_state_calbirated.view = glm::normalize(tr_vec(mat_clf2ws, __cv3__ cam_state_calbirated.view));
+					
 					vzm::SetCameraParameters(g_info.stg_scene_id, cam_state_calbirated, stg_cam_id);
+					g_info.is_calib_stg_cam = true;
 					// TO DO //
 					//bool is_success = CalibrteCamLocalFrame(*(vector<glm::fvec2>*)&point2d, *(vector<glm::fvec3>*)&point3d, mat_ws2clf,
 					//	rgb_intrinsics.fx, rgb_intrinsics.fy, rgb_intrinsics.ppx, rgb_intrinsics.ppy,
 					//	mat_rscs2clf, &pnp_err, &calib_samples, 3d, 2d);
 				}
 
-
 			}
 			else
 			{
+				last_calib_pair = 0;
 				vzm::ObjStates cstate = obj_state;
 				cstate.is_visible = false;
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_stg_calib_sphere_id, cstate);
@@ -1048,9 +1116,10 @@ int main()
 			{
 				glm::fmat4x4 mat_stgcs2ws = mat_clf2ws * mat_stgcs2clf;
 
+				vzm::DisplayConsoleMessages(true);
 				//rs_cam_tris_id, rs_cam_lines_id, rs_cam_txt_id
 				if (trk_info.is_detected_rscam)
-					Register_CamModel(g_info.ws_scene_id, mat_stgcs2ws, "STG CAM", 2);
+					Register_CamModel(g_info.ws_scene_id, mat_stgcs2ws, "STG CAM", 3);
 
 				if (show_mks && mks_spheres_id != 0)
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, mks_spheres_id, obj_state);
@@ -1060,6 +1129,7 @@ int main()
 					cstate.is_visible = false;
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, mks_spheres_id, cstate);
 				}
+				vzm::DisplayConsoleMessages(false);
 			}
 
 			//if (trk_info.mk_residue_list.size() > 5)
@@ -1254,13 +1324,30 @@ int main()
 					cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(400, 50), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
 				imshow(g_info.window_name_rs_view, imagebgr);
 			}
-
+			
 			if (g_info.is_calib_stg_cam)
 			{
+				vzm::DisplayConsoleMessages(true);
 				vzm::CameraParameters _stg_cam_params;
 				vzm::GetCameraParameters(g_info.stg_scene_id, _stg_cam_params, stg_cam_id);
 				ComputeCameraStates(mat_stgcs2clf, mat_clf2ws, _stg_cam_params);
 				vzm::SetCameraParameters(g_info.stg_scene_id, _stg_cam_params, stg_cam_id);
+
+
+				vzm::CameraParameters rs_cam_params;
+				vzm::GetCameraParameters(g_info.rs_scene_id, rs_cam_params, rs_cam_id);
+
+				cout << "intrinsics STG : " << _stg_cam_params.fx << ", " << _stg_cam_params.fy << ", " << _stg_cam_params.sc << ", "
+					<< _stg_cam_params.cx << ", " << _stg_cam_params.cy << ", " << _stg_cam_params.w << "x" << _stg_cam_params.h << endl;
+				cout << "intrinsics RS  : " << rs_cam_params.fx << ", " << rs_cam_params.fy << ", " << rs_cam_params.sc << ", "
+					<< rs_cam_params.cx << ", " << rs_cam_params.cy << ", " << rs_cam_params.w << "x" << rs_cam_params.h << endl;
+				TESTOUT("pos STG : ", (__cv3__ _stg_cam_params.pos));
+				TESTOUT("dir STG : ", (__cv3__ _stg_cam_params.view));
+				TESTOUT("up STG  : ", (__cv3__ _stg_cam_params.up));
+				TESTOUT("pos RS  : ", (__cv3__ rs_cam_params.pos));
+				TESTOUT("dir RS  : ", (__cv3__ rs_cam_params.view));
+				TESTOUT("up RS   : ", (__cv3__ rs_cam_params.up));
+
 
 				vzm::RenderScene(g_info.stg_scene_id, stg_cam_id);
 				unsigned char* ptr_rgba;
@@ -1268,16 +1355,31 @@ int main()
 				int _stg_w, _stg_h;
 				if (vzm::GetRenderBufferPtrs(g_info.stg_scene_id, &ptr_rgba, &ptr_zdepth, &_stg_w, &_stg_h, stg_cam_id))
 				{
+#ifdef __TEST_VIS_RS
+					copy_back_ui_buffer(img_stg_test.data, ptr_rgba, _stg_w, _stg_h, false);
+					cv::drawMarker(img_stg_test, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255));
+					imshow(g_info.window_name_stg_view, img_stg_test);
+
+					//Mat image_stg(Size(_stg_w, _stg_h), CV_8UC4, (void*)ptr_rgba, Mat::AUTO_STEP);
+					//cv::drawMarker(image_stg, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255));
+					//imshow(g_info.window_name_stg_view, image_stg);
+#else
 					Mat image_stg(Size(_stg_w, _stg_h), CV_8UC4, (void*)ptr_rgba, Mat::AUTO_STEP);
-					imshow(g_info.window_name_stg_view, image_stg);
 					cv::drawMarker(image_stg, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255));
+					imshow(g_info.window_name_stg_view, image_stg);
+#endif
 				}
+				vzm::DisplayConsoleMessages(false);
 			}
 			else
 			{
+#ifdef __TEST_VIS_RS
+				Mat image_stg = img_stg_test;
+#else
 				static Mat image_stg(Size(stg_w, stg_h), CV_8UC4, Mat::AUTO_STEP);
+#endif
+				cv::drawMarker(image_stg, Point(stg_w / 2, stg_h / 2), Scalar(0, 0, 255));
 				imshow(g_info.window_name_stg_view, image_stg);
-				cv::drawMarker(image_stg, Point(stg_w / 2, stg_h / 2), Scalar(255, 255, 255));
 			}
 
 

@@ -363,10 +363,13 @@ void CallBackFunc_StgMouse(int event, int x, int y, int flags, void* userdata)
 	{
 		if (otrk_data.stg_calib_mk_id < 0) return;
 
-		if (event == EVENT_LBUTTONDOWN)
+		if (event == EVENT_LBUTTONDOWN && otrk_data.trk_info.is_detected_rscam)
 		{
 			glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(otrk_data.stg_calib_mk_id);
-			otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(Point2f(x, y), Point3f(mk_pt.x, mk_pt.y, mk_pt.z)));
+			glm::fmat4x4 mat_ws2clf = glm::inverse(otrk_data.trk_info.mat_rbcam2ws);
+			glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
+			
+			otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(Point2f(x, y), Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
 			cout << "# of STG calib point pairs : " << otrk_data.stg_calib_pt_pairs.size() << endl;
 		}
 	}

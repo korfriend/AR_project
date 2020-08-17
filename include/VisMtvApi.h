@@ -248,8 +248,8 @@ namespace helpers
 	__dojostatic bool ComputeCameraRendererParameters(const float* pos_xyz_ws, const float* pos_xy_ss, const int num_mks,
 		float* cam_pos, float* cam_view, float* cam_up, float* fx, float* fy, float* sc, float* cx, float* cy);
 
-	__dojostatic bool ComputeArCameraCalibrateInfo(const float* mat_camrb2ws, const float* calrb_xyz_ws, const float* calrb_xy_ss, const int num_mks,
-		const float* mat_camcs2camrbs, vzm::CameraParameters* cam_ar_mode_params = NULL);
+	__dojostatic bool ComputeArCameraCalibrateInfo(const float* mat_rbs2ts, const float* calrb_xyz_ts, const float* calrb_xy_ss, const int num_mks,
+		float* mat_camcs2rbs, vzm::CameraParameters* cam_ar_mode_params);
 
 	struct cam_pose
 	{
