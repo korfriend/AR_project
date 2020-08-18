@@ -5,7 +5,7 @@
 [s1]: https://ci.appveyor.com/api/projects/status/asw3s47t67951yhm?svg=true
 [s3]: https://img.shields.io/badge/License-MIT-orange.svg
 
-[av]: https://ci.appveyor.com/project/korfriend/localisosurfacemodeler
+[av]: https://ci.appveyor.com/project/korfriend/ar-project
 [li]: https://opensource.org/licenses/MIT
 
 <br/>
