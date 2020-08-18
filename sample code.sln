@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "prototype_ver1", "prototype
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "optitrk", "optitrk\optitrk.vcxproj", "{578AAE55-4591-48B9-ADA3-13CE883F7C5A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "prototype_ver2", "prototype_ver2\prototype_ver2.vcxproj", "{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{578AAE55-4591-48B9-ADA3-13CE883F7C5A}.Release|x64.Build.0 = Release|x64
 		{578AAE55-4591-48B9-ADA3-13CE883F7C5A}.Release|x86.ActiveCfg = Release|Win32
 		{578AAE55-4591-48B9-ADA3-13CE883F7C5A}.Release|x86.Build.0 = Release|Win32
+		{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}.Debug|x64.ActiveCfg = Debug|x64
+		{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}.Debug|x64.Build.0 = Debug|x64
+		{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}.Debug|x86.ActiveCfg = Debug|Win32
+		{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}.Debug|x86.Build.0 = Debug|Win32
+		{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}.Release|x64.ActiveCfg = Release|x64
+		{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}.Release|x64.Build.0 = Release|x64
+		{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}.Release|x86.ActiveCfg = Release|Win32
+		{8AB704DB-1A95-4BF8-9E14-2A4426397DC4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
