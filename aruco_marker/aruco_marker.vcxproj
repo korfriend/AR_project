@@ -109,8 +109,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../libs;</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_aruco420d.lib;opencv_highgui420d.lib;opencv_core420d.lib;opencv_imgcodecs420d.lib;opencv_imgproc420d.lib;opencv_calib3d420d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
