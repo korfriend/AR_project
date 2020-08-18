@@ -725,6 +725,7 @@ struct GlobalInfo
 	string window_name_ws_view;
 	string window_name_ms_view;
 	string window_name_stg_view;
+	string window_name_eye_view;
 	string window_name_zs_view;
 
 	// file path
