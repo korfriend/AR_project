@@ -1,4 +1,4 @@
-# KAR Samples
+# AR Project
 
 <br/>
 This sample is an argumented reality (AR) example, which uses the VisMotive framework written in C++. 
