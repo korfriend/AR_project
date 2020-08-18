@@ -61,6 +61,12 @@ SS_Tool_Guide_Pts ss_tool_info;
 
 ArMarkerTracker ar_marker;
 
+
+
+void calcGuideDistanceandAngle(float& fDist, float& fAngle) {
+
+}
+
 int main()
 {
 	// set global information
@@ -84,6 +90,7 @@ int main()
 	g_info.model_path = "..\\Data\\skin.obj";
 //	g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
+	g_info.guide_path = "E:\\project_srcs\\kar\\prototype_ver1\\ss_guide_pts.txt";
 
 #if defined(_DEBUG) | defined(DEBUG)
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -112,6 +119,9 @@ int main()
 
 	/////////////////////////////////////////////////////////////////////////
 	bool bAlign = false;
+	bool bSaveGuideFile = false;
+	vector<glm::fvec3> tool_guide_pos_os;
+
 	Simulation s;
 	string modelRootPath("..\\Data");
 	s.initSSUDeform(modelRootPath.c_str());
@@ -123,6 +133,12 @@ int main()
 
 	string ventriclePath = modelRootPath + "\\ventricle.obj";
 	vzm::LoadModelFile(ventriclePath, g_info.ventricle_obj_id);
+
+	int brain_obj_ws_id = 0;
+	int ventricle_obj_ws_id = 0;
+
+	vzm::GenerateCopiedObject(g_info.brain_obj_id, brain_obj_ws_id);
+	vzm::GenerateCopiedObject(g_info.ventricle_obj_id, ventricle_obj_ws_id);
 
 	/////////////////////////////////////////////////////////////////////////
 
@@ -267,12 +283,22 @@ int main()
 		model_state.associated_obj_ids["VR_OTF"] = vr_tmap_id;
 		model_state.associated_obj_ids["MPR_WINDOWING"] = mpr_tmap_id;
 	}
+
+
+	//////////////////////////////////////////////////////////////////////////////////
+	vzm::ObjStates brain_model_state = model_state;
+	vzm::ObjStates ventricle_model_state = model_state;
+
+	brain_model_state.color[0] = 0.5; brain_model_state.color[1] = 0.5; brain_model_state.color[2] = 0.5; brain_model_state.color[3] = 0.3;
+	ventricle_model_state.color[0] = 1.0; ventricle_model_state.color[1] = 0; ventricle_model_state.color[2] = 0; ventricle_model_state.color[3] = 1.0;
+
 	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_obj_id, model_state);
+	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.brain_obj_id, brain_model_state);
+	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.ventricle_obj_id, ventricle_model_state);
+
 	Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
-
-
-	////////
 	Show_Window(g_info.window_name_zs_view, g_info.zoom_scene_id, zoom_cam_id);
+	//////////////////////////////////////////////////////////////////////////////////
 
 
 	// Colorizer is used to visualize depth data
@@ -558,6 +584,7 @@ int main()
 	int rs_lf_axis = 0, probe_lf_axis = 0, sstool_lf_axis = 0; // lf means local frame
 	bool show_pc = false;
 	bool calib_toggle = false;
+	bool guide_toggle = false;
 	int num_calib = 0;
 	int calib_samples = 0;
 	glm::fmat4x4 mat_rscs2clf;
@@ -582,7 +609,9 @@ int main()
 		case 109: show_mks = !show_mks; break; // m
 		case 99: calib_toggle = !calib_toggle; break; // c
 		case 115: show_csection = !show_csection; break; // s
-			// MsMouseMode
+		case 'g': guide_toggle = !guide_toggle;	break;
+
+		// MsMouseMode
 		case 49: g_info.manual_set_mode = MsMouseMode::NONE; break; // 1
 		case 50: g_info.manual_set_mode = MsMouseMode::ADD_CALIB_POINTS; break; // 2
 		case 51: g_info.manual_set_mode = MsMouseMode::GATHERING_POINTS; break; // 3
@@ -623,6 +652,7 @@ int main()
 
 			if (load_calib_points)
 			{
+				// camera calbration file load //
 				g_info.otrk_data.calib_3d_pts.clear();
 				std::ifstream infile(g_info.cb_positions);
 				string line;
@@ -637,7 +667,7 @@ int main()
 				infile.close();
 
 
-
+				// ss_tool point file load //
 				ss_tool_info.pos_centers_tfrm.clear();
 				
 				infile = std::ifstream(g_info.sst_positions);
@@ -648,6 +678,22 @@ int main()
 					float a, b, c;
 					if (!(iss >> a >> b >> c)) { break; } // error
 					ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
+					// process pair (a,b)
+				}
+				infile.close();
+
+
+				// ss_tool_guide point file load //
+				tool_guide_pos_os.clear();
+
+				infile = std::ifstream(g_info.guide_path);
+				line = "";
+				while (getline(infile, line))
+				{
+					std::istringstream iss(line);
+					float a, b, c;
+					if (!(iss >> a >> b >> c)) { break; } // error
+					tool_guide_pos_os.push_back(glm::fvec3(a, b, c));
 					// process pair (a,b)
 				}
 				infile.close();
@@ -809,8 +855,8 @@ int main()
 						mat_os2ws = mat_rs2ws * mat_rt; // depth to rgb (external)
 					}
 					glm::fvec3* normalmap = NULL;
-					const int _w = depth_frame.as<rs2::video_frame>().get_width();
 					const int _h = depth_frame.as<rs2::video_frame>().get_height();
+					const int _w = depth_frame.as<rs2::video_frame>().get_width();
 					{
 						// compute face normal
 						normalmap = new glm::fvec3[_w * _h];
@@ -1041,6 +1087,86 @@ int main()
 			}
 			*/
 
+			static int section_ssu_tool_guide_id = 0;
+			if (trk_info.is_detected_sstool) {
+				// ss_tool guide //
+				if (guide_toggle) {
+					tool_guide_pos_os.clear();
+
+					// tool guide 정보가 없는 경우, tool 움직임에 따라 tool guide가 같이 움직여야함
+					// ws
+					glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
+
+					glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
+					glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
+
+					glm::fvec3 sstool_dir = glm::normalize(sstool_p2_ws - sstool_p1_ws);
+
+
+					// *-----------------*===================================
+					// p1   toolguide    p2              sstool
+					// ws->os
+					glm::fvec3 sstool_guide_p1_ws = sstool_p1_ws - sstool_dir * 0.2f;
+					glm::fvec3 sstool_guide_p2_ws = sstool_p1_ws;
+
+					glm::fmat4x4 mat_ws2os = glm::scale(glm::fvec3(1000)); // 0.001 (os2ws)
+					glm::fvec3 sstool_guide_p1_os = tr_pt(mat_ws2os, sstool_guide_p1_ws);
+					glm::fvec3 sstool_guide_p2_os = tr_pt(mat_ws2os, sstool_guide_p2_ws);
+
+					tool_guide_pos_os.push_back(sstool_guide_p1_os);
+					tool_guide_pos_os.push_back(sstool_guide_p2_os);
+
+					bSaveGuideFile = true;
+				}
+				else if (guide_toggle == false && bSaveGuideFile && tool_guide_pos_os.size() > 0) {
+					ofstream outfile(g_info.guide_path);
+					if (outfile.is_open())
+					{
+						outfile.clear();
+						for (int i = 0; i < g_info.ss_tool_info.pos_centers_tfrm.size(); i++)
+						{
+							string line = to_string(g_info.ss_tool_info.pos_centers_tfrm[i].x) + " " +
+								to_string(g_info.ss_tool_info.pos_centers_tfrm[i].y) + " " +
+								to_string(g_info.ss_tool_info.pos_centers_tfrm[i].z);
+							outfile << line << endl;
+						}
+					}
+					outfile.close();
+					bSaveGuideFile = false;
+				}
+
+
+				if (tool_guide_pos_os.size() > 0) {
+					glm::fvec3 sstool_guide_p1_os = tool_guide_pos_os[0];
+					glm::fvec3 sstool_guide_p2_os = tool_guide_pos_os[1];
+
+					// os
+					glm::fvec3 cyl_p01[2] = { sstool_guide_p1_os, sstool_guide_p2_os };
+					float cyl_r = 15;																		// !!!cylinder 크기가 m인지 mm인지 모르겠음
+					glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
+					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_guide_id);
+					vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, section_ssu_tool_guide_id, model_state);
+
+					if (bAlign) {
+						// os->headfrm->ws
+						vzm::ObjStates model_obj_state;
+						vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_obj_id, model_obj_state);
+
+						glm::fmat4x4 os2ws = __FP model_obj_state.os2ws;
+						sstool_guide_p1_os = tr_pt(os2ws, tool_guide_pos_os[0]);
+						sstool_guide_p2_os = tr_pt(os2ws, tool_guide_pos_os[1]);
+
+						glm::fvec3 cyl_p02[2] = { sstool_guide_p1_os, sstool_guide_p2_os };
+						cyl_r = 0.00015f;
+						glm::fvec3 cyl_rgb2 = glm::fvec3(0, 1, 1);
+						vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb2, 1, section_ssu_tool_guide_id);
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_guide_id, model_obj_state);
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_guide_id, model_obj_state);
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_guide_id, model_obj_state);
+					}
+				}
+			}
+
 			if (trk_info.is_detected_sshead)
 			{
 				static glm::fmat4x4 mat_os2headfrm;
@@ -1079,7 +1205,7 @@ int main()
 					glm::fmat3x3 mat_s;
 
 					// brain //
-					vzm::GetPModelData(g_info.brain_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
+					vzm::GetPModelData(brain_obj_ws_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
 					
 					for (int i = 0, ni = s.softBodies[0]->m_surfaceMeshFace.size(); i < ni; i++) {
 						const CiSoftBody::Face&	f = s.softBodies[0]->m_surfaceMeshFace[i];
@@ -1094,12 +1220,12 @@ int main()
 						pos_xyz_list[j + 1] = v1;
 						pos_xyz_list[j + 2] = v2;
 					}
-					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.brain_obj_id);
+					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, brain_obj_ws_id);
 					delete[] pos_xyz_list;
 					delete[] nrl_xyz_list;
 
 					// ventricle //
-					vzm::GetPModelData(g_info.ventricle_obj_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
+					vzm::GetPModelData(ventricle_obj_ws_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
 					for (int c = 0; c < s.softBodies[0]->m_childCnt; c++) {
 						for (int i = 0, ni = s.softBodies[0]->m_child[c].m_surfaceMeshFace.size(); i < ni; i++) {
 							const CiSoftBody::Face&	f = s.softBodies[0]->m_child[c].m_surfaceMeshFace[i];
@@ -1115,7 +1241,7 @@ int main()
 							pos_xyz_list[j + 2] = v2;
 						}
 					}
-					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, g_info.ventricle_obj_id);
+					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, ventricle_obj_ws_id);
 					delete[] pos_xyz_list;
 					delete[] nrl_xyz_list;
 
@@ -1123,13 +1249,13 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, model_obj_ws_id, model_obj_state);
 
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.brain_obj_id, brain_obj_state);
-					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.brain_obj_id, brain_obj_state);
-					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, g_info.brain_obj_id, brain_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, brain_obj_ws_id, brain_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, brain_obj_ws_id, brain_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, brain_obj_ws_id, brain_obj_state);
 
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
-					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
-					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, g_info.ventricle_obj_id, ventricle_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ventricle_obj_ws_id, ventricle_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ventricle_obj_ws_id, ventricle_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ventricle_obj_ws_id, ventricle_obj_state);
 				}
 
 				// PIN REF //
@@ -1244,6 +1370,7 @@ int main()
 
 				static int section_ssu_tool_line_id = 0, section_ssu_tool_end_id = 0, section_ssu_tool_p2_id = 0, section_ssu_tool_line2_id = 0;
 				if (trk_info.is_detected_sstool && ss_tool_info.pos_centers_tfrm.size()) {
+					// ss_tool cylinder visualization //
 					glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
 
 					glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
@@ -1306,7 +1433,38 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_p2_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_p2_id, obj_state);
 				}
-				
+
+				/////////////////////////////////////////////////////////////////////////////////
+				if (trk_info.is_detected_sstool && bAlign) {
+					if (tool_guide_pos_os.size() && ss_tool_info.pos_centers_tfrm.size()) {
+						// sstool pos(ws)
+						glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
+						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
+						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
+
+						// sstool pos(ws->os), dir
+						glm::fmat4 ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
+						glm::fmat4 headfrm2os = glm::inverse(mat_os2headfrm) * ws2headfrm;
+
+						glm::fvec3 sstool_p1_os = headfrm2os * glm::fvec4(sstool_p1_ws, 1.f);
+						glm::fvec3 sstool_p2_os = headfrm2os * glm::fvec4(sstool_p2_ws, 1.f);
+						glm::fvec3 sstool_dir = sstool_p2_os - sstool_p1_os;
+
+						// ss guide pos(os)
+						glm::fvec3 ssguide_p1_os = tool_guide_pos_os[0];
+						glm::fvec3 ssguide_p2_os = tool_guide_pos_os[1];
+						glm::fvec3 ssguide_dir = ssguide_p2_os - ssguide_p1_os;
+
+						// guide angle
+						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
+						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
+						float fGuideAngle = glm::acos(glm::dot(sstool_dir_norm, ssguide_dir_norm));
+
+						// guide dist (os)
+						float fGuideDist = glm::length(ssguide_p1_os - sstool_p1_os);
+					}
+				}
+				/////////////////////////////////////////////////////////////////////////////////
 			}
 
 			vzm::CameraParameters _rs_cam_params;

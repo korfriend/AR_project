@@ -735,6 +735,7 @@ struct GlobalInfo
 	string rs_calib;
 	string sst_positions;
 	string model_path;
+	string guide_path;		// 20200818 숭실대 guide 경로때문에 변수하나 추가했어요
 
 	GlobalInfo()
 	{
