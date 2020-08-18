@@ -72,6 +72,7 @@ int main()
 	g_info.optrack_env = "D:\\Document\\OptiTrack\\my_test_200812_1.motive";
 	g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
 	g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
+	g_info.rs_calib = "E:\\project_srcs\\kar\\prototype_ver1\\rs_calib.txt";
 
 #define SS_HEAD
 
@@ -527,7 +528,7 @@ int main()
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		key_pressed = cv::waitKey(1);
-		bool load_calib_points = false;
+		bool load_calib_info = false;
 		bool reset_calib = false;
 		switch (key_pressed) // http://www.asciitable.com/
 		{
@@ -535,7 +536,7 @@ int main()
 		case 93: postpone += 1; break; // ] 
 		case 97: use_new_version = !use_new_version;  cout << "Use Prev Version : " << use_new_version << endl; break; // a 
 		case 114: recompile_hlsl = true; cout << "Recompile Shader!" << endl; break; // r
-		case 108: load_calib_points = true; break; // l
+		case 108: load_calib_info = true; break; // l
 		case 118: show_calib_frames = !show_calib_frames; break; // v
 		case 112: show_pc = !show_pc; break; // p
 		case 101: show_apis_console = !show_apis_console; break; // e
@@ -601,21 +602,58 @@ int main()
 
 			cvtColor(image_rs, imagebgr, COLOR_BGR2RGB);
 			
-			if (load_calib_points)
+			if (load_calib_info)
 			{
+				// loading points
 				g_info.otrk_data.calib_3d_pts.clear();
 				std::ifstream infile(g_info.cb_positions);
 				string line;
-				while (getline(infile, line))
+				if (infile.is_open())
 				{
-					std::istringstream iss(line);
-					float a, b, c;
-					if (!(iss >> a >> b >> c)) { break; } // error
-					g_info.otrk_data.calib_3d_pts.push_back(Point3f(a, b, c));
-					// process pair (a,b)
+					while (getline(infile, line))
+					{
+						std::istringstream iss(line);
+						float a, b, c;
+						if (!(iss >> a >> b >> c)) { break; } // error
+						g_info.otrk_data.calib_3d_pts.push_back(Point3f(a, b, c));
+						// process pair (a,b)
+					}
+					infile.close();
 				}
-				infile.close();
 
+				// loading matrix
+				infile = std::ifstream(g_info.rs_calib);
+				if (infile.is_open())
+				{
+					points_rs_buf_2d.clear();
+					points_rs_buf_3d_clf.clear();
+					float* mat_data = glm::value_ptr(mat_rscs2clf);
+					int line_idx = 0, line_pairs = 100000;
+					while (getline(infile, line))
+					{
+						std::istringstream iss(line);
+						if (line_idx == 0)
+						{
+							iss >> line_pairs;
+						}
+						else if (line_idx < line_pairs + 1)
+						{
+							glm::fvec2 p2d;
+							glm::fvec3 p3d;
+							iss >> p2d.x >> p2d.y >> p3d.x >> p3d.y >> p3d.z;
+							points_rs_buf_2d.push_back(p3d);
+							points_rs_buf_3d_clf.push_back(p3d);
+						}
+						else
+						{
+							iss >> mat_data[line_idx - line_pairs - 1];
+						}
+						// process pair (a,b)
+						line_idx++;
+					}
+					g_info.is_calib_rs_cam = true;
+					infile.close();
+				}
 				//if (trk_info.is_detected_sstool)
 				//{
 				//	ss_tool_info.pos_centers_tfrm.clear();
@@ -725,6 +763,30 @@ int main()
 						{
 							g_info.is_calib_rs_cam = true;
 							num_calib++;
+
+							// 
+							ofstream outfile(g_info.rs_calib);
+							if (outfile.is_open())
+							{
+								outfile.clear();
+
+								outfile << to_string(point2d.size()) << endl;
+								for (int i = 0; i < (int)point2d.size(); i++)
+								{
+									Point2d p2d = point2d[i];
+									Point3d p3d = point3d[i];
+									string line = to_string(p2d.x) + " " + to_string(p2d.y) + " " + to_string(p3d.x) + " " + to_string(p3d.y) + " " + to_string(p3d.z);
+									outfile << line << endl;
+								}
+
+								float* d = glm::value_ptr(mat_rscs2clf);
+								for (int i = 0; i < 16; i++)
+								{
+									string line = to_string(d[i]);
+									outfile << line << endl;
+								}
+							}
+							outfile.close();
 						}
 
 						for (int i = 0; i < calib_trial_rs_cam_frame_ids.size(); i++)

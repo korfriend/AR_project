@@ -731,6 +731,7 @@ struct GlobalInfo
 	string optrack_calib;
 	string optrack_env;
 	string cb_positions;
+	string rs_calib;
 	string sst_positions;
 	string model_path;
 
