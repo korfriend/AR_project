@@ -371,6 +371,23 @@ void CallBackFunc_StgMouse(int event, int x, int y, int flags, void* userdata)
 			
 			otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(Point2f(x, y), Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
 			cout << "# of STG calib point pairs : " << otrk_data.stg_calib_pt_pairs.size() << endl;
+
+			ofstream outfile(eginfo->ginfo.stg_calib);
+			if (outfile.is_open())
+			{
+				outfile.clear();
+				outfile << to_string(eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size()) << endl;
+				for (int i = 0; i < eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size(); i++)
+				{
+					pair<Point2f, Point3f>& pr = eginfo->ginfo.otrk_data.stg_calib_pt_pairs[i];
+					Point2f p2d = get<0>(pr);
+					Point3f p3d = get<1>(pr);
+
+					string line = to_string(p2d.x) + " " + to_string(p2d.y) + " " + to_string(p3d.x) + " " + to_string(p3d.y) + " " + to_string(p3d.z);
+					outfile << line << endl;
+				}
+			}
+			outfile.close();
 		}
 	}
 }

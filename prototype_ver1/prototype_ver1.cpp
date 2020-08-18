@@ -74,6 +74,7 @@ int main()
 	g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
 	g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
 	g_info.rs_calib = "E:\\project_srcs\\kar\\prototype_ver1\\rs_calib.txt";
+	g_info.stg_calib = "E:\\project_srcs\\kar\\prototype_ver1\\stg_calib.txt";
 
 #define SS_HEAD
 
@@ -465,11 +466,20 @@ int main()
 
 				// Send resulting frames for visualization in the main thread
 				//original_data.enqueue(data);
+
+//#define INDIVIDUAL_EYE_THREAD
+#ifndef INDIVIDUAL_EYE_THREAD
+				rs2::frameset __data;
+				if (eye_pipe.poll_for_frames(&__data))
+				{
+					eye_data.enqueue(__data);
+				}
+#endif
 			}
 		}
 	});
 
-
+#ifdef INDIVIDUAL_EYE_THREAD
 	std::atomic_bool eye_rs_alive{ true };
 	std::thread eye_processing_thread([&]() {
 		while (eye_rs_alive)
@@ -486,7 +496,7 @@ int main()
 			}
 		}
 	});
-
+#endif
 	EventGlobalInfo rg_info_world(g_info, g_info.ws_scene_id, ov_cam_id);
 	cv::setMouseCallback(g_info.window_name_ws_view, CallBackFunc_WorldMouse, &rg_info_world);
 	EventGlobalInfo rg_info_model(g_info, g_info.model_scene_id, model_cam_id);
@@ -579,14 +589,16 @@ int main()
 	{
 		key_pressed = cv::waitKey(1);
 		bool load_calib_info = false;
+		bool load_stg_calib_info = false;
 		bool reset_calib = false;
 		switch (key_pressed) // http://www.asciitable.com/
 		{
 		case 91: postpone = max(postpone - 1, 0);  break; // [ 
 		case 93: postpone += 1; break; // ] 
 		case 97: use_new_version = !use_new_version;  cout << "Use Prev Version : " << use_new_version << endl; break; // a 
-		case 114: recompile_hlsl = true; cout << "Recompile Shader!" << endl; break; // r
+		//case 114: recompile_hlsl = true; cout << "Recompile Shader!" << endl; break; // r
 		case 108: load_calib_info = true; break; // l
+		case 103: load_stg_calib_info = true; break; // g
 		case 118: show_calib_frames = !show_calib_frames; break; // v
 		case 112: show_pc = !show_pc; break; // p
 		case 101: show_apis_console = !show_apis_console; break; // e
@@ -802,8 +814,7 @@ int main()
 						prev_mat_clf2ws = mat_clf2ws;
 						bool is_success = CalibrteCamLocalFrame(*(vector<glm::fvec2>*)&point2d, *(vector<glm::fvec3>*)&point3d, mat_ws2clf,
 							rgb_intrinsics.fx, rgb_intrinsics.fy, rgb_intrinsics.ppx, rgb_intrinsics.ppy,
-							mat_rscs2clf, &pnp_err, &calib_samples,
-							points_rs_buf_3d_clf, points_rs_buf_2d);
+							mat_rscs2clf, &pnp_err, &calib_samples, points_rs_buf_3d_clf, points_rs_buf_2d);
 						if (is_success)
 						{
 							g_info.is_calib_rs_cam = true;
@@ -994,6 +1005,7 @@ int main()
 					vzm::GeneratePointCloudObject(__FP pos_pts[0], __FP nrl_pts[0], NULL, (int)points.size(), g_info.rs_pc_id);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.rs_pc_id, obj_state_pts);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.rs_pc_id, obj_state_pts);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.rs_pc_id, obj_state_pts);
 					vzm::DebugTestSet("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), g_info.ws_scene_id, ov_cam_id, g_info.rs_pc_id);
 				}
 			}
@@ -1004,6 +1016,7 @@ int main()
 				obj_state_pts.is_visible = false;
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.rs_pc_id, obj_state_pts);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.rs_pc_id, obj_state_pts);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.rs_pc_id, obj_state_pts);
 			}
 
 			if(g_info.otrk_data.trk_info.is_detected_probe)
@@ -1136,6 +1149,7 @@ int main()
 					*(glm::fmat4x4*) cobjstate.os2ws = trk_info.mat_tfrm2ws;
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ss_tool_info.ss_tool_guide_points_id, cobjstate);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ss_tool_info.ss_tool_guide_points_id, cobjstate);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ss_tool_info.ss_tool_guide_points_id, cobjstate);
 				}
 			}
 
@@ -1167,6 +1181,7 @@ int main()
 				//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, model_obj_ws_id, model_obj_state);
 
 				// PIN REF //
 				bool is_section_probe_detected = trk_info.is_detected_probe;
@@ -1231,8 +1246,10 @@ int main()
 
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, obj_state);
 				}
 				else
 				{
@@ -1240,8 +1257,10 @@ int main()
 					cobj_state.is_visible = false;
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, cobj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, cobj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, cobj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, cobj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, cobj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, cobj_state);
 				}
 			}
 
@@ -1342,7 +1361,35 @@ int main()
 					cout << "__USE_AR_STG_CALIB_TEST pairs : " << g_info.otrk_data.stg_calib_pt_pairs.size() << endl;
 				}
 #else
-				// to do
+				if (load_stg_calib_info)
+				{
+					// loading points
+					std::ifstream infile(g_info.stg_calib);
+					string line;
+					if (infile.is_open())
+					{
+						g_info.otrk_data.stg_calib_pt_pairs.clear();
+						int line_idx = 0, line_pairs = 100000;
+						while (getline(infile, line))
+						{
+							std::istringstream iss(line);
+							if (line_idx == 0)
+							{
+								iss >> line_pairs;
+							}
+							else if (line_idx < line_pairs + 1)
+							{
+								Point2f p2d;
+								Point3f p3d;
+								iss >> p2d.x >> p2d.y >> p3d.x >> p3d.y >> p3d.z;
+								g_info.otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(p2d, p3d));
+							}
+							// process pair (a,b)
+							line_idx++;
+						}
+						infile.close();
+					}
+				}
 #endif
 				int num_stg_calib_pairs = (int)g_info.otrk_data.stg_calib_pt_pairs.size();
 
@@ -1384,11 +1431,11 @@ int main()
 							__FP mat_stgcs2clf, &cam_state_calbirated);
 
 						// why divide by 4?!
-						cam_state_calbirated.fx /= 4.f;
-						cam_state_calbirated.fy /= 4.f;
-						cam_state_calbirated.cx /= 4.f;
-						cam_state_calbirated.cy /= 4.f;
-						cam_state_calbirated.sc /= 4.f;
+						//cam_state_calbirated.fx /= 4.f;
+						//cam_state_calbirated.fy /= 4.f;
+						//cam_state_calbirated.cx /= 4.f;
+						//cam_state_calbirated.cy /= 4.f;
+						//cam_state_calbirated.sc /= 4.f;
 					}
 
 					cam_state_calbirated.w = stg_w;
@@ -1452,22 +1499,21 @@ int main()
 				vzm::CameraParameters rs_cam_params;
 				vzm::GetCameraParameters(g_info.rs_scene_id, rs_cam_params, rs_cam_id);
 
-				cout << "intrinsics STG : " << _stg_cam_params.fx << ", " << _stg_cam_params.fy << ", " << _stg_cam_params.sc << ", "
-					<< _stg_cam_params.cx << ", " << _stg_cam_params.cy << ", " << _stg_cam_params.w << "x" << _stg_cam_params.h << endl;
-				cout << "intrinsics RS  : " << rs_cam_params.fx << ", " << rs_cam_params.fy << ", " << rs_cam_params.sc << ", "
-					<< rs_cam_params.cx << ", " << rs_cam_params.cy << ", " << rs_cam_params.w << "x" << rs_cam_params.h << endl;
-				TESTOUT("pos STG : ", (__cv3__ _stg_cam_params.pos));
-				TESTOUT("dir STG : ", (__cv3__ _stg_cam_params.view));
-				TESTOUT("up STG  : ", (__cv3__ _stg_cam_params.up));
-				TESTOUT("pos RS  : ", (__cv3__ rs_cam_params.pos));
-				TESTOUT("dir RS  : ", (__cv3__ rs_cam_params.view));
-				TESTOUT("up RS   : ", (__cv3__ rs_cam_params.up));
-
+				//cout << "intrinsics STG : " << _stg_cam_params.fx << ", " << _stg_cam_params.fy << ", " << _stg_cam_params.sc << ", "
+				//	<< _stg_cam_params.cx << ", " << _stg_cam_params.cy << ", " << _stg_cam_params.w << "x" << _stg_cam_params.h << endl;
+				//cout << "intrinsics RS  : " << rs_cam_params.fx << ", " << rs_cam_params.fy << ", " << rs_cam_params.sc << ", "
+				//	<< rs_cam_params.cx << ", " << rs_cam_params.cy << ", " << rs_cam_params.w << "x" << rs_cam_params.h << endl;
+				//TESTOUT("pos STG : ", (__cv3__ _stg_cam_params.pos));
+				//TESTOUT("dir STG : ", (__cv3__ _stg_cam_params.view));
+				//TESTOUT("up STG  : ", (__cv3__ _stg_cam_params.up));
+				//TESTOUT("pos RS  : ", (__cv3__ rs_cam_params.pos));
+				//TESTOUT("dir RS  : ", (__cv3__ rs_cam_params.view));
+				//TESTOUT("up RS   : ", (__cv3__ rs_cam_params.up));
 
 				vzm::RenderScene(g_info.stg_scene_id, stg_cam_id);
 				unsigned char* ptr_rgba;
 				float* ptr_zdepth;
-				int _stg_w, _stg_h;
+				int _stg_w, _stg_h;33
 				if (vzm::GetRenderBufferPtrs(g_info.stg_scene_id, &ptr_rgba, &ptr_zdepth, &_stg_w, &_stg_h, stg_cam_id))
 				{
 #ifdef STG_LINE_CALIB
@@ -1479,7 +1525,8 @@ int main()
 #endif
 
 					Mat image_stg(Size(_stg_w, _stg_h), CV_8UC4, (void*)ptr_rgba, Mat::AUTO_STEP);
-					cv::drawMarker(image_stg, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255));
+					cv::drawMarker(image_stg, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
+					cv::rectangle(image_stg, Point(0, 0), Point(stg_w - 10, stg_h - 50), Scalar(255, 255, 255), 3);
 					imshow(g_info.window_name_stg_view, image_stg);
 #ifdef __TEST_VIS_RS
 					//copy_back_ui_buffer(eye_imagebgr.data, ptr_rgba, _stg_w, _stg_h, false);
@@ -1504,10 +1551,10 @@ int main()
 				}
 #endif
 
-				cv::drawMarker(image_stg, Point(stg_w / 2, stg_h / 2), Scalar(0, 0, 255));
+				cv::drawMarker(image_stg, Point(stg_w / 2, stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
+				cv::rectangle(image_stg, Point(0, 0), Point(stg_w - 10 , stg_h - 50), Scalar(255, 255, 255), 3);
 				imshow(g_info.window_name_stg_view, image_stg);
 			}
-
 		}
 
 
@@ -1531,8 +1578,10 @@ int main()
 	video_processing_thread.join();
 	tracker_alive = false;
 	tracker_processing_thread.join();
+#ifdef INDIVIDUAL_EYE_THREAD
 	eye_rs_alive = false;
 	eye_processing_thread.join();
+#endif
 	optitrk::DeinitOptiTrackLib();
 
 	vzm::DeinitEngineLib();

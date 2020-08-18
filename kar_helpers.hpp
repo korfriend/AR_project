@@ -424,8 +424,8 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 #define double_vec3(D) ((double*)D.data)[0], ((double*)D.data)[1], ((double*)D.data)[2]
 bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm::fvec3>& points_3dws, const glm::fmat4x4& mat_ws2clf,
 	const float fx, const float fy, const float cx, const float cy, glm::fmat4x4& mat_rscs2clf, float* err, int* num_samples,
-	vector<glm::fvec3>& points_buf_3d_clf, vector<glm::fvec2>& points_buf_2d
-)
+	vector<glm::fvec3>& points_buf_3d_clf, vector<glm::fvec2>& points_buf_2d)//, const int img_w, const int img_h
+
 {
 	if (points_2d.size() == 0) return false;
 	if (points_2d.size() != points_3dws.size()) return false;
@@ -454,7 +454,12 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 	cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);          // output rotation vector
 	cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64FC1);          // output translation vector
 	cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
+	cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
 	//cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, 5, 1.f, 0.98, noArray(), SOLVEPNP_DLS);
+
+	//cv::calibrateCamera(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), Size(img_w, img_h), cam_mat, distCoeffs, rvec, tvec, 
+	//	CALIB_USE_INTRINSIC_GUESS | CALIB_FIX_PRINCIPAL_POINT | CALIB_FIX_ASPECT_RATIO | CALIB_ZERO_TANGENT_DIST | CALIB_FIX_K1 | CALIB_FIX_K2 | CALIB_FIX_K3 | CALIB_FIX_K4 | CALIB_FIX_K5 | CALIB_FIX_K6, 
+	//	TermCriteria(TermCriteria::COUNT + TermCriteria::EPS, 30, DBL_EPSILON));
 
 	glm::fvec3 rot_v = glm::fvec3(double_vec3(rvec));
 	float rad = glm::length(rot_v);
@@ -733,6 +738,7 @@ struct GlobalInfo
 	string optrack_env;
 	string cb_positions;
 	string rs_calib;
+	string stg_calib;
 	string sst_positions;
 	string model_path;
 
