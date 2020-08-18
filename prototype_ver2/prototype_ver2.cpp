@@ -62,11 +62,6 @@ SS_Tool_Guide_Pts ss_tool_info;
 ArMarkerTracker ar_marker;
 
 
-
-void calcGuideDistanceandAngle(float& fDist, float& fAngle) {
-
-}
-
 int main()
 {
 	// set global information
