@@ -27,4 +27,4 @@ You can download the engine by using Git and cloning the repository, or download
 - VisMotive Engine (included)
 - GL math (included)
 - Boost 1.65 (included)
-- OpenCV 4.0 or higher (will be included as "opencvworld")
+- OpenCV 4.0 or higher (included)
