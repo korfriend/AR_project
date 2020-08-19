@@ -568,6 +568,7 @@ int main()
 	bool show_csection = false;
 	bool show_mks = true;
 	bool show_calib_frames = true;
+	bool record_info = false;
 	int rs_lf_axis = 0, probe_lf_axis = 0, sstool_lf_axis = 0; // lf means local frame
 	bool show_pc = false;
 	bool calib_toggle = false;
@@ -585,12 +586,34 @@ int main()
 
 	glm::fmat4x4 mat_stgcs2clf;
 
+	vector<track_info> record_trk_info;
+	vector<void*> record_rsimg;
+	map<string, int> action_info;
+	vector<int> record_key;
+
+	auto clear_record_info = [&]()
+	{
+		for (int i = 0; i < (int)record_rsimg.size(); i++)
+		{
+			delete[] record_rsimg[i];
+		}
+		record_trk_info.clear();
+		record_rsimg.clear();
+		action_info.clear();
+		record_key.clear();
+	};
+
+#ifdef __RECORD_VER
+	// fill record_trk_info and record_rsimg
+#endif
+
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		key_pressed = cv::waitKey(1);
 		bool load_calib_info = false;
 		bool load_stg_calib_info = false;
 		bool reset_calib = false;
+		bool write_recoded_info = false;
 		switch (key_pressed) // http://www.asciitable.com/
 		{
 		case 91: postpone = max(postpone - 1, 0);  break; // [ 
@@ -607,6 +630,8 @@ int main()
 		case 115: show_csection = !show_csection; break; // s
 		case 116: match_model_switch = (++match_model_switch) % 2; break; // t
 		case 120: reset_calib = true; break; // x
+		case 65: record_info = !record_info; break; // e
+		case 119: write_recoded_info = true; break; // w
 			// RsMouseMode
 		case 49: g_info.manual_set_mode = MsMouseMode::NONE; break; // 1
 		case 50: g_info.manual_set_mode = MsMouseMode::ADD_CALIB_POINTS; break; // 2
@@ -627,6 +652,7 @@ int main()
 				vzm::DeleteObject(calib_trial_rs_cam_frame_ids[i]);
 			calib_trial_rs_cam_frame_ids.clear();
 			g_info.is_calib_stg_cam = g_info.is_calib_rs_cam = false;
+			g_info.otrk_data.stg_calib_pt_pairs.clear();
 			cout << "CLEAR calibration points" << endl;
 		}
 
@@ -656,6 +682,52 @@ int main()
 
 			Mat image_rs(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
 			Mat imagebgr;
+
+			if (record_info)
+			{
+				record_trk_info.push_back(trk_info);
+				char* img_data = new char[w * h * 3];
+				memcpy(img_data, color.get_data(), sizeof(char) * 3 * w * h);
+				record_rsimg.push_back(img_data);
+				record_key.push_back(key_pressed);
+			}
+
+			if (write_recoded_info)
+			{
+				cout << "WRITE RECODING INFO of " << record_trk_info.size() << " frames" << endl;
+
+				std::fstream file_imgdata;
+				file_imgdata.open("imgdata.bin", std::ios::app | std::ios::binary);
+				file_imgdata.clear();
+				file_imgdata.write(reinterpret_cast<char*>(&record_rsimg[0]), w * h * 3 * sizeof(char) * record_rsimg.size());
+				file_imgdata.close();
+
+				std::fstream file_trkdata;
+				file_trkdata.open("trkdata.bin", std::ios::app | std::ios::binary);
+				file_trkdata.clear();
+				for (int i = 0; i < (int)record_trk_info.size(); i++)
+				{
+					size_t buf_size_bytes;
+					char* _buf = trk_info.GetSerialBuffer(buf_size_bytes);
+					file_trkdata.write(_buf, buf_size_bytes);
+					delete[] _buf;
+				}
+				file_trkdata.close();
+
+				ofstream file_keydata("keyrecord.txt");
+				if (file_keydata.is_open())
+				{
+					file_keydata.clear();
+					file_keydata << to_string(record_key.size()) << endl;
+					for (int i = 0; i < (int)record_key.size(); i++)
+					{
+						file_keydata << to_string(record_key[i]) << endl;
+					}
+				}
+				file_keydata.close();
+
+				clear_record_info();
+			}
 
 			cvtColor(image_rs, imagebgr, COLOR_BGR2RGB);
 			
@@ -1298,6 +1370,9 @@ int main()
 				cv::putText(imagebgr, "Calibration Toggle : " + b_calib_toggle + ", Postpone : " + to_string(postpone) + " ms",
 					cv::Point(3, 100), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
 
+				if (record_info)
+					cv::putText(imagebgr, "Recording...", cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 0));
+
 				if (g_info.is_calib_rs_cam && !trk_info.is_detected_rscam)
 					cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(400, 50), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
 				imshow(g_info.window_name_rs_view, imagebgr);
@@ -1513,7 +1588,7 @@ int main()
 				vzm::RenderScene(g_info.stg_scene_id, stg_cam_id);
 				unsigned char* ptr_rgba;
 				float* ptr_zdepth;
-				int _stg_w, _stg_h;33
+				int _stg_w, _stg_h;
 				if (vzm::GetRenderBufferPtrs(g_info.stg_scene_id, &ptr_rgba, &ptr_zdepth, &_stg_w, &_stg_h, stg_cam_id))
 				{
 #ifdef STG_LINE_CALIB
@@ -1573,6 +1648,9 @@ int main()
 #endif
 	}
 
+	clear_record_info();
+
+		
 	// Signal threads to finish and wait until they do
 	rs_alive = false;
 	video_processing_thread.join();

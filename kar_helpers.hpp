@@ -622,6 +622,7 @@ public:
 
 struct track_info
 {
+	// when changing this, please consider the serialization
 	//"rs_cam"
 	glm::fmat4x4 mat_rbcam2ws;
 	bool is_detected_rscam;
@@ -657,6 +658,47 @@ struct track_info
 	{
 		if (idx < 0 || idx >= mk_xyz_list.size() / 3) return glm::fvec3(0);
 		return ((glm::fvec3*)&mk_xyz_list[0])[idx];
+	}
+
+	char* GetSerialBuffer(size_t& bytes_size)
+	{
+		int num_mks = mk_xyz_list.size();
+		bytes_size = sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + num_mks * sizeof(float) * 2 + 4; // last 4 means num_mks
+		char* buf = new char[bytes_size];
+		*(int*)buf[0] = num_mks;
+		*(glm::fmat4x4*)buf[4] = mat_rbcam2ws;
+		*(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4)] = mat_probe2ws;
+		*(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 2] = mat_tfrm2ws;
+		*(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 3] = mat_headfrm2ws;
+		*(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 4] = mat_bodyfrm2ws;
+		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5] = is_detected_rscam;
+		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool)] = is_detected_probe;
+		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 2] = is_detected_sstool;
+		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 3] = is_detected_sshead;
+		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 4] = is_detected_brbody;
+		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5], &mk_xyz_list[0], sizeof(float) * num_mks);
+		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks], &mk_residue_list[0], sizeof(float) * num_mks);
+		return buf;
+	}
+
+	void SetFromSerialBuffer(const char* buf)
+	{
+		int num_mks = *(int*)buf[0];
+		mk_xyz_list.assign(num_mks, 0);
+		mk_residue_list.assign(num_mks, 0);
+
+		mat_rbcam2ws = *(glm::fmat4x4*)buf[4];
+		mat_probe2ws = *(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4)];
+		mat_tfrm2ws = *(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 2];
+		mat_headfrm2ws = *(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 3];
+		mat_bodyfrm2ws = *(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 4];
+		is_detected_rscam = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5];
+		is_detected_probe = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool)];
+		is_detected_sstool = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 2];
+		is_detected_sshead = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 3];
+		is_detected_brbody = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 4];
+		memcpy(&mk_xyz_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5], sizeof(float) * num_mks);
+		memcpy(&mk_residue_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks], sizeof(float) * num_mks);
 	}
 };
 
