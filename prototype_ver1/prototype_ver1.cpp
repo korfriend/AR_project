@@ -224,7 +224,7 @@ int main()
 	cv::moveWindow(g_info.window_name_ws_view, 2560 + 1282, 0);
 	cv::moveWindow(g_info.window_name_ms_view, 2560 * 2, 0);
 
-	cv::moveWindow(g_info.window_name_rs_view, 2560 * 3, 0);
+	cv::moveWindow(g_info.window_name_rs_view, 2560 * 3, 0);				
 	cv::moveWindow(g_info.window_name_stg_view, 2560 * 3 + 1024, 0);
 	//cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 	//cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);

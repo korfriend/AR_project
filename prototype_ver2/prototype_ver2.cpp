@@ -85,6 +85,8 @@ int main()
 	g_info.model_path = "..\\Data\\skin.obj";
 	g_info.guide_path = "E:\\project_srcs\\kar\\prototype_ver1\\ss_guide_pts.txt";
 
+	g_info.rs_w = 960;
+
 #if defined(_DEBUG) | defined(DEBUG)
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif	
@@ -1670,7 +1672,7 @@ int main()
 							// Text			
 							//const float right_offset = 0.02f;
 							right_offset = 0.01f;
-							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.03f, ssu_tool_guide_angleText_id);
+							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.02f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 
