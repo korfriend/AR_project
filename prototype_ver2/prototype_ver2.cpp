@@ -81,10 +81,8 @@ int main()
 	g_info.optrack_env = "D:\\Document\\OptiTrack\\my_test_200812_1.motive";
 	g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
 	g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
-	//g_info.model_path = "D:\\Data\\K-AR_Data\\demo.obj";
+	g_info.rs_calib = "E:\\project_srcs\\kar\\prototype_ver1\\rs_calib.txt";
 	g_info.model_path = "..\\Data\\skin.obj";
-//	g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
-	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
 	g_info.guide_path = "E:\\project_srcs\\kar\\prototype_ver1\\ss_guide_pts.txt";
 
 #if defined(_DEBUG) | defined(DEBUG)
@@ -583,6 +581,7 @@ int main()
 	int num_calib = 0;
 	int calib_samples = 0;
 	glm::fmat4x4 mat_rscs2clf;
+	bool show_guide_view = false;
 
 	vector<glm::fvec3> points_rs_buf_3d_clf;
 	vector<glm::fvec2> points_rs_buf_2d;
@@ -660,6 +659,41 @@ int main()
 					// process pair (a,b)
 				}
 				infile.close();
+
+
+				// loading matrix
+				infile = std::ifstream(g_info.rs_calib);
+				if (infile.is_open())
+				{
+					points_rs_buf_2d.clear();
+					points_rs_buf_3d_clf.clear();
+					float* mat_data = glm::value_ptr(mat_rscs2clf);
+					int line_idx = 0, line_pairs = 100000;
+					while (getline(infile, line))
+					{
+						std::istringstream iss(line);
+						if (line_idx == 0)
+						{
+							iss >> line_pairs;
+						}
+						else if (line_idx < line_pairs + 1)
+						{
+							glm::fvec2 p2d;
+							glm::fvec3 p3d;
+							iss >> p2d.x >> p2d.y >> p3d.x >> p3d.y >> p3d.z;
+							points_rs_buf_2d.push_back(p3d);
+							points_rs_buf_3d_clf.push_back(p3d);
+						}
+						else
+						{
+							iss >> mat_data[line_idx - line_pairs - 1];
+						}
+						// process pair (a,b)
+						line_idx++;
+					}
+					g_info.is_calib_rs_cam = true;
+					infile.close();
+				}
 
 
 				// ss_tool point file load //
@@ -1082,85 +1116,6 @@ int main()
 			}
 			*/
 
-			static int section_ssu_tool_guide_id = 0;
-			if (trk_info.is_detected_sstool) {
-				// ss_tool guide //
-				if (guide_toggle) {
-					tool_guide_pos_os.clear();
-
-					// tool guide 정보가 없는 경우, tool 움직임에 따라 tool guide가 같이 움직여야함
-					// ws
-					glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
-
-					glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
-					glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
-
-					glm::fvec3 sstool_dir = glm::normalize(sstool_p2_ws - sstool_p1_ws);
-
-
-					// *-----------------*===================================
-					// p1   toolguide    p2              sstool
-					// ws->os
-					glm::fvec3 sstool_guide_p1_ws = sstool_p1_ws - sstool_dir * 0.2f;
-					glm::fvec3 sstool_guide_p2_ws = sstool_p1_ws;
-
-					glm::fmat4x4 mat_ws2os = glm::scale(glm::fvec3(1000)); // 0.001 (os2ws)
-					glm::fvec3 sstool_guide_p1_os = tr_pt(mat_ws2os, sstool_guide_p1_ws);
-					glm::fvec3 sstool_guide_p2_os = tr_pt(mat_ws2os, sstool_guide_p2_ws);
-
-					tool_guide_pos_os.push_back(sstool_guide_p1_os);
-					tool_guide_pos_os.push_back(sstool_guide_p2_os);
-
-					bSaveGuideFile = true;
-				}
-				else if (guide_toggle == false && bSaveGuideFile && tool_guide_pos_os.size() > 0) {
-					ofstream outfile(g_info.guide_path);
-					if (outfile.is_open())
-					{
-						outfile.clear();
-						for (int i = 0; i < g_info.ss_tool_info.pos_centers_tfrm.size(); i++)
-						{
-							string line = to_string(g_info.ss_tool_info.pos_centers_tfrm[i].x) + " " +
-								to_string(g_info.ss_tool_info.pos_centers_tfrm[i].y) + " " +
-								to_string(g_info.ss_tool_info.pos_centers_tfrm[i].z);
-							outfile << line << endl;
-						}
-					}
-					outfile.close();
-					bSaveGuideFile = false;
-				}
-
-
-				if (tool_guide_pos_os.size() > 0) {
-					glm::fvec3 sstool_guide_p1_os = tool_guide_pos_os[0];
-					glm::fvec3 sstool_guide_p2_os = tool_guide_pos_os[1];
-
-					// os
-					glm::fvec3 cyl_p01[2] = { sstool_guide_p1_os, sstool_guide_p2_os };
-					float cyl_r = 15;																		// !!!cylinder 크기가 m인지 mm인지 모르겠음
-					glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
-					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_guide_id);
-					vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, section_ssu_tool_guide_id, model_state);
-
-					if (bAlign) {
-						// os->headfrm->ws
-						vzm::ObjStates model_obj_state;
-						vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_obj_id, model_obj_state);
-
-						glm::fmat4x4 os2ws = glm::make_mat4x4(model_obj_state.os2ws);
-						sstool_guide_p1_os = tr_pt(os2ws, tool_guide_pos_os[0]);
-						sstool_guide_p2_os = tr_pt(os2ws, tool_guide_pos_os[1]);
-
-						glm::fvec3 cyl_p02[2] = { sstool_guide_p1_os, sstool_guide_p2_os };
-						cyl_r = 0.00015f;
-						glm::fvec3 cyl_rgb2 = glm::fvec3(0, 1, 1);
-						vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb2, 1, section_ssu_tool_guide_id);
-						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_guide_id, model_obj_state);
-						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_guide_id, model_obj_state);
-						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_guide_id, model_obj_state);
-					}
-				}
-			}
 
 			if (trk_info.is_detected_sshead)
 			{
@@ -1363,6 +1318,8 @@ int main()
 				}
 
 
+				/////////////////////////////////////////////////////////////////////////////////
+				// draw ssu tool dir, tooltip
 				static int section_ssu_tool_line_id = 0, section_ssu_tool_end_id = 0, section_ssu_tool_p2_id = 0, section_ssu_tool_line2_id = 0;
 				if (trk_info.is_detected_sstool && ss_tool_info.pos_centers_tfrm.size()) {
 					// ss_tool cylinder visualization //
@@ -1388,8 +1345,6 @@ int main()
 								break;
 							}
 						}
-
-						//printf("%f %f %f\n", sstool_p1_ws2os.x, sstool_p1_ws2os.y, sstool_p1_ws2os.z);
 
 						s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(sstool_p1_ws2os.x, sstool_p1_ws2os.y, sstool_p1_ws2os.z);
 						s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(sstool_p2_ws2os.x, sstool_p2_ws2os.y, sstool_p2_ws2os.z);
@@ -1430,6 +1385,92 @@ int main()
 				}
 
 				/////////////////////////////////////////////////////////////////////////////////
+				// draw ssu_tool guide dir
+				static int section_ssu_tool_guide_id = 0, section_ssu_tool_guide_ws_id = 0;
+				if (trk_info.is_detected_sstool && bAlign) {
+					// ss_tool guide //
+					if (guide_toggle) {
+						tool_guide_pos_os.clear();
+
+						// tool guide 정보가 없는 경우, tool 움직임에 따라 tool guide가 같이 움직여야함
+						// ws
+						glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
+
+						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
+						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
+
+						glm::fvec3 sstool_dir = glm::normalize(sstool_p2_ws - sstool_p1_ws);
+
+						// *-----------------*===================================
+						// p1   toolguide    p2              sstool
+						// ws->os
+						glm::fvec3 sstool_guide_p1_ws = sstool_p1_ws - sstool_dir * 0.1f;
+						glm::fvec3 sstool_guide_p2_ws = sstool_p1_ws;
+
+						//glm::fmat4x4 mat_ws2os = glm::inverse(glm::make_mat4x4(model_state.os2ws)); // 0.001 (os2ws)
+						glm::fmat4 ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
+						glm::fmat4 headfrm2os = glm::inverse(mat_os2headfrm) * ws2headfrm;
+						glm::fmat4 mat_ws2os = glm::inverse(mat_os2headfrm) * glm::inverse(trk_info.mat_headfrm2ws);
+
+						glm::fvec3 sstool_guide_p1_os = tr_pt(mat_ws2os, sstool_guide_p1_ws);
+						glm::fvec3 sstool_guide_p2_os = tr_pt(mat_ws2os, sstool_guide_p2_ws);
+
+						tool_guide_pos_os.push_back(sstool_guide_p1_os);
+						tool_guide_pos_os.push_back(sstool_guide_p2_os);
+
+						bSaveGuideFile = true;
+					}
+					else if (guide_toggle == false && bSaveGuideFile && tool_guide_pos_os.size() > 0) {
+						ofstream outfile(g_info.guide_path);
+						if (outfile.is_open())
+						{
+							outfile.clear();
+							for (int i = 0; i < g_info.ss_tool_info.pos_centers_tfrm.size(); i++)
+							{
+								string line = to_string(g_info.ss_tool_info.pos_centers_tfrm[i].x) + " " +
+									to_string(g_info.ss_tool_info.pos_centers_tfrm[i].y) + " " +
+									to_string(g_info.ss_tool_info.pos_centers_tfrm[i].z);
+								outfile << line << endl;
+							}
+						}
+						outfile.close();
+						bSaveGuideFile = false;
+						show_guide_view = true;
+					}
+
+
+					if (tool_guide_pos_os.size() > 0) {
+						glm::fvec3 sstool_guide_p1_os = tool_guide_pos_os[0];
+						glm::fvec3 sstool_guide_p2_os = tool_guide_pos_os[1];
+
+						// model scene
+						vzm::ObjStates ssu_tool_guide_state = model_state;
+
+						glm::fvec3 cyl_p01[2] = { sstool_guide_p1_os, sstool_guide_p2_os };
+						float cyl_r = 1.5;
+						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
+						vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_guide_id);
+						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, section_ssu_tool_guide_id, ssu_tool_guide_state);
+
+						// world scene
+						// os->headfrm->ws
+
+						//glm::fmat4x4 os2ws = glm::make_mat4x4(model_obj_state.os2ws);
+						glm::fmat4x4 os2ws = trk_info.mat_headfrm2ws * mat_os2headfrm;
+						glm::fvec3 sstool_guide_p1_ws = tr_pt(os2ws, sstool_guide_p1_os);
+						glm::fvec3 sstool_guide_p2_ws = tr_pt(os2ws, sstool_guide_p2_os);
+
+						glm::fvec3 cyl_p02[2] = { sstool_guide_p1_ws, sstool_guide_p2_ws };
+						cyl_r = 0.0015f;
+						glm::fvec3 cyl_rgb2 = glm::fvec3(0, 1, 0);
+						vzm::GenerateCylindersObject((float*)cyl_p02, &cyl_r, __FP cyl_rgb2, 1, section_ssu_tool_guide_ws_id);
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_guide_ws_id, obj_state);
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_guide_ws_id, obj_state);
+						vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_guide_ws_id, obj_state);
+					}
+				}
+
+				/////////////////////////////////////////////////////////////////////////////////
 				static int ssu_tool_guide_distance_id = 0, ssu_tool_guide_distance_text_id = 0;
 				static int ssu_tool_guide_angleLine_id = 0, ssu_tool_guide_angleArc_id = 0;
 				static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0;
@@ -1440,50 +1481,43 @@ int main()
 						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
 						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
 
-						// sstool pos(ws->os), dir
-						glm::fmat4 ws2headfrm = glm::inverse(trk_info.mat_headfrm2ws);
-						glm::fmat4 headfrm2os = glm::inverse(mat_os2headfrm) * ws2headfrm;
+						glm::fvec3 sstool_dir = sstool_p2_ws - sstool_p1_ws;
 
-						glm::fvec3 sstool_p1_os = headfrm2os * glm::fvec4(sstool_p1_ws, 1.f);	// tool tip
-						glm::fvec3 sstool_p2_os = headfrm2os * glm::fvec4(sstool_p2_ws, 1.f);
-						glm::fvec3 sstool_dir = sstool_p2_os - sstool_p1_os;
-
-						// ss guide pos(os)
-						glm::fvec3 ssguide_p1_os = tool_guide_pos_os[0];	// tool guide end
-						glm::fvec3 ssguide_p2_os = tool_guide_pos_os[1];	// tool guide entry
-						glm::fvec3 ssguide_dir = ssguide_p2_os - ssguide_p1_os;
+						glm::fmat4x4 os2ws = mat_os2headfrm * trk_info.mat_headfrm2ws;
+						glm::fvec3 ssguide_p1_ws = tr_pt(os2ws, tool_guide_pos_os[0]);	// tool guide end
+						glm::fvec3 ssguide_p2_ws = tr_pt(os2ws, tool_guide_pos_os[1]);	// tool guide entry
+						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;
 
 						// guide angle
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
 						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
-						float fGuideAngle = glm::acos(glm::dot(sstool_dir_norm, ssguide_dir_norm));
 
-						// guide dist (os)
-						float fGuideDist = glm::length(ssguide_p1_os - sstool_p1_os);
+						float fGuideAngle = glm::acos(glm::dot(sstool_dir_norm, ssguide_dir_norm)) * 180 / 3.141592;
+						float fGuideDist = glm::length(ssguide_p1_ws - sstool_p1_ws);
 
 						
-						if (true) {
-							glm::fvec3 tool_tip_os = sstool_p1_os;
-							glm::fvec3 tool_dir_os = sstool_dir;
-							glm::fvec3 tool_right_os = glm::normalize(glm::cross(tool_dir_os, glm::fvec3(0, 1, 0)));
-							glm::fvec3 tool_up_os = glm::normalize(glm::cross(tool_right_os, tool_dir_os));
-							glm::fvec3 tip2GuideEntry = ssguide_p2_os - sstool_p1_os;
-							glm::fvec3 tip2GuideEnd = ssguide_p1_os - sstool_p1_os;
-							glm::fvec3 guide_entry_os = ssguide_p2_os;
-							glm::fvec3 guide_dir_os = ssguide_dir;
+						if (show_guide_view) {
+							glm::fvec3 tool_tip_ws = sstool_p1_ws;
+							glm::fvec3 tool_dir_ws = sstool_dir;
+							glm::fvec3 tool_right_ws = glm::normalize(glm::cross(tool_dir_ws, glm::fvec3(0, 1, 0)));
+							glm::fvec3 tool_up_ws = glm::normalize(glm::cross(tool_right_ws, tool_dir_ws));
+							glm::fvec3 tip2GuideEntry = ssguide_p2_ws - sstool_p1_ws;
+							glm::fvec3 tip2GuideEnd = ssguide_p1_ws - sstool_p1_ws;
+							glm::fvec3 guide_entry_ws = ssguide_p2_ws;
+							glm::fvec3 guide_dir_ws = ssguide_dir;
 
 							// draw direction line  ///////////////////////////////////////////////////////////////
 							vzm::ObjStates distanceLineState = obj_state;
 
-							float dist_r = glm::dot(tip2GuideEntry, tool_right_os);
-							float dist_u = glm::dot(tip2GuideEntry, tool_up_os);
-							float dist_v = glm::dot(tip2GuideEnd, tool_dir_os);
+							float dist_r = glm::dot(tip2GuideEntry, tool_right_ws);
+							float dist_u = glm::dot(tip2GuideEntry, tool_up_ws);
+							float dist_v = glm::dot(tip2GuideEnd, tool_dir_ws);
 
 							std::vector<glm::fvec3> pos_lines(4), clr_lines(4);
-							pos_lines[0] = tool_tip_os; // r
-							pos_lines[1] = dist_r * tool_right_os + tool_tip_os;
-							pos_lines[2] = tool_tip_os; // u
-							pos_lines[3] = dist_u * tool_up_os + tool_tip_os;
+							pos_lines[0] = tool_tip_ws; // r
+							pos_lines[1] = dist_r * tool_right_ws + tool_tip_ws;
+							pos_lines[2] = tool_tip_ws; // u
+							pos_lines[3] = dist_u * tool_up_ws + tool_tip_ws;
 							clr_lines[0] = clr_lines[1] = clr_lines[2] = clr_lines[3] = glm::fvec3(0.2, 0.2, 1.0);
 							vzm::GenerateLinesObject((float*)&pos_lines[0], (float*)&clr_lines[0], (int)pos_lines.size() / 2, ssu_tool_guide_distance_id);
 
@@ -1497,7 +1531,7 @@ int main()
 							};
 
 							float right_offset = -0.06f;
-							MakeDistTextWidget(tool_tip_os + right_offset * tool_right_os, zoom_cam_params, 0.03f, ssu_tool_guide_distance_text_id);
+							MakeDistTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.03f, ssu_tool_guide_distance_text_id);
 
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
@@ -1511,10 +1545,10 @@ int main()
 							//std::vector<glm::fvec3> pos_lines, clr_lines;
 							pos_lines.clear();
 							clr_lines.clear();
-							pos_lines.emplace_back(guide_entry_os);
-							pos_lines.emplace_back(-0.1f*tool_dir_os + guide_entry_os);
-							pos_lines.emplace_back(guide_entry_os);
-							pos_lines.emplace_back(-0.1f*guide_dir_os + guide_entry_os);
+							pos_lines.emplace_back(guide_entry_ws);
+							pos_lines.emplace_back(-0.1f*tool_dir_ws + guide_entry_ws);
+							pos_lines.emplace_back(guide_entry_ws);
+							pos_lines.emplace_back(-0.1f*guide_dir_ws + guide_entry_ws);
 
 							for (int i = 0; i < pos_lines.size(); ++i)
 								clr_lines.emplace_back(glm::fvec3(0.98, 0.75, 0.16));
@@ -1550,7 +1584,7 @@ int main()
 								pos_tris.push_back(pos_ctrs[2]);
 							};
 
-							glm::fvec3 pos_ctrs[3] = { guide_entry_os , pos_lines[1] , pos_lines[3] };
+							glm::fvec3 pos_ctrs[3] = { guide_entry_ws , pos_lines[1] , pos_lines[3] };
 							std::vector<glm::fvec3> pos_tris, clr_tris;
 							make_angluar_tris(pos_tris, pos_ctrs);
 
@@ -1570,13 +1604,13 @@ int main()
 							vzm::ObjStates angleTextState = obj_state;
 
 							// Arrow
-							auto make_angle_guide = [&guide_dir_os, &tool_dir_os](glm::fvec3& pos_s, glm::fvec3& pos_e, glm::fvec4& color, const glm::fvec3& up, const glm::fvec3& right, const glm::fvec3& pos) {
-								auto x = glm::dot(glm::normalize(right), -guide_dir_os);
-								auto y = glm::dot(glm::normalize(up), -guide_dir_os);
+							auto make_angle_guide = [&guide_dir_ws, &tool_dir_ws](glm::fvec3& pos_s, glm::fvec3& pos_e, glm::fvec4& color, const glm::fvec3& up, const glm::fvec3& right, const glm::fvec3& pos) {
+								auto x = glm::dot(glm::normalize(right), -guide_dir_ws);
+								auto y = glm::dot(glm::normalize(up), -guide_dir_ws);
 
 								auto theta = glm::pi<float>() / 2.f - std::atan2f(y, x);
 
-								glm::fmat3x3 rot = glm::rotate(theta, tool_dir_os);
+								glm::fmat3x3 rot = glm::rotate(theta, tool_dir_ws);
 
 								pos_s = pos;
 								pos_e = pos + rot * (up * 0.01f);
@@ -1588,7 +1622,7 @@ int main()
 							};
 							glm::fvec3 pos_s, pos_e;
 							glm::fvec4 color;
-							make_angle_guide(pos_s, pos_e, color, tool_up_os, tool_right_os, tool_tip_os);
+							make_angle_guide(pos_s, pos_e, color, tool_up_ws, tool_right_ws, tool_tip_ws);
 
 							__cm4__ angleArrowState.os2ws = glm::fmat4(1.f);
 							__cv4__ angleArrowState.color = color;
@@ -1603,7 +1637,7 @@ int main()
 								text_xyzlt_view_up[0] = pos_lt;
 								text_xyzlt_view_up[1] = __cv3__ cam_param.view;
 								text_xyzlt_view_up[2] = __cv3__ cam_param.up;
-								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, 0.03f, true, false, text_id);
+								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
 							};
 							auto MakeAngleTextWidget_2 = [&angle_str](const glm::fvec3 pos_tip, const glm::fvec3 dir_driver_s2e, const glm::fvec3 dir_screw_s2e, glm::fvec3 tx_view, glm::fvec3 tx_up, const float size_font, int& text_id)
 							{
@@ -1613,13 +1647,13 @@ int main()
 								text_xyzlt_view_up[0] = pos_lt;
 								text_xyzlt_view_up[1] = tx_view;
 								text_xyzlt_view_up[2] = tx_up;
-								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, 0.03f, true, false, text_id);
+								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
 							};
 
 							// Text			
 							//const float right_offset = 0.02f;
-							right_offset = 0.02f;
-							MakeAngleTextWidget(tool_tip_os + right_offset * tool_right_os, zoom_cam_params, 0.03f, ssu_tool_guide_angleText_id);
+							right_offset = 0.01f;
+							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.03f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 						}
 					}
@@ -1664,6 +1698,7 @@ int main()
 
 		vzm::DebugTestSet("_bool_ReloadHLSLObjFiles", &recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::DebugTestSet("_bool_TestOit", &use_new_version, sizeof(bool), -1, -1);
+		Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
 		Show_Window(g_info.window_name_ws_view, g_info.ws_scene_id, ov_cam_id);
 		Show_Window(g_info.window_name_zs_view, g_info.zoom_scene_id, zoom_cam_id);
 		switch (key_pressed)
