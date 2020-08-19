@@ -138,7 +138,7 @@ int main()
 	cam_params.aspect_ratio = 640.f / 480.f;
 	cam_params.projection_mode = 2;
 	cam_params.w = 1024;
-	cam_params.h = 640;
+	cam_params.h = 720;
 	cam_params.np = 0.1f;
 	cam_params.fp = 20.0f;
 
@@ -213,11 +213,23 @@ int main()
 	//vzm::ReplaceOrAddSceneObject(vr_scene_id, text_id, obj_state);
 
 	//Create a window
-	cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
-	cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
-	cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
-	cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL | WINDOW_FULLSCREEN | WINDOW_AUTOSIZE);
-	cv::namedWindow(g_info.window_name_eye_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
+	cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
+	cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL);
+	cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL);
+	cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL);
+	cv::namedWindow(g_info.window_name_eye_view, WINDOW_NORMAL);
+
+	cv::moveWindow(g_info.window_name_eye_view, 2560, 0);
+	cv::moveWindow(g_info.window_name_ws_view, 2560 + 1282, 0);
+	cv::moveWindow(g_info.window_name_ms_view, 2560 * 2, 0);
+
+	cv::moveWindow(g_info.window_name_rs_view, 2560 * 3, 0);
+	cv::moveWindow(g_info.window_name_stg_view, 2560 * 3 + 1024, 0);
+	//cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
+	//cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
+
+	cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+	cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 
 	vzm::ObjStates model_state = obj_state;
 	model_state.color[3] = 0.8;
@@ -305,12 +317,19 @@ int main()
 	// Declare RealSense pipeline, encapsulating the actual device and sensors
 	rs2::pipeline pipe(ctx);
 
+	int eye_w = 1280;
+	int eye_h = 720;
+	g_info.stg_w = 640;
+	g_info.stg_h = 480;
+	g_info.rs_w = 960;
+	g_info.rs_h = 540;
+
 	rs2::config cfg;
 	cfg.enable_device(serials["RS_RBS"]);
 	cfg.enable_stream(RS2_STREAM_DEPTH); // Enable default depth
 	// For the color stream, set format to RGBA
 	// To allow blending of the color frame on top of the depth frame
-	cfg.enable_stream(RS2_STREAM_COLOR, RS2_FORMAT_RGB8);
+	cfg.enable_stream(RS2_STREAM_COLOR, 0, g_info.rs_w, g_info.rs_h, RS2_FORMAT_RGB8, 60);
 
 	auto profile = pipe.start(cfg);
 
@@ -401,13 +420,9 @@ int main()
 	rs2::frame_queue filtered_data;
 	//rs2::frame_queue postprocessed_depthframes(1);
 
-#define __TEST_VIS_RS
+//#define __TEST_VIS_RS
 #ifdef __TEST_VIS_RS
 	rs2::frame_queue eye_data;
-	int stg_w = 1280;
-	int stg_h = 1024;
-	int eye_w = 1280;
-	int eye_h = 720;
 
 	rs2::pipeline eye_pipe(ctx);
 	rs2::config eye_cfg;
@@ -429,6 +444,18 @@ int main()
 			//rs2::frameset data;
 			//if (pipe.poll_for_frames(&data))
 			{
+				//#define INDIVIDUAL_EYE_THREAD
+#ifndef INDIVIDUAL_EYE_THREAD
+#ifdef __TEST_VIS_RS
+				rs2::frameset __data;
+				//if (eye_pipe.poll_for_frames(&__data))
+				//{
+				//	eye_data.enqueue(__data);
+				//}
+				__data = eye_pipe.wait_for_frames();
+				eye_data.enqueue(__data);
+#endif
+#endif
 				rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
 
 				rs2::frame data_depth = data.get_depth_frame();
@@ -466,20 +493,12 @@ int main()
 
 				// Send resulting frames for visualization in the main thread
 				//original_data.enqueue(data);
-
-//#define INDIVIDUAL_EYE_THREAD
-#ifndef INDIVIDUAL_EYE_THREAD
-				rs2::frameset __data;
-				if (eye_pipe.poll_for_frames(&__data))
-				{
-					eye_data.enqueue(__data);
-				}
-#endif
 			}
 		}
 	});
 
 #ifdef INDIVIDUAL_EYE_THREAD
+#ifdef __TEST_VIS_RS
 	std::atomic_bool eye_rs_alive{ true };
 	std::thread eye_processing_thread([&]() {
 		while (eye_rs_alive)
@@ -497,12 +516,13 @@ int main()
 		}
 	});
 #endif
+#endif
 	EventGlobalInfo rg_info_world(g_info, g_info.ws_scene_id, ov_cam_id);
 	cv::setMouseCallback(g_info.window_name_ws_view, CallBackFunc_WorldMouse, &rg_info_world);
 	EventGlobalInfo rg_info_model(g_info, g_info.model_scene_id, model_cam_id);
 	cv::setMouseCallback(g_info.window_name_ms_view, CallBackFunc_ModelMouse, &rg_info_model);
 
-	EventGlobalInfo rg_info_rs(g_info, 0, 0);
+	EventGlobalInfo rg_info_rs(g_info, g_info.rs_scene_id, rs_cam_id);
 	cv::setMouseCallback(g_info.window_name_rs_view, CallBackFunc_RsMouse, &rg_info_rs);
 	EventGlobalInfo rg_info_stg(g_info, 0, 0);
 	cv::setMouseCallback(g_info.window_name_stg_view, CallBackFunc_StgMouse, &rg_info_stg);
@@ -656,6 +676,45 @@ int main()
 			cout << "CLEAR calibration points" << endl;
 		}
 
+		if (write_recoded_info)
+		{
+			const int w = g_info.rs_w;
+			const int h = g_info.rs_h;
+			cout << "WRITE RECODING INFO of " << record_trk_info.size() << " frames" << endl;
+
+			std::fstream file_imgdata;
+			file_imgdata.open("imgdata.bin", std::ios::app | std::ios::binary);
+			file_imgdata.clear();
+			file_imgdata.write(reinterpret_cast<char*>(&record_rsimg[0]), w * h * 3 * sizeof(char) * record_rsimg.size());
+			file_imgdata.close();
+
+			std::fstream file_trkdata;
+			file_trkdata.open("trkdata.bin", std::ios::app | std::ios::binary);
+			file_trkdata.clear();
+			for (int i = 0; i < (int)record_trk_info.size(); i++)
+			{
+				size_t buf_size_bytes;
+				char* _buf = record_trk_info[i].GetSerialBuffer(buf_size_bytes);
+				file_trkdata.write(_buf, buf_size_bytes);
+				delete[] _buf;
+			}
+			file_trkdata.close();
+
+			ofstream file_keydata("keyrecord.txt");
+			if (file_keydata.is_open())
+			{
+				file_keydata.clear();
+				file_keydata << to_string(record_key.size()) << endl;
+				for (int i = 0; i < (int)record_key.size(); i++)
+				{
+					file_keydata << to_string(record_key[i]) << endl;
+				}
+			}
+			file_keydata.close();
+
+			clear_record_info();
+		}
+
 		// Fetch the latest available post-processed frameset
 		//static rs2::frameset frameset0, frameset1;
 		rs2::frameset current_frameset;
@@ -663,10 +722,13 @@ int main()
 		rs2::frame current_depth_frame;
 		filtered_data.poll_for_frame(&current_depth_frame);
 		rs2::frameset eye_current_frameset;
+#ifdef __TEST_VIS_RS
 		eye_data.poll_for_frame(&eye_current_frameset);
+#endif
 
 		track_info trk_info;
 		track_que.wait_and_pop(trk_info);
+
 		if (trk_info.is_updated && current_frameset && current_depth_frame && !g_info.skip_main_thread)
 		{
 			g_info.otrk_data.trk_info = trk_info;
@@ -677,8 +739,8 @@ int main()
 			auto color = current_frameset.get_color_frame();
 			//auto colorized_depth = current_frameset.first(RS2_STREAM_DEPTH, RS2_FORMAT_RGB8);
 
-			const int w = color.as<rs2::video_frame>().get_width();
-			const int h = color.as<rs2::video_frame>().get_height();
+			const int w = color.as<rs2::video_frame>().get_width(); // rs_w
+			const int h = color.as<rs2::video_frame>().get_height(); // rs_h
 
 			Mat image_rs(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
 			Mat imagebgr;
@@ -690,43 +752,6 @@ int main()
 				memcpy(img_data, color.get_data(), sizeof(char) * 3 * w * h);
 				record_rsimg.push_back(img_data);
 				record_key.push_back(key_pressed);
-			}
-
-			if (write_recoded_info)
-			{
-				cout << "WRITE RECODING INFO of " << record_trk_info.size() << " frames" << endl;
-
-				std::fstream file_imgdata;
-				file_imgdata.open("imgdata.bin", std::ios::app | std::ios::binary);
-				file_imgdata.clear();
-				file_imgdata.write(reinterpret_cast<char*>(&record_rsimg[0]), w * h * 3 * sizeof(char) * record_rsimg.size());
-				file_imgdata.close();
-
-				std::fstream file_trkdata;
-				file_trkdata.open("trkdata.bin", std::ios::app | std::ios::binary);
-				file_trkdata.clear();
-				for (int i = 0; i < (int)record_trk_info.size(); i++)
-				{
-					size_t buf_size_bytes;
-					char* _buf = trk_info.GetSerialBuffer(buf_size_bytes);
-					file_trkdata.write(_buf, buf_size_bytes);
-					delete[] _buf;
-				}
-				file_trkdata.close();
-
-				ofstream file_keydata("keyrecord.txt");
-				if (file_keydata.is_open())
-				{
-					file_keydata.clear();
-					file_keydata << to_string(record_key.size()) << endl;
-					for (int i = 0; i < (int)record_key.size(); i++)
-					{
-						file_keydata << to_string(record_key[i]) << endl;
-					}
-				}
-				file_keydata.close();
-
-				clear_record_info();
 			}
 
 			cvtColor(image_rs, imagebgr, COLOR_BGR2RGB);
@@ -1160,12 +1185,14 @@ int main()
 				{
 					mk_pickable_sphere_ids.push_back(0);
 					glm::fvec3 pt = trk_info.GetMkPos(i);
-					vzm::GenerateSpheresObject(__FP glm::fvec4(pt.x, pt.y, pt.z, 0.01), __FP marker_color_B(i, 7), 1, mk_pickable_sphere_ids[i]);
+					vzm::GenerateSpheresObject(__FP glm::fvec4(pt.x, pt.y, pt.z, 0.015), __FP marker_color_B(i, 7), 1, mk_pickable_sphere_ids[i]);
 					g_info.vzmobjid2mkid[mk_pickable_sphere_ids[i]] = pt;
 					vzm::ValidatePickTarget(mk_pickable_sphere_ids[i]);
 					vzm::ObjStates cstate = obj_state;
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_pickable_sphere_ids[i], cstate);
-					//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_pickable_sphere_ids[i], cstate);
+					if(g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_pickable_sphere_ids[i], cstate);
+					if(g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_pickable_sphere_ids[i], cstate);
 				}
 			}
 			else
@@ -1387,7 +1414,8 @@ int main()
 		case 100: recompile_hlsl = false; break;
 		}
 
-#ifdef __TEST_VIS_RS
+#define ENABLE_STG
+#ifdef ENABLE_STG
 		{
 			static int mk_stg_calib_sphere_id = 0;
 			static int clf_mk_stg_calib_spheres_id = 0;
@@ -1397,7 +1425,7 @@ int main()
 			static Point2d pos_calib_lines[4] = { Point2d(100, 100), Point2d(400, 400), Point2d(400, 100), Point2d(100, 400) };
 #endif
 
-			if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION && g_info.otrk_data.stg_calib_mk_id >= 0)
+			if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
 			{
 				glm::fvec3 pos_stg_calib_mk = g_info.otrk_data.trk_info.GetMkPos(g_info.otrk_data.stg_calib_mk_id);
 				vzm::GenerateSpheresObject(__FP glm::fvec4(pos_stg_calib_mk, 0.02), __FP glm::fvec3(1), 1, mk_stg_calib_sphere_id);
@@ -1513,8 +1541,8 @@ int main()
 						//cam_state_calbirated.sc /= 4.f;
 					}
 
-					cam_state_calbirated.w = stg_w;
-					cam_state_calbirated.h = stg_h;
+					cam_state_calbirated.w = g_info.stg_w;
+					cam_state_calbirated.h = g_info.stg_h;
 					cam_state_calbirated.np = 0.1f;
 					cam_state_calbirated.fp = 20.0f;
 					cam_state_calbirated.projection_mode = 3;
@@ -1545,6 +1573,25 @@ int main()
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, clf_mk_stg_calib_spheres_id, cstate);
 			}
 
+
+			auto Draw_STG_Calib_Point = [](Mat& img)
+			{
+				if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+				{
+					const int w = g_info.stg_w;
+					const int h = g_info.stg_h;
+					static Point2f pos_2d_rs[12] = {
+						Point2f(w / 5.f, h / 4.f) , Point2f(w / 5.f * 2.f, h / 4.f) , Point2f(w / 5.f * 3.f, h / 4.f) , Point2f(w / 5.f * 4.f, h / 4.f),
+						Point2f(w / 5.f, h / 4.f * 2.f) , Point2f(w / 5.f * 2.f, h / 4.f * 2.f) , Point2f(w / 5.f * 3.f, h / 4.f * 2.f) , Point2f(w / 5.f * 4.f, h / 4.f * 2.f),
+						Point2f(w / 5.f, h / 4.f * 3.f) , Point2f(w / 5.f * 2.f, h / 4.f * 3.f) , Point2f(w / 5.f * 3.f, h / 4.f * 3.f) , Point2f(w / 5.f * 4.f, h / 4.f * 3.f) };
+
+					if(g_info.otrk_data.stg_calib_pt_pairs.size() < 12)
+						cv::drawMarker(img, pos_2d_rs[g_info.otrk_data.stg_calib_pt_pairs.size()], Scalar(255, 100, 100), MARKER_CROSS, 30, 3);
+					else
+						for (int i = 0; i < 12; i++)
+							cv::drawMarker(img, pos_2d_rs[g_info.otrk_data.stg_calib_pt_pairs.size()], Scalar(255, 255, 100), MARKER_STAR, 30, 3);
+				}
+			};
 
 			if (g_info.is_calib_stg_cam)
 			{
@@ -1601,7 +1648,8 @@ int main()
 
 					Mat image_stg(Size(_stg_w, _stg_h), CV_8UC4, (void*)ptr_rgba, Mat::AUTO_STEP);
 					cv::drawMarker(image_stg, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
-					cv::rectangle(image_stg, Point(0, 0), Point(stg_w - 10, stg_h - 50), Scalar(255, 255, 255), 3);
+					cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 50), Scalar(255, 255, 255), 3);
+					Draw_STG_Calib_Point(image_stg);
 					imshow(g_info.window_name_stg_view, image_stg);
 #ifdef __TEST_VIS_RS
 					//copy_back_ui_buffer(eye_imagebgr.data, ptr_rgba, _stg_w, _stg_h, false);
@@ -1617,7 +1665,8 @@ int main()
 			}
 			else
 			{
-				static Mat image_stg(Size(stg_w, stg_h), CV_8UC4, Mat::AUTO_STEP);
+				static Mat image_stg(Size(g_info.stg_w, g_info.stg_h), CV_8UC4, Mat::AUTO_STEP);
+				image_stg = cv::Mat::zeros(image_stg.size(), image_stg.type());
 #ifdef STG_LINE_CALIB
 				if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
 				{
@@ -1626,8 +1675,9 @@ int main()
 				}
 #endif
 
-				cv::drawMarker(image_stg, Point(stg_w / 2, stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
-				cv::rectangle(image_stg, Point(0, 0), Point(stg_w - 10 , stg_h - 50), Scalar(255, 255, 255), 3);
+				cv::drawMarker(image_stg, Point(g_info.stg_w / 2, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
+				cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10 , g_info.stg_h - 50), Scalar(255, 255, 255), 3);
+				Draw_STG_Calib_Point(image_stg);
 				imshow(g_info.window_name_stg_view, image_stg);
 			}
 		}

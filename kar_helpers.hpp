@@ -759,6 +759,9 @@ struct GlobalInfo
 	SS_Tool_Guide_Pts ss_tool_info;
 	int brain_obj_id, ventricle_obj_id;
 
+	int rs_w, rs_h;
+	int stg_w, stg_h;
+
 	// scene definition
 	int ws_scene_id; // arbitrary integer
 	int rs_scene_id; // arbitrary integer
