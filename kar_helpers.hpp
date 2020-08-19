@@ -749,12 +749,14 @@ struct GlobalInfo
 	// model related
 	bool is_meshmodel;
 	int model_obj_id;
-	vector<glm::fvec3> model_pick_pts;
 	bool align_matching_model;
 	glm::fmat4x4 mat_match_model2ws;
 	int gathered_model_point_id;
-
 	int rs_pc_id;
+
+	vector<glm::fvec3> model_ms_pick_pts;
+	int model_ws_pick_spheres_id;
+	int model_ms_pick_spheres_id;
 
 	SS_Tool_Guide_Pts ss_tool_info;
 	int brain_obj_id, ventricle_obj_id;
@@ -786,6 +788,7 @@ struct GlobalInfo
 	string stg_calib;
 	string sst_positions;
 	string model_path;
+	string model_predefined_pts;
 	string guide_path;		// 20200818 숭실대 guide 경로때문에 변수하나 추가했어요
 
 	GlobalInfo()

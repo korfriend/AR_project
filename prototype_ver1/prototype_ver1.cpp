@@ -75,6 +75,7 @@ int main()
 	g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
 	g_info.rs_calib = "E:\\project_srcs\\kar\\prototype_ver1\\rs_calib.txt";
 	g_info.stg_calib = "E:\\project_srcs\\kar\\prototype_ver1\\stg_calib.txt";
+	g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 
 #define SS_HEAD
 
@@ -673,6 +674,8 @@ int main()
 			calib_trial_rs_cam_frame_ids.clear();
 			g_info.is_calib_stg_cam = g_info.is_calib_rs_cam = false;
 			g_info.otrk_data.stg_calib_pt_pairs.clear();
+			g_info.model_predefined_pts.clear();
+			vzm::DeleteObject(g_info.model_ws_pick_spheres_id);
 			cout << "CLEAR calibration points" << endl;
 		}
 
@@ -758,7 +761,7 @@ int main()
 			
 			if (load_calib_info)
 			{
-				// loading points
+				// loading 3d points
 				g_info.otrk_data.calib_3d_pts.clear();
 				std::ifstream infile(g_info.cb_positions);
 				string line;
@@ -775,7 +778,7 @@ int main()
 					infile.close();
 				}
 
-				// loading matrix
+				// loading rs calib pairs and matrix
 				infile = std::ifstream(g_info.rs_calib);
 				if (infile.is_open())
 				{
@@ -807,6 +810,43 @@ int main()
 					}
 					g_info.is_calib_rs_cam = true;
 					infile.close();
+
+
+					// loading model point pairs
+					infile = std::ifstream(g_info.model_predefined_pts);
+					if (infile.is_open())
+					{
+						g_info.model_ms_pick_pts.clear();
+						while (getline(infile, line))
+						{
+							std::istringstream iss(line);
+							float a, b, c;
+							if (!(iss >> a >> b >> c)) { break; } // error
+							g_info.model_ms_pick_pts.push_back(glm::fvec3(a, b, c));
+						}
+						infile.close();
+
+						if (g_info.model_ms_pick_pts.size() > 0)
+						{
+							vector<glm::fvec4> spheres_xyzr;
+							vector<glm::fvec3> spheres_rgb;
+							for (int i = 0; i < (int)g_info.model_ms_pick_pts.size(); i++)
+							{
+								glm::fvec4 sphere_xyzr = glm::fvec4(g_info.model_ms_pick_pts[i], 0.001);
+								spheres_xyzr.push_back(sphere_xyzr);
+								glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 0);
+								spheres_rgb.push_back(sphere_rgb);
+							}
+							vzm::ObjStates sobj_state;
+							sobj_state.color[3] = 1.0f;
+							sobj_state.emission = 0.5f;
+							sobj_state.diffusion = 0.5f;
+							sobj_state.specular = 0.0f;
+							vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)g_info.model_ms_pick_pts.size(), g_info.model_ms_pick_spheres_id);
+							vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_pick_spheres_id, sobj_state);
+							Show_Window_with_Texts(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id, "Point : " + to_string((int)g_info.model_ms_pick_pts.size()));
+						}
+					}
 				}
 				//if (trk_info.is_detected_sstool)
 				//{
@@ -1203,6 +1243,16 @@ int main()
 				g_info.vzmobjid2mkid.clear();
 			}
 
+			if (g_info.model_ws_pick_spheres_id != 0)
+			{
+				vzm::ObjStates cstate;
+				vzm::GetSceneObjectState(g_info.rs_scene_id, g_info.model_ws_pick_spheres_id, cstate);
+				cstate.is_visible = g_info.manual_set_mode == MsMouseMode::GATHERING_POINTS;
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_pick_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_pick_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_pick_spheres_id, cstate);
+			}
+
 			//if (trk_info.mk_residue_list.size() > 5)
 			//{
 			//	for (int i = 0; i < trk_info.mk_residue_list.size(); i++)
@@ -1517,6 +1567,10 @@ int main()
 					vzm::GenerateSpheresObject(__FP ws_mk_spheres_xyzr[0], __FP ws_mk_spheres_rgb[0], num_stg_calib_pairs, clf_mk_stg_calib_spheres_id);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, clf_mk_stg_calib_spheres_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, clf_mk_stg_calib_spheres_id, obj_state);
+				}
+				else
+				{
+					vzm::DeleteObject(clf_mk_stg_calib_spheres_id);
 				}
 
 				if (num_stg_calib_pairs >= 12 && last_calib_pair != num_stg_calib_pairs)
