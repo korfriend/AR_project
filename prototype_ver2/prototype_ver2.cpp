@@ -1576,7 +1576,6 @@ int main()
 							vzm::GenerateLinesObject((float*)&pos_lines[0], (float*)&clr_lines[0], (int)pos_lines.size() / 2, ssu_tool_guide_angleLine_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleLine_id, angleLineState);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleLine_id, angleLineState);
-							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angleLine_id, angleLineState);
 
 
 							// Arc
@@ -1616,7 +1615,6 @@ int main()
 							vzm::GenerateTrianglesObject((float*)&pos_tris[0], (float*)&clr_tris[0], (int)pos_tris.size() / 3, ssu_tool_guide_angleArc_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleArc_id, angleArcState);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleArc_id, angleArcState);
-							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angleArc_id, angleArcState);
 
 
 							// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
@@ -1677,12 +1675,15 @@ int main()
 							right_offset = 0.01f;
 							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.03f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 
+							/*
 							MakeAngleTextWidget_2(guide_entry_ws, -tool_dir_ws, -guide_dir_ws, glm::make_vec3(rs_cam_params.view), glm::make_vec3(rs_cam_params.up), 0.07f, ssu_tool_guide_angleText_id2);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id2, angleTextState);
 
 							MakeAngleTextWidget_2(guide_entry_ws, -tool_dir_ws, -guide_dir_ws, glm::make_vec3(cam_params.view), glm::make_vec3(cam_params.up), 0.07f, ssu_tool_guide_angleText_id3);
 							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angleText_id3, angleTextState);
+							*/
 						}
 					}
 				}
