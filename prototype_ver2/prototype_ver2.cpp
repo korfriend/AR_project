@@ -1151,7 +1151,6 @@ int main()
 					glm::fvec3 *pos_xyz_list, *nrl_xyz_list;
 					unsigned int* idx_prims;
 					int num_vtx, num_prims, stride_idx;
-					glm::fvec3 *rgb_list;
 					glm::fmat3x3 mat_s;
 
 					// brain //
@@ -1173,6 +1172,7 @@ int main()
 					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, brain_obj_ws_id);
 					delete[] pos_xyz_list;
 					delete[] nrl_xyz_list;
+					delete[] idx_prims;
 
 					// ventricle //
 					vzm::GetPModelData(ventricle_obj_ws_id, (float**)&pos_xyz_list, (float**)&nrl_xyz_list, nullptr, nullptr, num_vtx, &idx_prims, num_prims, stride_idx);
@@ -1194,6 +1194,7 @@ int main()
 					vzm::GeneratePrimitiveObject((float*)pos_xyz_list, (float*)nrl_xyz_list, NULL, NULL, num_vtx, idx_prims, num_prims, stride_idx, ventricle_obj_ws_id);
 					delete[] pos_xyz_list;
 					delete[] nrl_xyz_list;
+					delete[] idx_prims;
 
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
@@ -1443,14 +1444,18 @@ int main()
 						glm::fvec3 sstool_guide_p1_os = tool_guide_pos_os[0];
 						glm::fvec3 sstool_guide_p2_os = tool_guide_pos_os[1];
 
-						// model scene
-						vzm::ObjStates ssu_tool_guide_state = model_state;
+						vzm::ObjStates ssu_tool_guide_ms_state = model_state;
+						ssu_tool_guide_ms_state.color[3] = 0.8;
+						vzm::ObjStates ssu_tool_guide_ws_state = model_state;
+						ssu_tool_guide_ws_state.color[3] = 0.8;
 
+
+						// model scene
 						glm::fvec3 cyl_p01[2] = { sstool_guide_p1_os, sstool_guide_p2_os };
 						float cyl_r = 1.5;
 						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
 						vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_guide_id);
-						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, section_ssu_tool_guide_id, ssu_tool_guide_state);
+						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, section_ssu_tool_guide_id, ssu_tool_guide_ms_state);
 
 						// world scene
 						// os->headfrm->ws
@@ -1464,16 +1469,21 @@ int main()
 						cyl_r = 0.0015f;
 						glm::fvec3 cyl_rgb2 = glm::fvec3(0, 1, 0);
 						vzm::GenerateCylindersObject((float*)cyl_p02, &cyl_r, __FP cyl_rgb2, 1, section_ssu_tool_guide_ws_id);
-						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_guide_ws_id, obj_state);
-						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_guide_ws_id, obj_state);
-						vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_guide_ws_id, obj_state);
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_guide_ws_id, ssu_tool_guide_ws_state);
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_guide_ws_id, ssu_tool_guide_ws_state);
+						vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_guide_ws_id, ssu_tool_guide_ws_state);
+
+
+						vzm::ObjStates ssu_skin_state = model_state;
+						ssu_skin_state.color[3] = 0.2f;
+						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_obj_id, ssu_skin_state);
 					}
 				}
 
 				/////////////////////////////////////////////////////////////////////////////////
 				static int ssu_tool_guide_distance_id = 0, ssu_tool_guide_distance_text_id = 0;
 				static int ssu_tool_guide_angleLine_id = 0, ssu_tool_guide_angleArc_id = 0;
-				static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0;
+				static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0, ssu_tool_guide_angleText_id2 = 0, ssu_tool_guide_angleText_id3 = 0;
 				if (trk_info.is_detected_sstool && bAlign) {
 					if (tool_guide_pos_os.size() && ss_tool_info.pos_centers_tfrm.size()) {
 						// sstool pos(ws)
@@ -1521,20 +1531,26 @@ int main()
 							clr_lines[0] = clr_lines[1] = clr_lines[2] = clr_lines[3] = glm::fvec3(0.2, 0.2, 1.0);
 							vzm::GenerateLinesObject((float*)&pos_lines[0], (float*)&clr_lines[0], (int)pos_lines.size() / 2, ssu_tool_guide_distance_id);
 
-							string dist_str = std::to_string((int)(dist_v));
+							string dist_str = std::to_string((int)(fGuideDist));
 							auto MakeDistTextWidget = [&dist_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
 								vector<glm::fvec3> text_xyzlt_view_up(3);
 								text_xyzlt_view_up[0] = pos_lt;
 								text_xyzlt_view_up[1] = __cv3__ cam_param.view;
 								text_xyzlt_view_up[2] = __cv3__ cam_param.up;
-								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, 0.03f, true, false, text_id);
+								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, size_font, true, false, text_id);
 							};
 
 							float right_offset = -0.06f;
-							MakeDistTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.03f, ssu_tool_guide_distance_text_id);
+							MakeDistTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.02f, ssu_tool_guide_distance_text_id);
 
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
+
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distance_id, distanceLineState);
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
+
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_distance_id, distanceLineState);
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
 
 							// draw angle(line + arc) ///////////////////////////////////////////////////////////////
@@ -1559,6 +1575,9 @@ int main()
 
 							vzm::GenerateLinesObject((float*)&pos_lines[0], (float*)&clr_lines[0], (int)pos_lines.size() / 2, ssu_tool_guide_angleLine_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleLine_id, angleLineState);
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleLine_id, angleLineState);
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angleLine_id, angleLineState);
+
 
 							// Arc
 							auto make_angluar_tris = [](std::vector<glm::fvec3>& pos_tris, const glm::fvec3 pos_ctrs[3]) {
@@ -1596,7 +1615,8 @@ int main()
 
 							vzm::GenerateTrianglesObject((float*)&pos_tris[0], (float*)&clr_tris[0], (int)pos_tris.size() / 3, ssu_tool_guide_angleArc_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleArc_id, angleArcState);
-
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleArc_id, angleArcState);
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angleArc_id, angleArcState);
 
 
 							// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
@@ -1629,6 +1649,8 @@ int main()
 
 							vzm::GenerateArrowObject((float*)&pos_s, (float*)&pos_e, 0.001f, ssu_tool_guide_angleArrow_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleArrow_id, angleArrowState);
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleArrow_id, angleArrowState);
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angleArrow_id, angleArrowState);
 
 							string angle_str = std::to_string((int)fGuideAngle) + "вк";
 
@@ -1655,6 +1677,12 @@ int main()
 							right_offset = 0.01f;
 							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.03f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
+
+							MakeAngleTextWidget_2(guide_entry_ws, -tool_dir_ws, -guide_dir_ws, glm::make_vec3(rs_cam_params.view), glm::make_vec3(rs_cam_params.up), 0.07f, ssu_tool_guide_angleText_id2);
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id2, angleTextState);
+
+							MakeAngleTextWidget_2(guide_entry_ws, -tool_dir_ws, -guide_dir_ws, glm::make_vec3(cam_params.view), glm::make_vec3(cam_params.up), 0.07f, ssu_tool_guide_angleText_id3);
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angleText_id3, angleTextState);
 						}
 					}
 				}
