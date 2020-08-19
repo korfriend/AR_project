@@ -144,7 +144,6 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 	vector<Point3f>& point3ds = otrk_data.calib_3d_pts;
 
 	static vector<glm::fvec3> pick_pts;
-	static int spheres_id = 0;
 	static int gathered_point_id = 0;
 
 	if (!otrk_data.trk_info.is_updated) return;
@@ -215,7 +214,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			if (event == EVENT_LBUTTONDOWN)
 			{
 				// model's world to real world
-				int num_crrpts = (int)min(eginfo->ginfo.model_pick_pts.size(), pick_pts.size());
+				int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), pick_pts.size());
 				if (num_crrpts >= 3)
 				{
 					//for (int i = 0; i < num_crrpts; i++)
@@ -225,7 +224,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					//	TESTOUT("pick_pts : ", pick_pts[i]);
 					//}
 					glm::fmat4x4 mat_tr;
-					if (helpers::ComputeRigidTransform(__FP eginfo->ginfo.model_pick_pts[0], __FP pick_pts[0], num_crrpts, __FP mat_tr[0]))
+					if (helpers::ComputeRigidTransform(__FP eginfo->ginfo.model_ms_pick_pts[0], __FP pick_pts[0], num_crrpts, __FP mat_tr[0]))
 					{
 						vzm::ObjStates model_obj_state;
 						vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.model_obj_id, model_obj_state);
@@ -266,14 +265,15 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 						glm::fvec3 sphere_rgb = glm::fvec3(0, 1, 0);
 						spheres_rgb.push_back(sphere_rgb);
 					}
-					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)pick_pts.size(), spheres_id);
-					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, spheres_id, sobj_state);
-					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, spheres_id, sobj_state);
+					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)pick_pts.size(), eginfo->ginfo.model_ws_pick_spheres_id);
+					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
+					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
+					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
 				}
 				else
 				{
-					vzm::DeleteObject(spheres_id);
-					spheres_id = 0;
+					vzm::DeleteObject(eginfo->ginfo.model_ws_pick_spheres_id);
+					eginfo->ginfo.model_ws_pick_spheres_id = 0;
 				}
 			}
 		}
@@ -391,7 +391,6 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 	}
 }
 
-
 void CallBackFunc_StgMouse(int event, int x, int y, int flags, void* userdata)
 {
 	EventGlobalInfo* eginfo = (EventGlobalInfo*)userdata;
@@ -451,9 +450,6 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 	vzm::CameraParameters cam_params;
 	vzm::GetCameraParameters(eginfo->scene_id, cam_params, eginfo->cam_id);
 
-	static vector<glm::fvec3> pick_pts;
-	static int spheres_id = 0;
-
 	static int x_old = -1;
 	static int y_old = -1;
 	//if ((x - x_old) * (x - x_old) + (y - y_old) * (y - y_old) < 1) return;
@@ -483,7 +479,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 						{
 							cout << "picked : " << pick_obj << endl;
 							TESTOUT("world position : ", pos_pick);
-							pick_pts.push_back(pos_pick);
+							eginfo->ginfo.model_ms_pick_pts.push_back(pos_pick);
 						}
 					}
 					else
@@ -492,22 +488,22 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 						if (vzm::Pick1stHitSurfaceUsingDepthMap(__FP pos_pick, x, y, 1000.f, eginfo->scene_id, eginfo->cam_id))
 						{
 							TESTOUT("world position : ", pos_pick);
-							pick_pts.push_back(pos_pick);
+							eginfo->ginfo.model_ms_pick_pts.push_back(pos_pick);
 						}
 					}
 				}
 				else if (event == EVENT_RBUTTONDOWN)
 				{
-					if (pick_pts.size() > 0)
-						pick_pts.pop_back();
+					if (eginfo->ginfo.model_ms_pick_pts.size() > 0)
+						eginfo->ginfo.model_ms_pick_pts.pop_back();
 				}
-				if (pick_pts.size() > 0)
+				if (eginfo->ginfo.model_ms_pick_pts.size() > 0)
 				{
 					vector<glm::fvec4> spheres_xyzr;
 					vector<glm::fvec3> spheres_rgb;
-					for (int i = 0; i < (int)pick_pts.size(); i++)
+					for (int i = 0; i < (int)eginfo->ginfo.model_ms_pick_pts.size(); i++)
 					{
-						glm::fvec4 sphere_xyzr = glm::fvec4(pick_pts[i], 0.001);
+						glm::fvec4 sphere_xyzr = glm::fvec4(eginfo->ginfo.model_ms_pick_pts[i], 0.001);
 						spheres_xyzr.push_back(sphere_xyzr);
 						glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 0);
 						spheres_rgb.push_back(sphere_rgb);
@@ -517,22 +513,37 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 					sobj_state.emission = 0.5f;
 					sobj_state.diffusion = 0.5f;
 					sobj_state.specular = 0.0f;
-					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)pick_pts.size(), spheres_id);
-					vzm::ReplaceOrAddSceneObject(eginfo->scene_id, spheres_id, sobj_state);
+					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)eginfo->ginfo.model_ms_pick_pts.size(), eginfo->ginfo.model_ms_pick_spheres_id);
+					vzm::ReplaceOrAddSceneObject(eginfo->scene_id, eginfo->ginfo.model_ms_pick_spheres_id, sobj_state);
 				}
 				else
 				{
-					vzm::DeleteObject(spheres_id);
-					spheres_id = 0;
+					vzm::DeleteObject(eginfo->ginfo.model_ms_pick_spheres_id);
+					eginfo->ginfo.model_ms_pick_spheres_id = 0;
 				}
-				eginfo->ginfo.model_pick_pts = pick_pts;
-				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)pick_pts.size()));
+
+				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)eginfo->ginfo.model_ms_pick_pts.size()));
+
+				ofstream outfile(eginfo->ginfo.model_predefined_pts);
+				if (outfile.is_open())
+				{
+					outfile.clear();
+					//outfile << to_string(eginfo->ginfo.model_ms_pick_pts.size()) << endl;
+					for (int i = 0; i < eginfo->ginfo.model_ms_pick_pts.size(); i++)
+					{
+						string line = to_string(eginfo->ginfo.model_ms_pick_pts[i].x) + " " +
+							to_string(eginfo->ginfo.model_ms_pick_pts[i].y) + " " +
+							to_string(eginfo->ginfo.model_ms_pick_pts[i].z);
+						outfile << line << endl;
+					}
+				}
+				outfile.close();
 			}
 		}
 	}
 	else if (flags & EVENT_FLAG_ALTKEY)
 	{
-		if (pick_pts.size() == 0) return;
+		if (eginfo->ginfo.model_ms_pick_pts.size() == 0) return;
 		if (event == EVENT_LBUTTONDOWN)
 		{
 			if (eginfo->ginfo.model_obj_id == 0)
@@ -542,9 +553,9 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 			vzm::ObjStates model_obj_state;
 			vzm::GetSceneObjectState(eginfo->scene_id, eginfo->ginfo.model_obj_id, model_obj_state);
 			glm::fmat4x4 mat_ws2os = glm::inverse(*(glm::fmat4x4*)model_obj_state.os2ws);
-			for (int i = 0; i < (int)pick_pts.size(); i++)
+			for (int i = 0; i < (int)eginfo->ginfo.model_ms_pick_pts.size(); i++)
 			{
-				glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, pick_pts[i]);
+				glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, eginfo->ginfo.model_ms_pick_pts[i]);
 				// note that the model's os is defined in mm unit
 				vzmproc::GenerateSamplePoints(eginfo->ginfo.model_obj_id, (float*)&pos_pick_os, 30.f, 0.3f, eginfo->ginfo.gathered_model_point_id);
 			}
@@ -558,7 +569,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 			*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
 			vzm::ReplaceOrAddSceneObject(eginfo->scene_id, eginfo->ginfo.gathered_model_point_id, sobj_state);
 			
-			Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)pick_pts.size()));
+			Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)eginfo->ginfo.model_ms_pick_pts.size()));
 		}
 	}
 	else
@@ -581,7 +592,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 			else
 				__cv3__ cam_params.pos -= 0.01f * (__cv3__ cam_params.view);
 			vzm::SetCameraParameters(eginfo->scene_id, cam_params, eginfo->cam_id);
-			Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)pick_pts.size()));
+			Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)eginfo->ginfo.model_ms_pick_pts.size()));
 		}
 		else if (event == EVENT_MOUSEMOVE)
 		{
@@ -593,7 +604,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 				__cv3__ cam_params.up = __cv3__ arc_cam_pose.up;
 				__cv3__ cam_params.view = __cv3__ arc_cam_pose.view;
 				vzm::SetCameraParameters(eginfo->scene_id, cam_params, eginfo->cam_id);
-				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)pick_pts.size()));
+				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)eginfo->ginfo.model_ms_pick_pts.size()));
 			}
 			else if (flags & EVENT_FLAG_RBUTTON)
 			{
@@ -603,7 +614,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 				__cv3__ cam_params.up = __cv3__ arc_cam_pose.up;
 				__cv3__ cam_params.view = __cv3__ arc_cam_pose.view;
 				vzm::SetCameraParameters(eginfo->scene_id, cam_params, eginfo->cam_id);
-				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)pick_pts.size()));
+				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)eginfo->ginfo.model_ms_pick_pts.size()));
 			}
 		}
 	}
