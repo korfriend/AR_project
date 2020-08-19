@@ -204,9 +204,6 @@ int main()
 	vzm::SceneEnvParameters zoom_scn_env_params = scn_env_params;
 	vzm::SetSceneEnvParameters(g_info.zoom_scene_id, zoom_scn_env_params);
 
-
-
-
 	vzm::ObjStates obj_state;
 	obj_state.emission = 0.4f;
 	obj_state.diffusion = 0.6f;

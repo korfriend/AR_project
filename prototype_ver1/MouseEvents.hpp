@@ -245,12 +245,12 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		{
 			if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
 			{
-				if (event == EVENT_LBUTTONDOWN)
+				if (x < eginfo->ginfo.rs_w / 2)
 				{
 					TESTOUT("world position : ", eginfo->ginfo.pos_probe_pin);
 					pick_pts.push_back(eginfo->ginfo.pos_probe_pin);
 				}
-				else if (event == EVENT_RBUTTONDOWN)
+				else // x >= eginfo->ginfo.rs_w / 2
 				{
 					if (pick_pts.size() > 0)
 						pick_pts.pop_back();
