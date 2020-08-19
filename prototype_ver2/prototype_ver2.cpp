@@ -31,7 +31,7 @@ using namespace std;
 using namespace cv;
 
 #include "../kar_helpers.hpp"
-#include "MouseEvents.hpp"
+#include "../prototype_ver1/MouseEvents.hpp"
 
 #include "Simulation.h"
 
