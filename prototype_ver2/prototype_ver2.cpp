@@ -1321,6 +1321,7 @@ int main()
 				/////////////////////////////////////////////////////////////////////////////////
 				// draw ssu tool dir, tooltip
 				static int section_ssu_tool_line_id = 0, section_ssu_tool_end_id = 0, section_ssu_tool_p2_id = 0, section_ssu_tool_line2_id = 0;
+				static int ssu_tool_line_ms_id = 0;
 				if (trk_info.is_detected_sstool && ss_tool_info.pos_centers_tfrm.size()) {
 					// ss_tool cylinder visualization //
 					glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
@@ -1359,21 +1360,13 @@ int main()
 						vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
 					}
 
-
+					// ws, rs
 					glm::fvec3 cyl_p01[2] = { sstool_p1_ws, sstool_p1_ws + sstool_dir * 0.2f };
 					float cyl_r = 0.0015f;
 					glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
 					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_line_id);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_line_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_line_id, obj_state);
-
-
-					cyl_r = 0.00015f;
-					vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_line2_id);
-					vzm::ObjStates zoom_state = obj_state;
-					zoom_state.color[3] = 0.3;
-					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_line_id, zoom_state);
-
 
 					vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0045f), __FP glm::fvec3(1, 0, 0), 1, section_ssu_tool_end_id);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_end_id, obj_state);
@@ -1382,6 +1375,21 @@ int main()
 					vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p2_ws, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_ssu_tool_p2_id);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_p2_id, obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_p2_id, obj_state);
+
+					// zs
+					cyl_r = 0.00015f;
+					glm::fvec3 cyl_p02[2] = { sstool_p1_ws - sstool_dir * 0.02f, sstool_p1_ws - sstool_dir * 0.01f };
+					vzm::GenerateCylindersObject((float*)cyl_p02, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_line2_id);
+					vzm::ObjStates zoom_state = obj_state;
+					zoom_state.color[3] = 0.3;
+					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_line_id, zoom_state);
+
+					// ms
+					//cyl_r = 0.0015f;
+					//cyl_rgb = glm::fvec3(0, 1, 1);
+					//vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, ssu_tool_line_ms_id);
+					vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, section_ssu_tool_line_id, obj_state);
+					
 				}
 
 				/////////////////////////////////////////////////////////////////////////////////
@@ -1448,7 +1456,7 @@ int main()
 						vzm::ObjStates ssu_tool_guide_ws_state = obj_state;
 						ssu_tool_guide_ws_state.color[3] = 0.4;
 						vzm::ObjStates ssu_tool_guide_zs_state = obj_state;
-						ssu_tool_guide_ws_state.color[3] = 0.2;
+						ssu_tool_guide_zs_state.color[3] = 0.2;
 
 						// model scene
 						glm::fvec3 cyl_p01[2] = { sstool_guide_p1_os, sstool_guide_p2_os };
