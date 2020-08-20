@@ -26,6 +26,13 @@
 #include "../optitrk/optitrack.h"
 
 #define __NUMMARKERS 15
+//#define EYE_VIS_RS
+#define EYE_VIS_RS_THREAD
+#define INDIVIDUAL_EYE_THREAD
+#define ENABLE_STG
+//#define __USE_AR_STG_CALIB_TEST
+#define SS_HEAD
+//#define NO_DEPTHMAP
 
 using namespace std;
 using namespace cv;
@@ -76,8 +83,6 @@ int main()
 	g_info.rs_calib = "E:\\project_srcs\\kar\\prototype_ver1\\rs_calib.txt";
 	g_info.stg_calib = "E:\\project_srcs\\kar\\prototype_ver1\\stg_calib.txt";
 	g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
-
-#define SS_HEAD
 
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\demo.obj";
 #ifdef SS_HEAD
@@ -327,7 +332,10 @@ int main()
 
 	rs2::config cfg;
 	cfg.enable_device(serials["RS_RBS"]);
-	cfg.enable_stream(RS2_STREAM_DEPTH); // Enable default depth
+	cfg.enable_stream(RS2_STREAM_DEPTH, 424, 240, RS2_FORMAT_Z16, 90); // Enable default depth
+#ifdef NO_DEPTHMAP
+	cfg.disable_stream(RS2_STREAM_DEPTH); // Disable default depth
+#endif
 	// For the color stream, set format to RGBA
 	// To allow blending of the color frame on top of the depth frame
 	cfg.enable_stream(RS2_STREAM_COLOR, 0, g_info.rs_w, g_info.rs_h, RS2_FORMAT_RGB8, 60);
@@ -344,7 +352,6 @@ int main()
 
 	// to get rgb sensor profile
 	auto stream_rgb = profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
-	auto stream_depth = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 	rs2_intrinsics rgb_intrinsics;
 	if(stream_rgb)
 	{
@@ -356,8 +363,10 @@ int main()
 		cout << "PPy," << rgb_intrinsics.ppy << std::endl;
 		cout << "Distorsion," << rs2_distortion_to_string(rgb_intrinsics.model) << std::endl;
 	}
-	rs2_extrinsics rgb_extrinsics = stream_depth.get_extrinsics_to(stream_rgb);
 
+#ifndef NO_DEPTHMAP
+	auto stream_depth = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
+	rs2_extrinsics rgb_extrinsics = stream_depth.get_extrinsics_to(stream_rgb);
 	rs2_intrinsics depth_intrinsics;
 	if (stream_depth)
 	{
@@ -369,6 +378,7 @@ int main()
 		cout << "PPy," << depth_intrinsics.ppy << std::endl;
 		cout << "Distorsion," << rs2_distortion_to_string(depth_intrinsics.model) << std::endl;
 	}
+#endif
 
 	vzm::CameraParameters rs_cam_params;
 	__cv3__ rs_cam_params.pos = glm::fvec3(0);
@@ -391,6 +401,7 @@ int main()
 
 	int stg_cam_id = 1; // arbitrary integer
 
+#ifndef NO_DEPTHMAP
 	glm::fmat4x4 mat_ircs2irss, mat_irss2ircs;
 	if (stream_depth)
 	{
@@ -407,7 +418,7 @@ int main()
 		mat_ircs2irss = mat_ps2ss * mat_cs2ps;
 		mat_irss2ircs = glm::inverse(mat_ircs2irss);
 	}
-
+#endif
 	//auto stream = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 	//auto stream = profile.get_stream(RS2_STREAM_COLOR | RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 
@@ -421,8 +432,7 @@ int main()
 	rs2::frame_queue filtered_data;
 	//rs2::frame_queue postprocessed_depthframes(1);
 
-//#define __TEST_VIS_RS
-#ifdef __TEST_VIS_RS
+#ifdef EYE_VIS_RS
 	rs2::frame_queue eye_data;
 
 	rs2::pipeline eye_pipe(ctx);
@@ -445,9 +455,8 @@ int main()
 			//rs2::frameset data;
 			//if (pipe.poll_for_frames(&data))
 			{
-				//#define INDIVIDUAL_EYE_THREAD
 #ifndef INDIVIDUAL_EYE_THREAD
-#ifdef __TEST_VIS_RS
+#if defined(EYE_VIS_RS) &&  defined(EYE_VIS_RS_THREAD)
 				rs2::frameset __data;
 				//if (eye_pipe.poll_for_frames(&__data))
 				//{
@@ -458,10 +467,9 @@ int main()
 #endif
 #endif
 				rs2::frameset data = pipe.wait_for_frames(); // Wait for next set of frames from the camera
-
 				rs2::frame data_depth = data.get_depth_frame();
-				if (!data_depth) // Should not happen but if the pipeline is configured differently
-					return;       //  it might not provide depth and we don't want to crash
+
+#ifndef NO_DEPTHMAP
 				if (data_depth != NULL)
 				{
 					// First make the frames spatially aligned
@@ -488,9 +496,10 @@ int main()
 					// data = data.apply_filter(color_map);
 					// data.arbitrary_depth = data_depth;
 					// postprocessed_depthframes.enqueue(data_depth);
-					filtered_data.enqueue(data_depth);
-					original_data.enqueue(data);
 				}
+#endif
+				filtered_data.enqueue(data_depth);
+				original_data.enqueue(data);
 
 				// Send resulting frames for visualization in the main thread
 				//original_data.enqueue(data);
@@ -499,7 +508,7 @@ int main()
 	});
 
 #ifdef INDIVIDUAL_EYE_THREAD
-#ifdef __TEST_VIS_RS
+#if defined(EYE_VIS_RS) &&  defined(EYE_VIS_RS_THREAD)
 	std::atomic_bool eye_rs_alive{ true };
 	std::thread eye_processing_thread([&]() {
 		while (eye_rs_alive)
@@ -628,8 +637,23 @@ int main()
 	// fill record_trk_info and record_rsimg
 #endif
 
+	LARGE_INTEGER lIntCntStart, lIntCntEnd;
+	LARGE_INTEGER lIntFreq;
+	auto DisplayTimes = [](const LARGE_INTEGER lIntCntStart, const string& _test)
+	{
+		LARGE_INTEGER lIntFreq, lIntCntEnd;
+		QueryPerformanceFrequency(&lIntFreq);
+		QueryPerformanceCounter(&lIntCntEnd);
+		double dRunTime1 = (lIntCntEnd.QuadPart - lIntCntStart.QuadPart) / (double)(lIntFreq.QuadPart);
+
+		cout << _test << " : " << 1. / dRunTime1 << " fps" << endl;
+	};
+
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
+		QueryPerformanceFrequency(&lIntFreq);
+		QueryPerformanceCounter(&lIntCntStart);
+
 		key_pressed = cv::waitKey(1);
 		bool load_calib_info = false;
 		bool load_stg_calib_info = false;
@@ -724,21 +748,16 @@ int main()
 		original_data.poll_for_frame(&current_frameset);
 		rs2::frame current_depth_frame;
 		filtered_data.poll_for_frame(&current_depth_frame);
-		rs2::frameset eye_current_frameset;
-#ifdef __TEST_VIS_RS
-		eye_data.poll_for_frame(&eye_current_frameset);
-#endif
 
 		track_info trk_info;
 		track_que.wait_and_pop(trk_info);
 
-		if (trk_info.is_updated && current_frameset && current_depth_frame && !g_info.skip_main_thread)
+		if (trk_info.is_updated && current_frameset && !g_info.skip_main_thread)
 		{
 			g_info.otrk_data.trk_info = trk_info;
 			mat_clf2ws = trk_info.mat_rbcam2ws;
 			mat_ws2clf = glm::inverse(mat_clf2ws);
 
-			rs2::depth_frame depth_frame = current_depth_frame;// .get_depth_frame();
 			auto color = current_frameset.get_color_frame();
 			//auto colorized_depth = current_frameset.first(RS2_STREAM_DEPTH, RS2_FORMAT_RGB8);
 
@@ -1010,8 +1029,11 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_trial_rs_cam_frame_ids[i], cstate);
 				}
 			}
-			if(show_pc)
+#ifndef NO_DEPTHMAP
+			if (show_pc)
 			{
+				rs2::depth_frame depth_frame = current_depth_frame;// .get_depth_frame();
+
 				vzm::ObjStates obj_state_pts = obj_state;
 				obj_state_pts.color[3] = 1.f;
 				obj_state_pts.emission = 0.3f;
@@ -1155,6 +1177,7 @@ int main()
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.rs_pc_id, obj_state_pts);
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.rs_pc_id, obj_state_pts);
 			}
+#endif
 
 			if(g_info.otrk_data.trk_info.is_detected_probe)
 				g_info.pos_probe_pin = tr_pt(trk_info.mat_probe2ws, glm::fvec3());
@@ -1464,7 +1487,6 @@ int main()
 		case 100: recompile_hlsl = false; break;
 		}
 
-#define ENABLE_STG
 #ifdef ENABLE_STG
 		{
 			static int mk_stg_calib_sphere_id = 0;
@@ -1482,7 +1504,6 @@ int main()
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_stg_calib_sphere_id, obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_stg_calib_sphere_id, obj_state);
 
-				//#define __USE_AR_STG_CALIB_TEST
 #ifdef __USE_AR_STG_CALIB_TEST
 				static glm::fmat4x4 prev_mat_clf2ws;
 				glm::fvec3 diff = tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3());
@@ -1642,8 +1663,11 @@ int main()
 					if(g_info.otrk_data.stg_calib_pt_pairs.size() < 12)
 						cv::drawMarker(img, pos_2d_rs[g_info.otrk_data.stg_calib_pt_pairs.size()], Scalar(255, 100, 100), MARKER_CROSS, 30, 3);
 					else
-						for (int i = 0; i < 12; i++)
-							cv::drawMarker(img, pos_2d_rs[g_info.otrk_data.stg_calib_pt_pairs.size()], Scalar(255, 255, 100), MARKER_STAR, 30, 3);
+						for (int i = 0; i < g_info.otrk_data.stg_calib_pt_pairs.size(); i++)
+						{
+							pair<Point2f, Point3f>& pair_pts = g_info.otrk_data.stg_calib_pt_pairs[i];
+							cv::drawMarker(img, get<0>(pair_pts), Scalar(255, 255, 100), MARKER_STAR, 30, 3);
+						}
 				}
 			};
 
@@ -1705,7 +1729,7 @@ int main()
 					cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 50), Scalar(255, 255, 255), 3);
 					Draw_STG_Calib_Point(image_stg);
 					imshow(g_info.window_name_stg_view, image_stg);
-#ifdef __TEST_VIS_RS
+#ifdef EYE_VIS_RS
 					//copy_back_ui_buffer(eye_imagebgr.data, ptr_rgba, _stg_w, _stg_h, false);
 					//cv::drawMarker(eye_imagebgr, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255));
 					//imshow(g_info.window_name_stg_view, eye_imagebgr);
@@ -1736,7 +1760,20 @@ int main()
 			}
 		}
 
+		DisplayTimes(lIntCntStart, "ar processing time");
 
+#ifdef EYE_VIS_RS
+		//cv::waitKey(10);
+		//Sleep(30);
+		rs2::frameset eye_current_frameset;
+#ifdef EYE_VIS_RS_THREAD
+		eye_data.poll_for_frame(&eye_current_frameset);
+#else
+		eye_current_frameset = eye_pipe.wait_for_frames();
+#endif
+#endif
+
+#ifdef EYE_VIS_RS
 		if (eye_current_frameset)
 		{
 			auto color = eye_current_frameset.get_color_frame();
@@ -1750,10 +1787,10 @@ int main()
 			imshow(g_info.window_name_eye_view, eye_imagebgr);
 		}
 #endif
+#endif
 	}
 
 	clear_record_info();
-
 		
 	// Signal threads to finish and wait until they do
 	rs_alive = false;
@@ -1761,8 +1798,10 @@ int main()
 	tracker_alive = false;
 	tracker_processing_thread.join();
 #ifdef INDIVIDUAL_EYE_THREAD
+#if defined(EYE_VIS_RS) &&  defined(EYE_VIS_RS_THREAD)
 	eye_rs_alive = false;
 	eye_processing_thread.join();
+#endif
 #endif
 	optitrk::DeinitOptiTrackLib();
 

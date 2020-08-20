@@ -339,7 +339,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				}
 				cout << "STG_CALIBRATION MARKER ID ----> " << eginfo->ginfo.otrk_data.stg_calib_mk_id << " / " << eginfo->ginfo.vzmobjid2mkid.size() << endl;
 			}
-			else if(otrk_data.stg_calib_mk_id > 0)
+			else if(otrk_data.stg_calib_mk_id >= 0)
 			{
 				const int w = eginfo->ginfo.stg_w;
 				const int h = eginfo->ginfo.stg_h;
