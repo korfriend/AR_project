@@ -247,6 +247,11 @@ int main()
 	cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 	cv::namedWindow(g_info.window_name_zs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 
+	cv::moveWindow(g_info.window_name_rs_view, 2560, 0);
+	cv::moveWindow(g_info.window_name_ws_view, 2560 + 1282, 0);
+	cv::moveWindow(g_info.window_name_ms_view, 2560, 700);
+	cv::moveWindow(g_info.window_name_zs_view, 2560 + 1282, 700);
+
 	vzm::ObjStates model_state = obj_state;
 	model_state.color[3] = 0.8;
 	glm::fmat4x4 mat_s = glm::scale(glm::fvec3(0.001));
@@ -1321,7 +1326,7 @@ int main()
 				/////////////////////////////////////////////////////////////////////////////////
 				// draw ssu tool dir, tooltip
 				static int section_ssu_tool_line_id = 0, section_ssu_tool_end_id = 0, section_ssu_tool_p2_id = 0, section_ssu_tool_line2_id = 0;
-				static int ssu_tool_line_ms_id = 0;
+				static int ssu_tool_line_ms_id = 0, ssu_tool_sphere_zs_id = 0;
 				if (trk_info.is_detected_sstool && ss_tool_info.pos_centers_tfrm.size()) {
 					// ss_tool cylinder visualization //
 					glm::fmat4x4 mat_sstool2ws = trk_info.mat_tfrm2ws;
@@ -1377,12 +1382,10 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_p2_id, obj_state);
 
 					// zs
-					cyl_r = 0.00015f;
-					glm::fvec3 cyl_p02[2] = { sstool_p1_ws - sstool_dir * 0.1f, sstool_p1_ws - sstool_dir * 0.2f };
-					vzm::GenerateCylindersObject((float*)cyl_p02, &cyl_r, __FP cyl_rgb, 1, section_ssu_tool_line2_id);
+					vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0015f), __FP glm::fvec3(0, 1, 1), 1, ssu_tool_sphere_zs_id);
 					vzm::ObjStates zoom_state = obj_state;
 					zoom_state.color[3] = 0.4;
-					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_line_id, zoom_state);
+					vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_sphere_zs_id, zoom_state);
 
 					// ms
 					//cyl_r = 0.0015f;
@@ -1393,14 +1396,17 @@ int main()
 						glm::fvec3 sstool_p1_os = tr_pt(mat_ws2os, sstool_p1_ws);
 						glm::fvec3 sstool_p2_os = tr_pt(mat_ws2os, sstool_p2_ws);
 						glm::fvec3 cyl_p03[2] = { sstool_p1_os, sstool_p2_os };
+						cyl_r = 1.5f;
+						vzm::ObjStates ssu_tool_line_ms_state = model_state;
+
 						vzm::GenerateCylindersObject((float*)cyl_p03, &cyl_r, __FP cyl_rgb, 1, ssu_tool_line_ms_id);
-						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_line_ms_id, obj_state);
+						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_line_ms_id, ssu_tool_line_ms_state);
 					}
 				}
 
 				/////////////////////////////////////////////////////////////////////////////////
 				// draw ssu_tool guide dir
-				static int section_ssu_tool_guide_id = 0, section_ssu_tool_guide_ws_id = 0;
+				static int section_ssu_tool_guide_id = 0, section_ssu_tool_guide_ws_id = 0, section_ssu_tool_guide_zs_id = 0;
 				if (trk_info.is_detected_sstool && bAlign) {
 					// ss_tool guide //
 					if (guide_toggle) {
@@ -1480,10 +1486,13 @@ int main()
 						glm::fvec3 cyl_p02[2] = { sstool_guide_p1_ws, sstool_guide_p2_ws };
 						cyl_r = 0.0015f;
 						glm::fvec3 cyl_rgb2 = glm::fvec3(0, 1, 0);
+						vzm::GenerateCylindersObject((float*)cyl_p02, &cyl_r, __FP cyl_rgb2, 1, section_ssu_tool_guide_zs_id);
+						vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_guide_zs_id, ssu_tool_guide_zs_state);
+
+						cyl_r = 0.004f;
 						vzm::GenerateCylindersObject((float*)cyl_p02, &cyl_r, __FP cyl_rgb2, 1, section_ssu_tool_guide_ws_id);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_ssu_tool_guide_ws_id, ssu_tool_guide_ws_state);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_ssu_tool_guide_ws_id, ssu_tool_guide_ws_state);
-						vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, section_ssu_tool_guide_ws_id, ssu_tool_guide_zs_state);
 
 
 						vzm::ObjStates ssu_skin_state = model_state;
@@ -1546,12 +1555,14 @@ int main()
 							clr_lines[0] = clr_lines[1] = clr_lines[2] = clr_lines[3] = glm::fvec3(1.0, 1.0, 1.0);
 							//vzm::GenerateLinesObject((float*)&pos_lines[0], (float*)&clr_lines[0], (int)pos_lines.size() / 2, ssu_tool_guide_distance_id);
 
+							glm::fvec4 color = glm::fvec4(1, 0.5, 1, 0.5);
 							__cm4__ distanceArrowState.os2ws = glm::fmat4(1.f);
 							__cv4__ distanceArrowState.color = color;
 							vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[1], 0.001f, ssu_tool_guide_distance_arrow1_id);
-							vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[1], 0.001f, ssu_tool_guide_distance_arrow2_id);
-							glm::fvec4 color = glm::fvec4(1, 0, 1, 0.8);
-
+							vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[3], 0.001f, ssu_tool_guide_distance_arrow2_id);
+							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
+							vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
+							
 
 							string dist_str = std::to_string((int)(fGuideDist *1000));
 							auto MakeDistTextWidget = [&dist_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
