@@ -112,32 +112,6 @@ int main()
 	vzm::GenerateCopiedObject(g_info.model_obj_id, model_obj_ws_id);
 
 
-	/////////////////////////////////////////////////////////////////////////
-	bool bAlign = false;
-	bool bSaveGuideFile = false;
-	vector<glm::fvec3> tool_guide_pos_os;
-
-	Simulation s;
-	string modelRootPath("..\\Data");
-	s.initSSUDeform(modelRootPath.c_str());
-	s.initTool(modelRootPath.c_str());
-
-
-	string brainPath = modelRootPath + "\\brain.obj";
-	vzm::LoadModelFile(brainPath, g_info.brain_obj_id);
-
-	string ventriclePath = modelRootPath + "\\ventricle.obj";
-	vzm::LoadModelFile(ventriclePath, g_info.ventricle_obj_id);
-
-	int brain_obj_ws_id = 0;
-	int ventricle_obj_ws_id = 0;
-
-	vzm::GenerateCopiedObject(g_info.brain_obj_id, brain_obj_ws_id);
-	vzm::GenerateCopiedObject(g_info.ventricle_obj_id, ventricle_obj_ws_id);
-
-	/////////////////////////////////////////////////////////////////////////
-
-
 	vzm::CameraParameters cam_params;
 	if (!optitrk::InitOptiTrackLib())
 	{
@@ -178,14 +152,6 @@ int main()
 	__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
 	vzm::SetCameraParameters(g_info.model_scene_id, cam_params_model, model_cam_id);
 
-	///////////////////////////////////////////////////////////////
-	int zoom_cam_id = 1;
-	vzm::CameraParameters zoom_cam_params;
-	zoom_cam_params = cam_params;
-
-	vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
-	///////////////////////////////////////////////////////////////
-
 	vzm::SceneEnvParameters scn_env_params;
 	scn_env_params.is_on_camera = false;
 	scn_env_params.is_pointlight = false;
@@ -203,8 +169,7 @@ int main()
 	vzm::SceneEnvParameters csection_scn_env_params = scn_env_params;
 	vzm::SetSceneEnvParameters(g_info.csection_scene_id, csection_scn_env_params);
 
-	vzm::SceneEnvParameters zoom_scn_env_params = scn_env_params;
-	vzm::SetSceneEnvParameters(g_info.zoom_scene_id, zoom_scn_env_params);
+	
 
 	vzm::ObjStates obj_state;
 	obj_state.emission = 0.4f;
@@ -283,6 +248,40 @@ int main()
 
 
 	//////////////////////////////////////////////////////////////////////////////////
+	// ssu global var //
+	bool bAlign = false;
+	bool bSaveGuideFile = false;
+	vector<glm::fvec3> tool_guide_pos_os;
+	Simulation s;
+
+	// ssu load file //
+	string modelRootPath("..\\Data");
+	s.initSSUDeform(modelRootPath.c_str());
+	s.initTool(modelRootPath.c_str());
+
+	string brainPath = modelRootPath + "\\brain.obj";
+	vzm::LoadModelFile(brainPath, g_info.brain_obj_id);
+
+	string ventriclePath = modelRootPath + "\\ventricle.obj";
+	vzm::LoadModelFile(ventriclePath, g_info.ventricle_obj_id);
+
+	int brain_obj_ws_id = 0;
+	int ventricle_obj_ws_id = 0;
+
+	vzm::GenerateCopiedObject(g_info.brain_obj_id, brain_obj_ws_id);
+	vzm::GenerateCopiedObject(g_info.ventricle_obj_id, ventricle_obj_ws_id);
+
+
+	// zoom 
+	int zoom_cam_id = 1;
+	vzm::CameraParameters zoom_cam_params;
+	zoom_cam_params = cam_params;
+
+	vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
+
+	vzm::SceneEnvParameters zoom_scn_env_params = scn_env_params;
+	vzm::SetSceneEnvParameters(g_info.zoom_scene_id, zoom_scn_env_params);
+
 	vzm::ObjStates brain_model_state = model_state;
 	vzm::ObjStates ventricle_model_state = model_state;
 
@@ -876,8 +875,6 @@ int main()
 					glm::fmat4x4 mat_r = glm::rotate(-glm::pi<float>(), glm::fvec3(1, 0, 0));
 					glm::fmat4x4 mat_rscs2ws = mat_clf2ws * mat_rscs2clf;
 					glm::fmat4x4 mat_os2ws;
-
-
 					{
 						glm::fmat4x4 mat_rs2ws = mat_rscs2ws * mat_r;
 						rs2_extrinsics rgb_extrinsics = stream_depth.get_extrinsics_to(stream_rgb);
