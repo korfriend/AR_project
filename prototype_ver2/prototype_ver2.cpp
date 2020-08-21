@@ -210,12 +210,11 @@ int main()
 	cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 	cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
 	cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
-	cv::namedWindow(g_info.window_name_zs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
+	
 
 	cv::moveWindow(g_info.window_name_rs_view, 2560, 0);
 	cv::moveWindow(g_info.window_name_ws_view, 2560 + 1282, 0);
 	cv::moveWindow(g_info.window_name_ms_view, 2560, 700);
-	cv::moveWindow(g_info.window_name_zs_view, 2560 + 1282, 700);
 
 	vzm::ObjStates model_state = obj_state;
 	model_state.color[3] = 0.8;
@@ -245,56 +244,6 @@ int main()
 		model_state.associated_obj_ids["VR_OTF"] = vr_tmap_id;
 		model_state.associated_obj_ids["MPR_WINDOWING"] = mpr_tmap_id;
 	}
-
-
-	//////////////////////////////////////////////////////////////////////////////////
-	// ssu global var //
-	bool bAlign = false;
-	bool bSaveGuideFile = false;
-	vector<glm::fvec3> tool_guide_pos_os;
-	Simulation s;
-
-	// ssu load file //
-	string modelRootPath("..\\Data");
-	s.initSSUDeform(modelRootPath.c_str());
-	s.initTool(modelRootPath.c_str());
-
-	string brainPath = modelRootPath + "\\brain.obj";
-	vzm::LoadModelFile(brainPath, g_info.brain_obj_id);
-
-	string ventriclePath = modelRootPath + "\\ventricle.obj";
-	vzm::LoadModelFile(ventriclePath, g_info.ventricle_obj_id);
-
-	int brain_obj_ws_id = 0;
-	int ventricle_obj_ws_id = 0;
-
-	vzm::GenerateCopiedObject(g_info.brain_obj_id, brain_obj_ws_id);
-	vzm::GenerateCopiedObject(g_info.ventricle_obj_id, ventricle_obj_ws_id);
-
-
-	// zoom 
-	int zoom_cam_id = 1;
-	vzm::CameraParameters zoom_cam_params;
-	zoom_cam_params = cam_params;
-
-	vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
-
-	vzm::SceneEnvParameters zoom_scn_env_params = scn_env_params;
-	vzm::SetSceneEnvParameters(g_info.zoom_scene_id, zoom_scn_env_params);
-
-	vzm::ObjStates brain_model_state = model_state;
-	vzm::ObjStates ventricle_model_state = model_state;
-
-	brain_model_state.color[0] = 0.5; brain_model_state.color[1] = 0.5; brain_model_state.color[2] = 0.5; brain_model_state.color[3] = 0.3;
-	ventricle_model_state.color[0] = 1.0; ventricle_model_state.color[1] = 0; ventricle_model_state.color[2] = 0; ventricle_model_state.color[3] = 1.0;
-
-	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_obj_id, model_state);
-	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.brain_obj_id, brain_model_state);
-	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.ventricle_obj_id, ventricle_model_state);
-
-	Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
-	Show_Window(g_info.window_name_zs_view, g_info.zoom_scene_id, zoom_cam_id);
-	//////////////////////////////////////////////////////////////////////////////////
 
 
 	// Colorizer is used to visualize depth data
@@ -514,7 +463,80 @@ int main()
 		}
 	});
 
-	//////////////////////////////////////////////////////////////////
+
+	// make 3d ui widgets
+	int coord_grid_obj_id = 0, axis_lines_obj_id = 0, axis_texX_obj_id = 0, axis_texZ_obj_id = 0;
+	World_GridAxis_Gen(coord_grid_obj_id, axis_lines_obj_id, axis_texX_obj_id, axis_texZ_obj_id);
+	vzm::ObjStates grid_obj_state;
+	grid_obj_state.color[3] = 0.7f;
+	grid_obj_state.line_thickness = 0;
+	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, coord_grid_obj_id, grid_obj_state);
+	bool foremost_surf_rendering = true;
+	vzm::DebugTestSet("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), g_info.ws_scene_id, ov_cam_id, coord_grid_obj_id);
+	grid_obj_state.color[3] = 0.9f;
+	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_lines_obj_id, grid_obj_state);
+	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(1, 0.3, 0.3, 0.6);
+	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texX_obj_id, grid_obj_state);
+	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(0.3, 0.3, 1, 0.6);
+	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texZ_obj_id, grid_obj_state);
+
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// ssu global var //
+	bool bAlign = false;
+	bool bSaveGuideFile = false;
+	vector<glm::fvec3> tool_guide_pos_os;
+	Simulation s;
+
+	// ssu load file //
+	string modelRootPath("..\\Data");
+	s.initSSUDeform(modelRootPath.c_str());
+	s.initTool(modelRootPath.c_str());
+
+	string brainPath = modelRootPath + "\\brain.obj";
+	vzm::LoadModelFile(brainPath, g_info.brain_obj_id);
+
+	string ventriclePath = modelRootPath + "\\ventricle.obj";
+	vzm::LoadModelFile(ventriclePath, g_info.ventricle_obj_id);
+
+	int brain_obj_ws_id = 0;
+	int ventricle_obj_ws_id = 0;
+
+	vzm::GenerateCopiedObject(g_info.brain_obj_id, brain_obj_ws_id);
+	vzm::GenerateCopiedObject(g_info.ventricle_obj_id, ventricle_obj_ws_id);
+
+	// zoom view setting //
+	int zoom_cam_id = 1;
+	vzm::CameraParameters zoom_cam_params;
+	zoom_cam_params = cam_params;
+
+	vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
+
+	vzm::SceneEnvParameters zoom_scn_env_params = scn_env_params;
+	vzm::SetSceneEnvParameters(g_info.zoom_scene_id, zoom_scn_env_params);
+
+	vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, coord_grid_obj_id, grid_obj_state);
+	vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, axis_lines_obj_id, grid_obj_state);
+
+	// obj setting //
+	vzm::ObjStates brain_model_state = model_state;
+	vzm::ObjStates ventricle_model_state = model_state;
+
+	brain_model_state.color[0] = 0.5; brain_model_state.color[1] = 0.5; brain_model_state.color[2] = 0.5; brain_model_state.color[3] = 0.3;
+	ventricle_model_state.color[0] = 1.0; ventricle_model_state.color[1] = 0; ventricle_model_state.color[2] = 0; ventricle_model_state.color[3] = 1.0;
+
+	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_obj_id, model_state);
+	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.brain_obj_id, brain_model_state);
+	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.ventricle_obj_id, ventricle_model_state);
+
+	// window setting //
+	cv::namedWindow(g_info.window_name_zs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
+	cv::moveWindow(g_info.window_name_zs_view, 2560 + 1282, 700);
+
+	Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
+	Show_Window(g_info.window_name_zs_view, g_info.zoom_scene_id, zoom_cam_id);
+
+	// ssu deform //
 	double dTimeStepMilliSecond = s.getTimeStep() * 1000.0;
 	LARGE_INTEGER iT1, iT2;
 	LARGE_INTEGER iTFrequency;
@@ -543,31 +565,12 @@ int main()
 			}
 		}
 	});
-	//////////////////////////////////////////////////////////////////
 
+	bool calib_toggle = false;
+	bool guide_toggle = false;
+	bool show_guide_view = false;
 
-	// make 3d ui widgets
-	int coord_grid_obj_id = 0, axis_lines_obj_id = 0, axis_texX_obj_id = 0, axis_texZ_obj_id = 0;
-	World_GridAxis_Gen(coord_grid_obj_id, axis_lines_obj_id, axis_texX_obj_id, axis_texZ_obj_id);
-	vzm::ObjStates grid_obj_state;
-	grid_obj_state.color[3] = 0.7f;
-	grid_obj_state.line_thickness = 0;
-	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, coord_grid_obj_id, grid_obj_state);
-	bool foremost_surf_rendering = true;
-	vzm::DebugTestSet("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), g_info.ws_scene_id, ov_cam_id, coord_grid_obj_id);
-	grid_obj_state.color[3] = 0.9f;
-	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_lines_obj_id, grid_obj_state);
-	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(1, 0.3, 0.3, 0.6);
-	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texX_obj_id, grid_obj_state);
-	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(0.3, 0.3, 1, 0.6);
-	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texZ_obj_id, grid_obj_state);
-
-
-	/////////////////////////////////////////
-	vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, coord_grid_obj_id, grid_obj_state);
-	vzm::ReplaceOrAddSceneObject(g_info.zoom_scene_id, axis_lines_obj_id, grid_obj_state);
-	/////////////////////////////////////////
-
+	///////////////////////////////////////////////////////////////////////////////////////////////
 	// params for the main thread
 	int key_pressed = -1;
 	float pnp_err = -1.f;
@@ -579,12 +582,10 @@ int main()
 	bool show_calib_frames = true;
 	int rs_lf_axis = 0, probe_lf_axis = 0, sstool_lf_axis = 0; // lf means local frame
 	bool show_pc = false;
-	bool calib_toggle = false;
-	bool guide_toggle = false;
+	
 	int num_calib = 0;
 	int calib_samples = 0;
 	glm::fmat4x4 mat_rscs2clf;
-	bool show_guide_view = false;
 
 	vector<glm::fvec3> points_rs_buf_3d_clf;
 	vector<glm::fvec2> points_rs_buf_2d;
