@@ -567,7 +567,7 @@ int main()
 
 			//cout << cur_trk_info.is_detected_rscam << ", " << cur_trk_info.is_detected_probe << endl;
 
-			optitrk::GetMarkersLocation(&cur_trk_info.mk_xyz_list, &cur_trk_info.mk_residue_list);
+			optitrk::GetMarkersLocation(&cur_trk_info.mk_xyz_list, &cur_trk_info.mk_residue_list, &cur_trk_info.mk_cid_list);
 			cur_trk_info.is_updated = true;
 			track_que.push(cur_trk_info);
 		}
@@ -1239,7 +1239,7 @@ int main()
 				};
 
 				int num_mks = trk_info.mk_xyz_list.size() / 3;
-				g_info.vzmobjid2mkid.clear();
+				g_info.vzmobjid2pos.clear();
 				for (int i = 0; i < (int)mk_pickable_sphere_ids.size(); i++)
 					vzm::DeleteObject(mk_pickable_sphere_ids[i]);
 
@@ -1249,7 +1249,7 @@ int main()
 					mk_pickable_sphere_ids.push_back(0);
 					glm::fvec3 pt = trk_info.GetMkPos(i);
 					vzm::GenerateSpheresObject(__FP glm::fvec4(pt.x, pt.y, pt.z, 0.015), __FP marker_color_B(i, 7), 1, mk_pickable_sphere_ids[i]);
-					g_info.vzmobjid2mkid[mk_pickable_sphere_ids[i]] = pt;
+					g_info.vzmobjid2pos[mk_pickable_sphere_ids[i]] = pt;
 					vzm::ValidatePickTarget(mk_pickable_sphere_ids[i]);
 					vzm::ObjStates cstate = obj_state;
 					if(g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
@@ -1263,7 +1263,7 @@ int main()
 				for (int i = 0; i < (int)mk_pickable_sphere_ids.size(); i++)
 					vzm::DeleteObject(mk_pickable_sphere_ids[i]);
 				mk_pickable_sphere_ids.clear();
-				g_info.vzmobjid2mkid.clear();
+				g_info.vzmobjid2pos.clear();
 			}
 
 			if (g_info.model_ws_pick_spheres_id != 0)
@@ -1345,15 +1345,15 @@ int main()
 					glm::fmat4x4 mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);
 					mat_os2matchmodefrm = mat_ws2matchmodelfrm * g_info.mat_match_model2ws;
 					g_info.align_matching_model = false;
+
+					// REFACTORING 필요!!!!
+					//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, model_obj_ws_id, model_obj_state);
 				}
 
 				__cm4__ model_obj_state.os2ws = mat_matchmodelfrm2ws * mat_os2matchmodefrm;
-
-				// REFACTORING 필요!!!!
-				//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, model_obj_ws_id, model_obj_state);
 
 				// PIN REF //
 				bool is_section_probe_detected = trk_info.is_detected_probe;
@@ -1481,6 +1481,7 @@ int main()
 
 		vzm::DebugTestSet("_bool_ReloadHLSLObjFiles", &recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::DebugTestSet("_bool_TestOit", &use_new_version, sizeof(bool), -1, -1);
+		vzm::DebugTestSet("_bool_PrintOutRoutineObjs", &use_new_version, sizeof(bool), -1, -1);
 		Show_Window(g_info.window_name_ws_view, g_info.ws_scene_id, ov_cam_id);
 		switch (key_pressed)
 		{
@@ -1499,42 +1500,25 @@ int main()
 
 			if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
 			{
-				glm::fvec3 pos_stg_calib_mk = g_info.otrk_data.trk_info.GetMkPos(g_info.otrk_data.stg_calib_mk_id);
-				vzm::GenerateSpheresObject(__FP glm::fvec4(pos_stg_calib_mk, 0.02), __FP glm::fvec3(1), 1, mk_stg_calib_sphere_id);
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_stg_calib_sphere_id, obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_stg_calib_sphere_id, obj_state);
-
-#ifdef __USE_AR_STG_CALIB_TEST
-				static glm::fmat4x4 prev_mat_clf2ws;
-				glm::fvec3 diff = tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3());
-				if (glm::length(diff) > 0.05)
+				int stg_calib_mk_idx;
+				bool exist_mk_cid = g_info.otrk_data.trk_info.CheckExistCID(g_info.otrk_data.stg_calib_mk_cid, &stg_calib_mk_idx);
+				if (exist_mk_cid)
 				{
-					prev_mat_clf2ws = mat_clf2ws;
-					Mat viewGray;
-					cvtColor(eye_imagebgr, viewGray, COLOR_RGB2GRAY);
-					std::vector<__MarkerDetInfo> list_det_armks;
-					ar_marker.track_markers(list_det_armks, viewGray.data, viewGray.cols, viewGray.rows, mk_ids);
-					if (list_det_armks.size() > 0)
-					{
-						cout << "find ar mks : " << list_det_armks.size() << endl;
-						for (int i = 0; i < (int)list_det_armks.size(); i++)
-						{
-							__MarkerDetInfo& armk = list_det_armks[i];
-							if (armk.id > g_info.otrk_data.calib_3d_pts.size()) continue;
-
-							Point2f pt2d = Point2f(0, 0);
-							vector<float>& cpts = armk.corners2d;
-							for (int k = 0; k < 4; k++)
-								pt2d += Point2f(cpts[k * 2 + 0], cpts[k * 2 + 1]);
-
-							glm::fvec3 pos3d = tr_pt(mat_ws2clf, __cv3__ &g_info.otrk_data.calib_3d_pts[armk.id - 1]);
-							g_info.otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(pt2d, Point3f(pos3d.x, pos3d.y, pos3d.z)));
-						}
-					}
-
-					cout << "__USE_AR_STG_CALIB_TEST pairs : " << g_info.otrk_data.stg_calib_pt_pairs.size() << endl;
+					glm::fvec3 pos_stg_calib_mk = g_info.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
+					vzm::GenerateSpheresObject(__FP glm::fvec4(pos_stg_calib_mk, 0.02), __FP glm::fvec3(1), 1, mk_stg_calib_sphere_id);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_stg_calib_sphere_id, obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_stg_calib_sphere_id, obj_state);
 				}
-#else
+				else
+				{
+					vzm::ObjStates cstate;
+					vzm::GetSceneObjectState(g_info.ws_scene_id, mk_stg_calib_sphere_id, cstate);
+					cstate.is_visible = false;
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_stg_calib_sphere_id, cstate);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_stg_calib_sphere_id, cstate);
+				}
+
+
 				if (load_stg_calib_info)
 				{
 					// loading points
@@ -1786,7 +1770,6 @@ int main()
 			cvtColor(eye_image_rs, eye_imagebgr, COLOR_BGR2RGB);
 			imshow(g_info.window_name_eye_view, eye_imagebgr);
 		}
-#endif
 #endif
 	}
 

@@ -98,6 +98,8 @@ bool optitrk::InitOptiTrackLib()
 	// Attach listener for camera notifications ==--
 	TT_AttachListener(&listener);
 
+	//TT_StreamTrackd(true);
+
 	// Do an update to pick up any recently-arrived cameras.
 	TT_Update();
 
@@ -156,19 +158,34 @@ bool CreateRigidBody(const std::string& name_rb, const int num_markers, const fl
 	return true;
 }
 
-int optitrk::GetMarkersLocation(std::vector<float>* mk_xyz_list, std::vector<float>* mk_residual_list)
+int optitrk::GetMarkersLocation(std::vector<float>* mk_xyz_list, std::vector<float>* mk_residual_list, std::vector<std::bitset<128>>* mk_cid_list)
 {
 	if (!is_initialized) return false;
 
 	int num_mks = TT_FrameMarkerCount();
 	mk_xyz_list->assign(num_mks * 3, 0);
 	if (mk_residual_list) mk_residual_list->assign(num_mks, 0);
+	if (mk_cid_list) mk_cid_list->assign(num_mks, 0);
 	for (int i = 0; i < num_mks; i++)
 	{
 		mk_xyz_list->at(3 * i + 0) = TT_FrameMarkerX(i);
 		mk_xyz_list->at(3 * i + 1) = TT_FrameMarkerY(i);
 		mk_xyz_list->at(3 * i + 2) = TT_FrameMarkerZ(i);
 		if(mk_residual_list) mk_residual_list->at(i) = TT_FrameMarkerResidual(i);
+		if (mk_cid_list)
+		{
+			Core::cUID cid = TT_FrameMarkerLabel(i);
+			std::bitset<128> cid_bs;
+			unsigned __int64 lbs = cid.LowBits();
+			unsigned __int64 hbs = cid.HighBits();
+			cid_bs |= hbs;
+			cid_bs <<= 64;
+			cid_bs |= lbs;
+			//memcpy(&cid_bs[0], &lbs, sizeof(unsigned __int64));
+			//memcpy(&cid_bs[64], &hbs, sizeof(unsigned __int64));
+			//cout << "mk " << i << " : low " << lbs << ", high " << hbs << endl;
+			mk_cid_list->at(i) = cid_bs;
+		}
 	}
 
 	return num_mks;

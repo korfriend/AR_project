@@ -56,8 +56,8 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 
 					if (pick_obj != 0)
 					{
-						glm::fvec3 mk_pt = eginfo->ginfo.vzmobjid2mkid[pick_obj];
-						cout << "----> " << eginfo->ginfo.vzmobjid2mkid.size() << endl;
+						glm::fvec3 mk_pt = eginfo->ginfo.vzmobjid2pos[pick_obj];
+						cout << "----> " << eginfo->ginfo.vzmobjid2pos.size() << endl;
 						TESTOUT("==> ", mk_pt);
 						if (mk_pt != glm::fvec3(0))
 						{
@@ -327,20 +327,27 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			cout << "STG_CALIBRATION PICK ID : " << x << ", " << y << " ==> " << pick_obj << endl;
 			if (pick_obj != 0)
 			{
-				glm::fvec3 mk_pt = eginfo->ginfo.vzmobjid2mkid[pick_obj];
-				for (int i = 0; i < (int)eginfo->ginfo.vzmobjid2mkid.size(); i++)
+				glm::fvec3 mk_pt = eginfo->ginfo.vzmobjid2pos[pick_obj];
+				for (int i = 0; i < (int)eginfo->ginfo.vzmobjid2pos.size(); i++)
 				{
 					glm::fvec3 mk_candi_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(i);
 					if (glm::length(mk_candi_pt - mk_pt) < 0.005f)
 					{
-						eginfo->ginfo.otrk_data.stg_calib_mk_id = i;
+						eginfo->ginfo.otrk_data.stg_calib_mk_cid = eginfo->ginfo.otrk_data.trk_info.mk_cid_list[i];
 						break;
 					}
 				}
-				cout << "STG_CALIBRATION MARKER ID ----> " << eginfo->ginfo.otrk_data.stg_calib_mk_id << " / " << eginfo->ginfo.vzmobjid2mkid.size() << endl;
+				cout << "STG_CALIBRATION MARKER CID : " << eginfo->ginfo.otrk_data.stg_calib_mk_cid << " / total # : " << eginfo->ginfo.vzmobjid2pos.size() << endl;
 			}
-			else if(otrk_data.stg_calib_mk_id >= 0)
+			else
 			{
+				int stg_calib_mk_idx;
+				if (!eginfo->ginfo.otrk_data.trk_info.CheckExistCID(eginfo->ginfo.otrk_data.stg_calib_mk_cid, &stg_calib_mk_idx))
+				{
+					eginfo->ginfo.otrk_data.stg_calib_mk_cid = 0;
+					return;
+				}
+
 				const int w = eginfo->ginfo.stg_w;
 				const int h = eginfo->ginfo.stg_h;
 				static Point2f pos_2d_rs[12] = {
@@ -352,7 +359,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				{
 					if (otrk_data.stg_calib_pt_pairs.size() < 12)
 					{
-						glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(otrk_data.stg_calib_mk_id);
+						glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
 						glm::fmat4x4 mat_ws2clf = glm::inverse(otrk_data.trk_info.mat_rbcam2ws);
 						glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
 
@@ -402,13 +409,14 @@ void CallBackFunc_StgMouse(int event, int x, int y, int flags, void* userdata)
 
 	if (eginfo->ginfo.manual_set_mode == STG_CALIBRATION)
 	{
-		if (otrk_data.stg_calib_mk_id < 0) return;
+		int stg_calib_mk_idx;
+		if (!eginfo->ginfo.otrk_data.trk_info.CheckExistCID(eginfo->ginfo.otrk_data.stg_calib_mk_cid, &stg_calib_mk_idx)) return;
 
 		if (otrk_data.trk_info.is_detected_rscam)
 		{
 			if (event == EVENT_LBUTTONDOWN)
 			{
-				glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(otrk_data.stg_calib_mk_id);
+				glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
 				glm::fmat4x4 mat_ws2clf = glm::inverse(otrk_data.trk_info.mat_rbcam2ws);
 				glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
 

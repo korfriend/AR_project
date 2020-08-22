@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include <queue>
+#include <bitset>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -645,6 +646,7 @@ struct track_info
 
 	std::vector<float> mk_xyz_list;
 	std::vector<float> mk_residue_list;
+	std::vector<std::bitset<128>> mk_cid_list;
 
 	bool is_updated;
 	track_info() { is_updated = false; }
@@ -663,7 +665,7 @@ struct track_info
 	char* GetSerialBuffer(size_t& bytes_size)
 	{
 		int num_mks = mk_xyz_list.size();
-		bytes_size = sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + num_mks * sizeof(float) * 2 + 4; // last 4 means num_mks
+		bytes_size = sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + num_mks * (sizeof(float) * 2 + 128) + 4; // last 4 means num_mks
 		char* buf = new char[bytes_size];
 		*(int*)buf[0] = num_mks;
 		*(glm::fmat4x4*)buf[4] = mat_rbcam2ws;
@@ -678,6 +680,7 @@ struct track_info
 		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 4] = is_detected_brbody;
 		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5], &mk_xyz_list[0], sizeof(float) * num_mks);
 		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks], &mk_residue_list[0], sizeof(float) * num_mks);
+		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks * 2], &mk_cid_list[0], 128 * num_mks);
 		return buf;
 	}
 
@@ -699,6 +702,24 @@ struct track_info
 		is_detected_brbody = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 4];
 		memcpy(&mk_xyz_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5], sizeof(float) * num_mks);
 		memcpy(&mk_residue_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks], sizeof(float) * num_mks);
+		memcpy(&mk_cid_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks * 2], 128 * num_mks);
+	}
+
+	bool CheckExistCID(const std::bitset<128>& cid, int* mk_idx = NULL)
+	{
+		bool exist_mk_cid = false;
+		if (mk_idx) *mk_idx = -1;
+		for (int i = 0; i < (int)mk_cid_list.size(); i++)
+		{
+			if (mk_cid_list[i] == cid)
+			{
+				exist_mk_cid = true;
+				if (mk_idx) *mk_idx = i;
+				break;
+			}
+		}
+		
+		return exist_mk_cid;
 	}
 };
 
@@ -709,11 +730,11 @@ struct OpttrkData
 	int cb_spheres_id;
 	vector<Point3f> calib_3d_pts;
 	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
-	int stg_calib_mk_id;
+	bitset<128> stg_calib_mk_cid;
 
 	OpttrkData()
 	{
-		stg_calib_mk_id = -1;
+		stg_calib_mk_cid = 0;
 		cb_spheres_id = 0;
 		obj_state.emission = 0.4f;
 		obj_state.diffusion = 0.6f;
@@ -736,7 +757,7 @@ struct SS_Tool_Guide_Pts
 
 struct GlobalInfo
 {
-	map<int, glm::fvec3> vzmobjid2mkid;
+	map<int, glm::fvec3> vzmobjid2pos;
 
 	MsMouseMode manual_set_mode;
 	bool skip_main_thread;

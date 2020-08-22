@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include <bitset>
 
 namespace optitrk
 {
@@ -22,7 +23,7 @@ namespace optitrk
 	__dojostatic bool SetCameraFrameRate(int cam_idx, int frameRate);
 
 	__dojostatic bool LoadProfileAndCalibInfo(const std::string& file_profile, const std::string& file_calib);
-	__dojostatic int GetMarkersLocation(std::vector<float>* mk_xyz_list, std::vector<float>* mk_residual_list = NULL);
+	__dojostatic int GetMarkersLocation(std::vector<float>* mk_xyz_list, std::vector<float>* mk_residual_list = NULL, std::vector<std::bitset<128>>* mk_cid_list = NULL);
 	__dojostatic int GetRigidBodies(std::vector<std::string>* rb_names = NULL);
 	// mat_rb2ws ==> glm::fmat4x4
 	__dojostatic bool SetRigidBodyPropertyById(const int rb_idx, const float smooth_term, const int test_smooth_term);
