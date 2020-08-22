@@ -396,19 +396,37 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 	// cpu mem ==> dataPtr
 	int width_uibuf_pitch = w * 3;
 	int width_fbbuf_pitch = w * GL_CLR_CHANNELS;
+#pragma omp parallel for 
 	for (int i = 0; i < h; i++)
 		for (int j = 0; j < w; j++)
 		{
 			int y = v_flib ? (h - 1 - i) : i;
-			unsigned char r = data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 0];
-			unsigned char g = data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 1];
-			unsigned char b = data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 2];
-			unsigned char a = data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 3];
+
+			unsigned int rgba;
+			memcpy(&rgba, &data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 0], sizeof(int));
+			
+			//unsigned char r = data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 0];
+			//unsigned char g = data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 1];
+			//unsigned char b = data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 2];
+			//unsigned char a = data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 3];
+
+			unsigned char r = rgba & 0xFF;
+			unsigned char g = (rgba >> 8) & 0xFF;
+			unsigned char b = (rgba >> 16) & 0xFF;
+			unsigned char a = (rgba >> 24) & 0xFF;
+
 			if (a > 0)
 			{
-				unsigned char _r = data_ui[i * width_uibuf_pitch + j * 3 + 0];
-				unsigned char _g = data_ui[i * width_uibuf_pitch + j * 3 + 1];
-				unsigned char _b = data_ui[i * width_uibuf_pitch + j * 3 + 2];
+				unsigned int rgb;
+				memcpy(&rgb, &data_ui[i * width_uibuf_pitch + j * 3 + 0], 3);
+
+				//unsigned char _r = data_ui[i * width_uibuf_pitch + j * 3 + 0];
+				//unsigned char _g = data_ui[i * width_uibuf_pitch + j * 3 + 1];
+				//unsigned char _b = data_ui[i * width_uibuf_pitch + j * 3 + 2];
+
+				unsigned char _r = rgb & 0xFF;
+				unsigned char _g = (rgb >> 8) & 0xFF;
+				unsigned char _b = (rgb >> 16) & 0xFF;
 
 				float fa = (float)a / 255.f;
 				float fr = (1.f - fa) * (float)_r + (float)r * fa;
@@ -418,6 +436,9 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 				data_ui[i * width_uibuf_pitch + j * 3 + 0] = (byte)min((int)fr, (int)255);
 				data_ui[i * width_uibuf_pitch + j * 3 + 1] = (byte)min((int)fg, (int)255);
 				data_ui[i * width_uibuf_pitch + j * 3 + 2] = (byte)min((int)fb, (int)255);
+
+				rgb = (byte)min((int)fr, (int)255) | ((byte)min((int)fg, (int)255) << 8) | ((byte)min((int)fb, (int)255) << 16);
+				memcpy(&data_ui[i * width_uibuf_pitch + j * 3 + 0], &rgb, 3);
 			}
 		}
 };
@@ -665,7 +686,7 @@ struct track_info
 	char* GetSerialBuffer(size_t& bytes_size)
 	{
 		int num_mks = mk_xyz_list.size();
-		bytes_size = sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + num_mks * (sizeof(float) * 2 + 128) + 4; // last 4 means num_mks
+		bytes_size = sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + num_mks * (sizeof(float) * 2 + (128/8)) + 4; // last 4 means num_mks
 		char* buf = new char[bytes_size];
 		*(int*)buf[0] = num_mks;
 		*(glm::fmat4x4*)buf[4] = mat_rbcam2ws;
@@ -680,7 +701,7 @@ struct track_info
 		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 4] = is_detected_brbody;
 		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5], &mk_xyz_list[0], sizeof(float) * num_mks);
 		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks], &mk_residue_list[0], sizeof(float) * num_mks);
-		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks * 2], &mk_cid_list[0], 128 * num_mks);
+		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks * 2], &mk_cid_list[0], (128/8) * num_mks);
 		return buf;
 	}
 
@@ -702,7 +723,7 @@ struct track_info
 		is_detected_brbody = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 4];
 		memcpy(&mk_xyz_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5], sizeof(float) * num_mks);
 		memcpy(&mk_residue_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks], sizeof(float) * num_mks);
-		memcpy(&mk_cid_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks * 2], 128 * num_mks);
+		memcpy(&mk_cid_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks * 2], (128/8) * num_mks);
 	}
 
 	bool CheckExistCID(const std::bitset<128>& cid, int* mk_idx = NULL)
@@ -760,7 +781,7 @@ struct GlobalInfo
 	map<int, glm::fvec3> vzmobjid2pos;
 
 	MsMouseMode manual_set_mode;
-	bool skip_main_thread;
+	bool skip_call_render;
 	OpttrkData otrk_data;
 	bool is_calib_rs_cam;
 	bool is_calib_stg_cam;
@@ -815,7 +836,7 @@ struct GlobalInfo
 	GlobalInfo()
 	{
 		manual_set_mode = NONE;
-		skip_main_thread = false;
+		skip_call_render = false;
 		is_calib_rs_cam = false;
 		is_calib_stg_cam = false;
 		model_obj_id = 0;

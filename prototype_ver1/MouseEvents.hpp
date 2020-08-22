@@ -154,6 +154,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 	sobj_state.diffusion = 0.5f;
 	sobj_state.specular = 0.0f;
 
+
+
 	if (eginfo->ginfo.manual_set_mode == ADD_CALIB_POINTS)
 	{
 		if (event == EVENT_LBUTTONDOWN)
@@ -465,7 +467,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 	x_old = x;
 	y_old = y;
 
-	eginfo->ginfo.skip_main_thread = true;
+	eginfo->ginfo.skip_call_render = true;
 	// https://docs.opencv.org/3.4/d7/dfc/group__highgui.html
 	static helpers::arcball aball_ov;
 	if (flags & EVENT_FLAG_CTRLKEY)
@@ -628,5 +630,5 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 	}
 
 	//int key_pressed = cv::waitKey(10);
-	eginfo->ginfo.skip_main_thread = false;
+	eginfo->ginfo.skip_call_render = false;
 }
