@@ -374,7 +374,7 @@ void Show_Window(const std::string& title, const int scene_id, const int cam_id,
 		cv::Mat cvmat(h, w, CV_8UC4, ptr_rgba);
 		//show the image
 		if(ptext)
-			cv::putText(cvmat, *ptext, cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+			cv::putText(cvmat, *ptext, cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 185, 255));
 
 		cv::imshow(title, cvmat);
 	}
@@ -766,7 +766,7 @@ struct OpttrkData
 	}
 };
 
-ENUM(MsMouseMode, NONE, ADD_CALIB_POINTS, GATHERING_POINTS, PIN_ORIENTATION, STG_CALIBRATION)
+ENUM(RsTouchMode, None, Pick, Calib_TC, PIN_ORIENTATION, Calib_STG, Align, ICP, Capture)
 
 // added by dojo at 200813
 struct SS_Tool_Guide_Pts
@@ -780,7 +780,7 @@ struct GlobalInfo
 {
 	map<int, glm::fvec3> vzmobjid2pos;
 
-	MsMouseMode manual_set_mode;
+	RsTouchMode touch_mode;
 	bool skip_call_render;
 	OpttrkData otrk_data;
 	bool is_calib_rs_cam;
@@ -791,8 +791,9 @@ struct GlobalInfo
 	// model related
 	bool is_meshmodel;
 	int model_obj_id;
-	bool align_matching_model;
-	glm::fmat4x4 mat_match_model2ws;
+	int model_ws_obj_id;
+	glm::fmat4x4 mat_ws2matchmodelfrm;
+	glm::fmat4x4 mat_os2matchmodefrm;
 	int gathered_model_point_id;
 	int rs_pc_id;
 
@@ -833,16 +834,20 @@ struct GlobalInfo
 	string model_predefined_pts;
 	string guide_path;		// 20200818 숭실대 guide 경로때문에 변수하나 추가했어요
 
+	// rs cam ui buttons
+	map<RsTouchMode, Rect> rs_buttons;
+	map<RsTouchMode, int> rs_touch_count;
+
 	GlobalInfo()
 	{
-		manual_set_mode = NONE;
+		touch_mode = RsTouchMode::None;
 		skip_call_render = false;
 		is_calib_rs_cam = false;
 		is_calib_stg_cam = false;
 		model_obj_id = 0;
+		model_ws_obj_id = 0;
 		gathered_model_point_id = 0;
 		is_meshmodel = true;
-		align_matching_model = false;
 		rs_pc_id = 0;
 
 		brain_obj_id = 0;

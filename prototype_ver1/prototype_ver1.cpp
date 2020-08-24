@@ -96,8 +96,8 @@ int main()
 #if defined(_DEBUG) | defined(DEBUG)
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif	
-	int eye_w = 1280;
-	int eye_h = 720;
+	int eye_w = 640;
+	int eye_h = 480;
 	g_info.stg_w = 640;
 	g_info.stg_h = 480;
 	g_info.rs_w = 960;
@@ -129,8 +129,7 @@ int main()
 #endif
 
 	vzm::ValidatePickTarget(g_info.model_obj_id);
-	int model_obj_ws_id = 0;
-	vzm::GenerateCopiedObject(g_info.model_obj_id, model_obj_ws_id);
+	vzm::GenerateCopiedObject(g_info.model_obj_id, g_info.model_ws_obj_id);
 
 	vzm::CameraParameters cam_params;
 	if (!optitrk::InitOptiTrackLib())
@@ -243,7 +242,7 @@ int main()
 	model_state.color[3] = 0.8;
 	double scale_factor = 0.001;
 	glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
-	__cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
+	g_info.mat_os2matchmodefrm = __cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
 	model_state.point_thickness = 10;
 	vzm::ObjStates model_ws_state;
 	//if (!g_info.is_meshmodel)
@@ -275,6 +274,8 @@ int main()
 
 		model_ws_state = model_state;
 		model_ws_state.associated_obj_ids["VR_OTF"] = vr_tmap_id1;
+		model_ws_state.is_visible = false;
+		vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_state);
 
 		double sample_rate = 1. / scale_factor;
 		vzm::DebugTestSet("_double_UserSampleRate", &sample_rate, sizeof(double), -1, -1);// g_info.model_scene_id, model_cam_id);
@@ -437,7 +438,7 @@ int main()
 	eye_cfg.disable_stream(RS2_STREAM_DEPTH); // Disable default depth
 	// For the color stream, set format to RGBA
 	// To allow blending of the color frame on top of the depth frame
-	eye_cfg.enable_stream(RS2_STREAM_COLOR, 0, eye_w, eye_h, RS2_FORMAT_RGB8);
+	eye_cfg.enable_stream(RS2_STREAM_COLOR, 0, eye_w, eye_h, RS2_FORMAT_RGB8, 60);
 	eye_pipe.start(eye_cfg);
 #endif
 
@@ -544,7 +545,7 @@ int main()
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
 
-	static int postpone = 4;
+	static int postpone = 0;
 	concurrent_queue<track_info> track_que(10);
 	std::atomic_bool tracker_alive{ true };
 	std::thread tracker_processing_thread([&]() {
@@ -585,6 +586,35 @@ int main()
 	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(0.3, 0.3, 1, 0.6);
 	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texZ_obj_id, grid_obj_state);
 
+	// touch interface buttons
+	{
+		int w = g_info.rs_w;
+		int h = g_info.rs_h;
+		int bw = w / 5;
+		int bh = 40;
+		vector<RsTouchMode> btn_names;
+		btn_names.push_back(RsTouchMode::None);
+		btn_names.push_back(RsTouchMode::Pick);
+		btn_names.push_back(RsTouchMode::Calib_TC);
+		btn_names.push_back(RsTouchMode::Calib_STG);
+		btn_names.push_back(RsTouchMode::Align);
+		// create main buttons
+		for (int i = 0; i < (int)btn_names.size(); i++)
+		{
+			g_info.rs_buttons[btn_names[i]] = Rect(bw * i, 0, bw, bh);
+		}
+		g_info.rs_buttons[RsTouchMode::ICP] = Rect(bw * 4, bh, bw, bh);
+		g_info.rs_buttons[RsTouchMode::Capture] = Rect(bw * 4, bh * 2, bw, bh);
+
+
+		btn_names.push_back(RsTouchMode::ICP);
+		btn_names.push_back(RsTouchMode::Capture);
+		for (int i = 0; i < (int)btn_names.size(); i++)
+		{
+			g_info.rs_touch_count[btn_names[i]] = 0;
+		}
+	}
+
 	// params for the main thread
 	int key_pressed = -1;
 	float pnp_err = -1.f;
@@ -596,10 +626,8 @@ int main()
 	bool record_info = false;
 	int rs_lf_axis = 0, probe_lf_axis = 0, sstool_lf_axis = 0; // lf means local frame
 	bool show_pc = false;
-	bool calib_toggle = false;
 	int num_calib = 0;
 	int calib_samples = 0;
-	int match_model_switch = 0; // 0: ss_head, 1: breastbody
 	bool show_workload = false;
 	
 	// rs calib history
@@ -669,19 +697,17 @@ int main()
 		case 'p': show_pc = !show_pc; break; 
 		case 'e': show_apis_console = !show_apis_console; break;
 		case 'm': show_mks = !show_mks; break; 
-		case 'c': calib_toggle = !calib_toggle; break; 
 		case 's': show_csection = !show_csection; break; 
-		case 't': match_model_switch = (++match_model_switch) % 2; break; 
 		case 'x': reset_calib = true; break; 
 		case 'd': record_info = !record_info; break;
 		case 'w': write_recoded_info = true; break; 
 		case 'f': show_workload = !show_workload; break; 
 			// RsMouseMode
-		case '1': g_info.manual_set_mode = MsMouseMode::NONE; break; 
-		case '2': g_info.manual_set_mode = MsMouseMode::ADD_CALIB_POINTS; break; 
-		case '3': g_info.manual_set_mode = MsMouseMode::GATHERING_POINTS; break; 
-		case '4': g_info.manual_set_mode = MsMouseMode::PIN_ORIENTATION; break; 
-		case '5': g_info.manual_set_mode = MsMouseMode::STG_CALIBRATION; break; 
+		//case '1': g_info.touch_mode = RsTouchMode::None; break; 
+		//case '2': g_info.touch_mode = RsTouchMode::Pick; break; 
+		//case '3': g_info.touch_mode = RsTouchMode::Calib_TC; break; 
+		//case '4': g_info.touch_mode = RsTouchMode::PIN_ORIENTATION; break; 
+		//case '5': g_info.touch_mode = RsTouchMode::Calib_STG; break; 
 		}
 
 		vzm::DisplayConsoleMessages(show_apis_console);
@@ -891,7 +917,7 @@ int main()
 				return glm::fvec3((idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1), 1);
 			};
 
-			if (g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
+			if (g_info.touch_mode == RsTouchMode::Pick)
 			{
 				vector<glm::fvec4> sphers_xyzr;
 				vector<glm::fvec3> sphers_rgb;
@@ -924,7 +950,7 @@ int main()
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
 			}
 
-			if (calib_toggle && trk_info.is_detected_rscam && g_info.otrk_data.calib_3d_pts.size() > 0)
+			if (g_info.touch_mode == RsTouchMode::Calib_TC && trk_info.is_detected_rscam && g_info.otrk_data.calib_3d_pts.size() > 0)
 			{
 				// calibration routine
 				Mat viewGray;
@@ -1232,7 +1258,7 @@ int main()
 			}
 
 			static vector<int> mk_pickable_sphere_ids;
-			if (g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS || g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+			if (g_info.touch_mode == RsTouchMode::Pick || g_info.touch_mode == RsTouchMode::Calib_STG)
 			{
 				auto marker_color_B = [](int idx, int w)
 				{
@@ -1253,9 +1279,9 @@ int main()
 					g_info.vzmobjid2pos[mk_pickable_sphere_ids[i]] = pt;
 					vzm::ValidatePickTarget(mk_pickable_sphere_ids[i]);
 					vzm::ObjStates cstate = obj_state;
-					if(g_info.manual_set_mode == MsMouseMode::ADD_CALIB_POINTS)
+					if(g_info.touch_mode == RsTouchMode::Pick)
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_pickable_sphere_ids[i], cstate);
-					if(g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+					if(g_info.touch_mode == RsTouchMode::Calib_STG)
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_pickable_sphere_ids[i], cstate);
 				}
 			}
@@ -1271,7 +1297,7 @@ int main()
 			{
 				vzm::ObjStates cstate;
 				vzm::GetSceneObjectState(g_info.rs_scene_id, g_info.model_ws_pick_spheres_id, cstate);
-				cstate.is_visible = g_info.manual_set_mode == MsMouseMode::GATHERING_POINTS;
+				cstate.is_visible = g_info.touch_mode == RsTouchMode::Align;
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_pick_spheres_id, cstate);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_pick_spheres_id, cstate);
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_pick_spheres_id, cstate);
@@ -1326,32 +1352,35 @@ int main()
 				}
 			}
 
-			bool model_match_rb = false;
-			glm::fmat4x4 mat_matchmodelfrm2ws;
-			string match_model_name;
-			switch (match_model_switch)
-			{
-			case 0: model_match_rb = trk_info.is_detected_sshead; mat_matchmodelfrm2ws = trk_info.mat_headfrm2ws; match_model_name = "BRAIN HEAD"; break;
-			case 1: model_match_rb = trk_info.is_detected_brbody; mat_matchmodelfrm2ws = trk_info.mat_bodyfrm2ws; match_model_name = "BREAST BODY"; break;
-			}
+			bool model_match_rb = trk_info.is_detected_sshead; // trk_info.is_detected_brbody
+			glm::fmat4x4 mat_matchmodelfrm2ws = trk_info.mat_headfrm2ws; // trk_info.matbodyfrm2ws
 			if (model_match_rb)
 			{
-				static glm::fmat4x4 mat_os2matchmodefrm = __cm4__ (model_state.os2ws);
-				vzm::ObjStates model_obj_state = model_ws_state;
-				//vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_obj_id, model_obj_state);
+				g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);
 
-				if (g_info.align_matching_model)
-				{
-					glm::fmat4x4 mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);
-					mat_os2matchmodefrm = mat_ws2matchmodelfrm * g_info.mat_match_model2ws;
+				vzm::ObjStates model_ws_obj_state;
+				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 
-					// currenbt issue!
-					//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
-					__cm4__ model_obj_state.os2ws = mat_matchmodelfrm2ws * mat_os2matchmodefrm;
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
-					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
-					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, model_obj_ws_id, model_obj_state);
-				}
+				__cm4__ model_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+
+
+				//if (g_info.align_matching_model)
+				//{
+				//	glm::fmat4x4 mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);
+				//	mat_os2matchmodefrm = mat_ws2matchmodelfrm * g_info.mat_match_model2ws;
+				//
+				//	// currenbt issue!
+				//	//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
+				//}
+				//
+				//__cm4__ model_obj_state.os2ws = mat_matchmodelfrm2ws * mat_os2matchmodefrm;
+				//vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_obj_ws_id, model_obj_state);
+				//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_obj_ws_id, model_obj_state);
+				//vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, model_obj_ws_id, model_obj_state);
+
 
 
 				// PIN REF //
@@ -1364,7 +1393,7 @@ int main()
 					glm::fvec3 probe_dir = glm::normalize(tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1)));
 					if (show_csection)
 					{
-						vzm::ReplaceOrAddSceneObject(g_info.csection_scene_id, model_obj_ws_id, model_obj_state);
+						vzm::ReplaceOrAddSceneObject(g_info.csection_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 
 						vzm::CameraParameters csection_cam_params_model = cam_params;
 						csection_cam_params_model.np = 0.0f;
@@ -1458,7 +1487,7 @@ int main()
 				static Point2d pos_calib_lines[4] = { Point2d(100, 100), Point2d(400, 400), Point2d(400, 100), Point2d(100, 400) };
 #endif
 
-				if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+				if (g_info.touch_mode == RsTouchMode::Calib_STG)
 				{
 					int stg_calib_mk_idx;
 					bool exist_mk_cid = g_info.otrk_data.trk_info.CheckExistCID(g_info.otrk_data.stg_calib_mk_cid, &stg_calib_mk_idx);
@@ -1635,7 +1664,9 @@ int main()
 
 #ifdef SHOW_WS_VIEW
 				LARGE_INTEGER frq_render_ws = GetPerformanceFreq();
-				Show_Window(g_info.window_name_ws_view, g_info.ws_scene_id, ov_cam_id);
+				
+				string tc_calib_info = "# of current 3D pick positions : " + to_string(g_info.otrk_data.calib_3d_pts.size());
+				Show_Window(g_info.window_name_ws_view, g_info.ws_scene_id, ov_cam_id, &tc_calib_info);
 				switch (key_pressed)
 				{
 				case 100: recompile_hlsl = false; break;
@@ -1657,30 +1688,44 @@ int main()
 						copy_back_ui_buffer(imagebgr.data, ptr_rgba, rs_w, rs_h, false);
 					DisplayTimes(frq_render_rs, "rs copy-back : ");
 				}
-				cv::putText(imagebgr, "PnP reprojection error : " + to_string(pnp_err) + " pixels, # samples : " + to_string(calib_samples),
-					cv::Point(3, 25), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-				cv::putText(imagebgr, "Calibration Points : " + to_string(g_info.otrk_data.calib_3d_pts.size()),
-					cv::Point(3, 50), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(185, 255, 255));
-				cv::putText(imagebgr, "# of calibrations : " + to_string(num_calib),
-					cv::Point(3, 75), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-				cv::putText(imagebgr, "match model : " + match_model_name, cv::Point(3, 125), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-				cv::putText(imagebgr, "mouse mode : " + EtoString(g_info.manual_set_mode), cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
-				string b_calib_toggle = calib_toggle ? "true" : "false";
-				cv::putText(imagebgr, "Calibration Toggle : " + b_calib_toggle + ", Postpone : " + to_string(postpone) + " ms",
-					cv::Point(3, 100), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				//cv::putText(imagebgr, "PnP reprojection error : " + to_string(pnp_err) + " pixels, # samples : " + to_string(calib_samples),
+				//	cv::Point(3, 25), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				//cv::putText(imagebgr, "Calibration Points : " + to_string(g_info.otrk_data.calib_3d_pts.size()),
+				//	cv::Point(3, 50), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(185, 255, 255));
+				//cv::putText(imagebgr, "# of calibrations : " + to_string(num_calib),
+				//	cv::Point(3, 75), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				//cv::putText(imagebgr, "match model : " + match_model_name, cv::Point(3, 125), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				//cv::putText(imagebgr, "mouse mode : " + EtoString(g_info.manual_set_mode), cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				//string b_calib_toggle = calib_toggle ? "true" : "false";
+				//cv::putText(imagebgr, "Calibration Toggle : " + b_calib_toggle + ", Postpone : " + to_string(postpone) + " ms",
+				//	cv::Point(3, 100), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 255));
+				//
+				//if (record_info)
+				//	cv::putText(imagebgr, "Recording...", cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 0));
 
-				if (record_info)
-					cv::putText(imagebgr, "Recording...", cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 0));
+				// draw buttons
+				{
+					for (auto it = g_info.rs_buttons.begin(); it != g_info.rs_buttons.end(); it++)
+					{
+						Rect& btn = it->second;
+						if (it->first == RsTouchMode::ICP || it->first == RsTouchMode::Capture) continue;
+						Scalar bg = Scalar(150, 150, 150);
+						if(it->first == g_info.touch_mode) bg = Scalar(50, 50, 150);
+						rectangle(imagebgr(btn), Rect(0, 0, btn.width, btn.height), bg, -1);
+						rectangle(imagebgr(btn), Rect(0, 0, btn.width, btn.height), Scalar(0, 0, 0), 1);
+						putText(imagebgr(btn), EtoString(it->first), Point(btn.width*0.1, btn.height*0.3), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
+					}
+				}
 
 				if (g_info.is_calib_rs_cam && !trk_info.is_detected_rscam)
-					cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(400, 50), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
+					cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(0, 150), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
 				imshow(g_info.window_name_rs_view, imagebgr);
 #endif
 
 #if defined(ENABLE_STG) && defined(SHOW_STG_VIEW)
 				auto Draw_STG_Calib_Point = [](Mat& img)
 				{
-					if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+					if (g_info.touch_mode == RsTouchMode::Calib_STG)
 					{
 						const int w = g_info.stg_w;
 						const int h = g_info.stg_h;
@@ -1709,7 +1754,7 @@ int main()
 					if (vzm::GetRenderBufferPtrs(g_info.stg_scene_id, &ptr_rgba, &ptr_zdepth, &_stg_w, &_stg_h, stg_cam_id))
 					{
 #ifdef STG_LINE_CALIB
-						if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+						if (g_info.touch_mode == RsTouchMode::Calib_STG)
 						{
 							cv::line(eye_imagebgr, pos_calib_lines[0], pos_calib_lines[1], Scalar(255, 255, 0), 2);
 							cv::line(eye_imagebgr, pos_calib_lines[2], pos_calib_lines[3], Scalar(255, 255, 0), 2);
@@ -1730,7 +1775,7 @@ int main()
 					static Mat image_stg(Size(g_info.stg_w, g_info.stg_h), CV_8UC4, Mat::AUTO_STEP);
 					image_stg = cv::Mat::zeros(image_stg.size(), image_stg.type());
 #ifdef STG_LINE_CALIB
-					if (g_info.manual_set_mode == MsMouseMode::STG_CALIBRATION)
+					if (g_info.touch_mode == RsTouchMode::Calib_STG)
 					{
 						cv::line(eye_imagebgr, pos_calib_lines[0], pos_calib_lines[1], Scalar(255, 255, 0), 2);
 						cv::line(eye_imagebgr, pos_calib_lines[2], pos_calib_lines[3], Scalar(255, 255, 0), 2);
