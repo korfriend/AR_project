@@ -297,10 +297,6 @@ int main()
 	serials["RS_RBS"] = string("839112061828");
 	serials["EYE"] = string("819312071259");
 
-	// Colorizer is used to visualize depth data
-	rs2::colorizer color_map;
-	// Use black to white color map
-	color_map.set_option(RS2_OPTION_COLOR_SCHEME, 2.f);
 	// Decimation filter reduces the amount of data (while preserving best samples)
 	rs2::decimation_filter dec;
 	// If the demo is too slow, make sure you run in Release (-DCMAKE_BUILD_TYPE=Release)
@@ -315,9 +311,14 @@ int main()
 	// Hole filling is an agressive heuristic and it gets the depth wrong many times
 	// However, this demo is not built to handle holes
 	// (the shortest-path will always prefer to "cut" through the holes since they have zero 3D distance)
-	spat.set_option(RS2_OPTION_HOLES_FILL, 5); // 5 = fill all the zero pixels
+	spat.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, 0.5);
+	spat.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, 1.0);
+	spat.set_option(RS2_OPTION_FILTER_MAGNITUDE, 2);
+	spat.set_option(RS2_OPTION_HOLES_FILL, 0); // 5 = fill all the zero pixels
 	// Define temporal filter
 	rs2::temporal_filter temp;
+	temp.set_option(RS2_OPTION_FILTER_SMOOTH_ALPHA, 0);
+	temp.set_option(RS2_OPTION_FILTER_SMOOTH_DELTA, 100.0);
 	// Spatially align all streams to depth viewport
 	// We do this because:
 	//   a. Usually depth has wider FOV, and we only really need depth for this demo
@@ -328,7 +329,7 @@ int main()
 
 	rs2::config cfg;
 	cfg.enable_device(serials["RS_RBS"]);
-	cfg.enable_stream(RS2_STREAM_DEPTH, 424, 240, RS2_FORMAT_Z16, 90); // Enable default depth
+	cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 60); // Enable default depth
 #ifdef NO_DEPTHMAP
 	cfg.disable_stream(RS2_STREAM_DEPTH); // Disable default depth
 #endif
@@ -362,7 +363,7 @@ int main()
 
 #ifndef NO_DEPTHMAP
 	auto stream_depth = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
-	rs2_extrinsics rgb_extrinsics = stream_depth.get_extrinsics_to(stream_rgb);
+	//rs2_extrinsics rgb_extrinsics = stream_depth.get_extrinsics_to(stream_rgb);
 	rs2_intrinsics depth_intrinsics;
 	if (stream_depth)
 	{
@@ -418,6 +419,10 @@ int main()
 	//auto stream = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 	//auto stream = profile.get_stream(RS2_STREAM_COLOR | RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
 
+	// Colorizer is used to visualize depth data
+	rs2::colorizer color_map;
+	// Use black to white color map
+	color_map.set_option(RS2_OPTION_COLOR_SCHEME, 2.f);
 	// Declare pointcloud object, for calculating pointclouds and texture mappings
 	rs2::pointcloud pc;
 	// We want the points object to be persistent so we can display the last cloud when a frame drops
@@ -571,49 +576,10 @@ int main()
 
 
 	// make 3d ui widgets
-	int coord_grid_obj_id = 0, axis_lines_obj_id = 0, axis_texX_obj_id = 0, axis_texZ_obj_id = 0;
-	World_GridAxis_Gen(coord_grid_obj_id, axis_lines_obj_id, axis_texX_obj_id, axis_texZ_obj_id);
-	vzm::ObjStates grid_obj_state;
-	grid_obj_state.color[3] = 0.7f;
-	grid_obj_state.line_thickness = 0;
-	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, coord_grid_obj_id, grid_obj_state);
-	bool foremost_surf_rendering = true;
-	vzm::DebugTestSet("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), g_info.ws_scene_id, ov_cam_id, coord_grid_obj_id);
-	grid_obj_state.color[3] = 0.9f;
-	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_lines_obj_id, grid_obj_state);
-	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(1, 0.3, 0.3, 0.6);
-	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texX_obj_id, grid_obj_state);
-	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(0.3, 0.3, 1, 0.6);
-	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texZ_obj_id, grid_obj_state);
+	GenWorldGrid(g_info.ws_scene_id, ov_cam_id);
 
 	// touch interface buttons
-	{
-		int w = g_info.rs_w;
-		int h = g_info.rs_h;
-		int bw = w / 5;
-		int bh = 40;
-		vector<RsTouchMode> btn_names;
-		btn_names.push_back(RsTouchMode::None);
-		btn_names.push_back(RsTouchMode::Pick);
-		btn_names.push_back(RsTouchMode::Calib_TC);
-		btn_names.push_back(RsTouchMode::Calib_STG);
-		btn_names.push_back(RsTouchMode::Align);
-		// create main buttons
-		for (int i = 0; i < (int)btn_names.size(); i++)
-		{
-			g_info.rs_buttons[btn_names[i]] = Rect(bw * i, 0, bw, bh);
-		}
-		g_info.rs_buttons[RsTouchMode::ICP] = Rect(bw * 4, bh, bw, bh);
-		g_info.rs_buttons[RsTouchMode::Capture] = Rect(bw * 4, bh * 2, bw, bh);
-
-
-		btn_names.push_back(RsTouchMode::ICP);
-		btn_names.push_back(RsTouchMode::Capture);
-		for (int i = 0; i < (int)btn_names.size(); i++)
-		{
-			g_info.rs_touch_count[btn_names[i]] = 0;
-		}
-	}
+	Make_Buttons(g_info.rs_w, g_info.rs_h, g_info.rs_buttons);
 
 	// params for the main thread
 	int key_pressed = -1;
@@ -629,12 +595,11 @@ int main()
 	int num_calib = 0;
 	int calib_samples = 0;
 	bool show_workload = false;
+	bool is_ws_pick = false;
 	
 	// rs calib history
 	glm::fmat4x4 mat_rscs2clf;
 	glm::fmat4x4 mat_ws2clf, mat_clf2ws;
-	vector<glm::fvec3> points_rs_buf_3d_clf;
-	vector<glm::fvec2> points_rs_buf_2d;
 	vector<int> calib_trial_rs_cam_frame_ids;
 	int mks_spheres_id = 0;
 
@@ -678,6 +643,111 @@ int main()
 		return lIntCntFreq;
 	};
 
+	//if (load_calib_info)
+	{
+		// loading 3d points
+		g_info.otrk_data.calib_3d_pts.clear();
+		std::ifstream infile(g_info.cb_positions);
+		string line;
+		if (infile.is_open())
+		{
+			while (getline(infile, line))
+			{
+				std::istringstream iss(line);
+				float a, b, c;
+				if (!(iss >> a >> b >> c)) { break; } // error
+				g_info.otrk_data.calib_3d_pts.push_back(Point3f(a, b, c));
+				// process pair (a,b)
+			}
+			infile.close();
+		}
+
+		// loading rs calib pairs and matrix
+		infile = std::ifstream(g_info.rs_calib);
+		if (infile.is_open())
+		{
+			g_info.otrk_data.tc_calib_pt_pairs.clear();
+			float* mat_data = glm::value_ptr(mat_rscs2clf);
+			int line_idx = 0, line_pairs = 100000;
+			while (getline(infile, line))
+			{
+				std::istringstream iss(line);
+				if (line_idx == 0)
+				{
+					iss >> line_pairs;
+				}
+				else if (line_idx < line_pairs + 1)
+				{
+					glm::fvec2 p2d;
+					glm::fvec3 p3d;
+					iss >> p2d.x >> p2d.y >> p3d.x >> p3d.y >> p3d.z;
+					g_info.otrk_data.tc_calib_pt_pairs.push_back(PAIR_MAKE(p2d, p3d));
+				}
+				else
+				{
+					iss >> mat_data[line_idx - line_pairs - 1];
+				}
+				// process pair (a,b)
+				line_idx++;
+			}
+			g_info.is_calib_rs_cam = true;
+			infile.close();
+
+
+			// loading model point pairs
+			infile = std::ifstream(g_info.model_predefined_pts);
+			if (infile.is_open())
+			{
+				g_info.model_ms_pick_pts.clear();
+				while (getline(infile, line))
+				{
+					std::istringstream iss(line);
+					float a, b, c;
+					if (!(iss >> a >> b >> c)) { break; } // error
+					g_info.model_ms_pick_pts.push_back(glm::fvec3(a, b, c));
+				}
+				infile.close();
+
+				if (g_info.model_ms_pick_pts.size() > 0)
+				{
+					vector<glm::fvec4> spheres_xyzr;
+					vector<glm::fvec3> spheres_rgb;
+					for (int i = 0; i < (int)g_info.model_ms_pick_pts.size(); i++)
+					{
+						glm::fvec4 sphere_xyzr = glm::fvec4(g_info.model_ms_pick_pts[i], 0.001);
+						spheres_xyzr.push_back(sphere_xyzr);
+						glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 0);
+						spheres_rgb.push_back(sphere_rgb);
+					}
+					vzm::ObjStates sobj_state;
+					sobj_state.color[3] = 1.0f;
+					sobj_state.emission = 0.5f;
+					sobj_state.diffusion = 0.5f;
+					sobj_state.specular = 0.0f;
+					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)g_info.model_ms_pick_pts.size(), g_info.model_ms_pick_spheres_id);
+					vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_pick_spheres_id, sobj_state);
+					Show_Window_with_Texts(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id, "Point : " + to_string((int)g_info.model_ms_pick_pts.size()));
+				}
+			}
+		}
+		//if (trk_info.is_detected_sstool)
+		//{
+		//	ss_tool_info.pos_centers_tfrm.clear();
+		//
+		//	infile = std::ifstream(sst_positions);
+		//	line = "";
+		//	while (getline(infile, line))
+		//	{
+		//		std::istringstream iss(line);
+		//		float a, b, c;
+		//		if (!(iss >> a >> b >> c)) { break; } // error
+		//		ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
+		//		// process pair (a,b)
+		//	}
+		//	infile.close();
+		//}
+	}
+
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
@@ -687,8 +757,8 @@ int main()
 		bool write_recoded_info = false;
 		switch (key_pressed) // http://www.asciitable.com/
 		{
-		case '[': postpone = max(postpone - 1, 0);  break;
-		case ']': postpone += 1; break; 
+		case '[': postpone = max(postpone - 1, 0); cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
+		case ']': postpone += 1; cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
 		case 'a': use_new_version = !use_new_version;  cout << "Use Prev Version : " << use_new_version << endl; break;
 		//case 'r': recompile_hlsl = true; cout << "Recompile Shader!" << endl; break; 
 		case 'l': load_calib_info = true; break; 
@@ -700,8 +770,9 @@ int main()
 		case 's': show_csection = !show_csection; break; 
 		case 'x': reset_calib = true; break; 
 		case 'd': record_info = !record_info; break;
-		case 'w': write_recoded_info = true; break; 
-		case 'f': show_workload = !show_workload; break; 
+		case 'w': write_recoded_info = true; break;
+		case 'f': show_workload = !show_workload; break;
+		case 'c': is_ws_pick = !is_ws_pick; break;
 			// RsMouseMode
 		//case '1': g_info.touch_mode = RsTouchMode::None; break; 
 		//case '2': g_info.touch_mode = RsTouchMode::Pick; break; 
@@ -716,8 +787,7 @@ int main()
 		{
 			g_info.otrk_data.calib_3d_pts.clear();
 			g_info.otrk_data.stg_calib_pt_pairs.clear();
-			points_rs_buf_3d_clf.clear();
-			points_rs_buf_2d.clear();
+			g_info.otrk_data.tc_calib_pt_pairs.clear();
 			for (int i = 0; i < calib_trial_rs_cam_frame_ids.size(); i++)
 				vzm::DeleteObject(calib_trial_rs_cam_frame_ids[i]);
 			calib_trial_rs_cam_frame_ids.clear();
@@ -805,119 +875,12 @@ int main()
 
 			cvtColor(image_rs, imagebgr, COLOR_BGR2RGB);
 
-			if (load_calib_info)
-			{
-				// loading 3d points
-				g_info.otrk_data.calib_3d_pts.clear();
-				std::ifstream infile(g_info.cb_positions);
-				string line;
-				if (infile.is_open())
-				{
-					while (getline(infile, line))
-					{
-						std::istringstream iss(line);
-						float a, b, c;
-						if (!(iss >> a >> b >> c)) { break; } // error
-						g_info.otrk_data.calib_3d_pts.push_back(Point3f(a, b, c));
-						// process pair (a,b)
-					}
-					infile.close();
-				}
-
-				// loading rs calib pairs and matrix
-				infile = std::ifstream(g_info.rs_calib);
-				if (infile.is_open())
-				{
-					points_rs_buf_2d.clear();
-					points_rs_buf_3d_clf.clear();
-					float* mat_data = glm::value_ptr(mat_rscs2clf);
-					int line_idx = 0, line_pairs = 100000;
-					while (getline(infile, line))
-					{
-						std::istringstream iss(line);
-						if (line_idx == 0)
-						{
-							iss >> line_pairs;
-						}
-						else if (line_idx < line_pairs + 1)
-						{
-							glm::fvec2 p2d;
-							glm::fvec3 p3d;
-							iss >> p2d.x >> p2d.y >> p3d.x >> p3d.y >> p3d.z;
-							points_rs_buf_2d.push_back(p3d);
-							points_rs_buf_3d_clf.push_back(p3d);
-						}
-						else
-						{
-							iss >> mat_data[line_idx - line_pairs - 1];
-						}
-						// process pair (a,b)
-						line_idx++;
-					}
-					g_info.is_calib_rs_cam = true;
-					infile.close();
-
-
-					// loading model point pairs
-					infile = std::ifstream(g_info.model_predefined_pts);
-					if (infile.is_open())
-					{
-						g_info.model_ms_pick_pts.clear();
-						while (getline(infile, line))
-						{
-							std::istringstream iss(line);
-							float a, b, c;
-							if (!(iss >> a >> b >> c)) { break; } // error
-							g_info.model_ms_pick_pts.push_back(glm::fvec3(a, b, c));
-						}
-						infile.close();
-
-						if (g_info.model_ms_pick_pts.size() > 0)
-						{
-							vector<glm::fvec4> spheres_xyzr;
-							vector<glm::fvec3> spheres_rgb;
-							for (int i = 0; i < (int)g_info.model_ms_pick_pts.size(); i++)
-							{
-								glm::fvec4 sphere_xyzr = glm::fvec4(g_info.model_ms_pick_pts[i], 0.001);
-								spheres_xyzr.push_back(sphere_xyzr);
-								glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 0);
-								spheres_rgb.push_back(sphere_rgb);
-							}
-							vzm::ObjStates sobj_state;
-							sobj_state.color[3] = 1.0f;
-							sobj_state.emission = 0.5f;
-							sobj_state.diffusion = 0.5f;
-							sobj_state.specular = 0.0f;
-							vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)g_info.model_ms_pick_pts.size(), g_info.model_ms_pick_spheres_id);
-							vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_pick_spheres_id, sobj_state);
-							Show_Window_with_Texts(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id, "Point : " + to_string((int)g_info.model_ms_pick_pts.size()));
-						}
-					}
-				}
-				//if (trk_info.is_detected_sstool)
-				//{
-				//	ss_tool_info.pos_centers_tfrm.clear();
-				//
-				//	infile = std::ifstream(sst_positions);
-				//	line = "";
-				//	while (getline(infile, line))
-				//	{
-				//		std::istringstream iss(line);
-				//		float a, b, c;
-				//		if (!(iss >> a >> b >> c)) { break; } // error
-				//		ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
-				//		// process pair (a,b)
-				//	}
-				//	infile.close();
-				//}
-			}
-
 			auto marker_color = [](int idx, int w)
 			{
 				return glm::fvec3((idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1), 1);
 			};
 
-			if (g_info.touch_mode == RsTouchMode::Pick)
+			if (is_ws_pick)
 			{
 				vector<glm::fvec4> sphers_xyzr;
 				vector<glm::fvec3> sphers_rgb;
@@ -997,7 +960,7 @@ int main()
 						prev_mat_clf2ws = mat_clf2ws;
 						bool is_success = CalibrteCamLocalFrame(*(vector<glm::fvec2>*)&point2d, *(vector<glm::fvec3>*)&point3d, mat_ws2clf,
 							rgb_intrinsics.fx, rgb_intrinsics.fy, rgb_intrinsics.ppx, rgb_intrinsics.ppy,
-							mat_rscs2clf, &pnp_err, &calib_samples, points_rs_buf_3d_clf, points_rs_buf_2d);
+							mat_rscs2clf, &pnp_err, &calib_samples, g_info.otrk_data.tc_calib_pt_pairs);
 						if (is_success)
 						{
 							g_info.is_calib_rs_cam = true;
@@ -1065,7 +1028,7 @@ int main()
 				obj_state_pts.color[3] = 1.f;
 				obj_state_pts.emission = 0.3f;
 				obj_state_pts.diffusion = 1.f;
-				obj_state_pts.point_thickness = 0;// 2.f;
+				obj_state_pts.point_thickness = 2.f;
 				// Generate the pointcloud and texture mappings
 				pc.map_to(color); // before pc.calculate, which generates texture_coordinates
 				points = pc.calculate(depth_frame);
@@ -1258,7 +1221,7 @@ int main()
 			}
 
 			static vector<int> mk_pickable_sphere_ids;
-			if (g_info.touch_mode == RsTouchMode::Pick || g_info.touch_mode == RsTouchMode::Calib_STG)
+			if (is_ws_pick || g_info.touch_mode == RsTouchMode::Calib_STG)
 			{
 				auto marker_color_B = [](int idx, int w)
 				{
@@ -1279,7 +1242,7 @@ int main()
 					g_info.vzmobjid2pos[mk_pickable_sphere_ids[i]] = pt;
 					vzm::ValidatePickTarget(mk_pickable_sphere_ids[i]);
 					vzm::ObjStates cstate = obj_state;
-					if(g_info.touch_mode == RsTouchMode::Pick)
+					if(is_ws_pick)
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mk_pickable_sphere_ids[i], cstate);
 					if(g_info.touch_mode == RsTouchMode::Calib_STG)
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mk_pickable_sphere_ids[i], cstate);
@@ -1704,18 +1667,7 @@ int main()
 				//	cv::putText(imagebgr, "Recording...", cv::Point(3, 150), cv::FONT_HERSHEY_DUPLEX, 1.0, CV_RGB(255, 185, 0));
 
 				// draw buttons
-				{
-					for (auto it = g_info.rs_buttons.begin(); it != g_info.rs_buttons.end(); it++)
-					{
-						Rect& btn = it->second;
-						if (it->first == RsTouchMode::ICP || it->first == RsTouchMode::Capture) continue;
-						Scalar bg = Scalar(150, 150, 150);
-						if(it->first == g_info.touch_mode) bg = Scalar(50, 50, 150);
-						rectangle(imagebgr(btn), Rect(0, 0, btn.width, btn.height), bg, -1);
-						rectangle(imagebgr(btn), Rect(0, 0, btn.width, btn.height), Scalar(0, 0, 0), 1);
-						putText(imagebgr(btn), EtoString(it->first), Point(btn.width*0.1, btn.height*0.3), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
-					}
-				}
+				Draw_TouchButtons(imagebgr, g_info.rs_buttons, g_info.touch_mode);
 
 				if (g_info.is_calib_rs_cam && !trk_info.is_detected_rscam)
 					cv::putText(imagebgr, "RS Cam is out of tracking volume !!", cv::Point(0, 150), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);

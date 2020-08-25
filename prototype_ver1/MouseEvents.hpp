@@ -44,7 +44,6 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 	{
 		if (flags & EVENT_FLAG_CTRLKEY)
 		{
-			//if (eginfo->ginfo.touch_mode == RsTouchMode::Pick)
 			{
 				vector<Point3f>& point3ds = eginfo->ginfo.otrk_data.calib_3d_pts;
 				if (event == EVENT_LBUTTONDOWN)
@@ -68,6 +67,8 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 							TESTOUT("mk position " + to_string(point3ds.size()), pt);
 							point3ds.push_back(Point3f(pt.x, pt.y, pt.z));
 						}
+
+						cout << "# of total 3d pick positions : " << point3ds.size() << endl;
 					}
 				}
 				else
@@ -136,279 +137,10 @@ void CallBackFunc_WorldMouse(int event, int x, int y, int flags, void* userdata)
 	}
 }
 
-void Legacy_CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
-{
-	EventGlobalInfo* eginfo = (EventGlobalInfo*)userdata;
-	OpttrkData& otrk_data = eginfo->ginfo.otrk_data;// *(opttrk_data*)userdata;
-
-	vector<Point3f>& point3ds = otrk_data.calib_3d_pts;
-
-	static vector<glm::fvec3> pick_pts;
-	static int gathered_point_id = 0;
-
-	if (!otrk_data.trk_info.is_updated) return;
-
-	vzm::ObjStates sobj_state;
-	sobj_state.color[3] = 1.0f;
-	sobj_state.emission = 0.5f;
-	sobj_state.diffusion = 0.5f;
-	sobj_state.specular = 0.0f;
-
-
-
-	if (eginfo->ginfo.touch_mode == Pick)
-	{
-		if (event == EVENT_LBUTTONDOWN)
-		{
-			if (!otrk_data.trk_info.is_detected_probe) return;
-			glm::fvec3 pt = otrk_data.trk_info.GetProbePinPoint();
-			point3ds.push_back(Point3f(pt.x, pt.y, pt.z));
-
-			cout << "Pick : " << pt.x << ", " << pt.y << ", " << pt.z << endl;
-
-			ofstream outfile(eginfo->ginfo.cb_positions);
-			if (outfile.is_open())
-			{
-				outfile.clear();
-				for (int i = 0; i < eginfo->ginfo.otrk_data.calib_3d_pts.size(); i++)
-				{
-					string line = to_string(eginfo->ginfo.otrk_data.calib_3d_pts[i].x) + " " +
-						to_string(eginfo->ginfo.otrk_data.calib_3d_pts[i].y) + " " +
-						to_string(eginfo->ginfo.otrk_data.calib_3d_pts[i].z);
-					outfile << line << endl;
-				}
-			}
-			outfile.close();
-		}
-	}
-	else if (eginfo->ginfo.touch_mode == Calib_TC)
-	{
-		// to do for ICP
-		if (flags & EVENT_FLAG_CTRLKEY)
-		{
-			if (pick_pts.size() == 0 || eginfo->ginfo.rs_pc_id == 0) return;
-			if (event == EVENT_LBUTTONDOWN)
-			{
-				vzm::DeleteObject(gathered_point_id);
-				vzm::ObjStates model_obj_state;
-				vzm::GetSceneObjectState(eginfo->ginfo.ws_scene_id, eginfo->ginfo.rs_pc_id, model_obj_state);
-				glm::fmat4x4 mat_ws2os = glm::inverse(*(glm::fmat4x4*)model_obj_state.os2ws);
-				for (int i = 0; i < (int)pick_pts.size(); i++)
-				{
-					glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, pick_pts[i]);
-					vzmproc::GenerateSamplePoints(eginfo->ginfo.rs_pc_id, (float*)&pos_pick_os, 10.f, 0.3f, gathered_point_id);
-				}
-
-				vzm::ObjStates sobj_state;
-				__cv4__ sobj_state.color = glm::fvec4(1, 0, 0, 1);
-				sobj_state.emission = 0.5f;
-				sobj_state.diffusion = 0.5f;
-				sobj_state.specular = 0.0f;
-				sobj_state.point_thickness = 5.f;
-				*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
-				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, gathered_point_id, sobj_state);
-				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, gathered_point_id, sobj_state);
-			}
-		}
-		else if (flags & EVENT_FLAG_ALTKEY)
-		{
-			if (eginfo->ginfo.model_obj_id == 0) return;
-			if (event == EVENT_LBUTTONDOWN)
-			{
-				// model's world to real world
-				int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), pick_pts.size());
-				if (num_crrpts >= 3)
-				{
-					//for (int i = 0; i < num_crrpts; i++)
-					//{
-					//	cout << i << "crrs" << endl;
-					//	TESTOUT("eginfo->ginfo.model_pick_pts : ", eginfo->ginfo.model_pick_pts[i]);
-					//	TESTOUT("pick_pts : ", pick_pts[i]);
-					//}
-					glm::fmat4x4 mat_tr;
-					//if (helpers::ComputeRigidTransform(__FP eginfo->ginfo.model_ms_pick_pts[0], __FP pick_pts[0], num_crrpts, __FP mat_tr[0]))
-					//{
-					//	vzm::ObjStates model_obj_state;
-					//	vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.model_obj_id, model_obj_state);
-					//
-					//	eginfo->ginfo.mat_match_model2ws = mat_tr * (__cm4__ model_obj_state.os2ws);
-					//	cout << "model matching done!" << endl;
-					//	eginfo->ginfo.align_matching_model = true;
-					//}
-				}
-			}
-			else if (event == EVENT_RBUTTONDOWN)
-			{
-
-			}
-		}
-		else
-		{
-			if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
-			{
-				if (x < eginfo->ginfo.rs_w / 2)
-				{
-					TESTOUT("world position : ", eginfo->ginfo.pos_probe_pin);
-					pick_pts.push_back(eginfo->ginfo.pos_probe_pin);
-				}
-				else // x >= eginfo->ginfo.rs_w / 2
-				{
-					if (pick_pts.size() > 0)
-						pick_pts.pop_back();
-				}
-				if (pick_pts.size() > 0)
-				{
-					vector<glm::fvec4> spheres_xyzr;
-					vector<glm::fvec3> spheres_rgb;
-					for (int i = 0; i < (int)pick_pts.size(); i++)
-					{
-						glm::fvec4 sphere_xyzr = glm::fvec4(pick_pts[i], 0.005);
-						spheres_xyzr.push_back(sphere_xyzr);
-						glm::fvec3 sphere_rgb = glm::fvec3(0, 1, 0);
-						spheres_rgb.push_back(sphere_rgb);
-					}
-					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)pick_pts.size(), eginfo->ginfo.model_ws_pick_spheres_id);
-					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
-					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
-					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
-				}
-				else
-				{
-					vzm::DeleteObject(eginfo->ginfo.model_ws_pick_spheres_id);
-					eginfo->ginfo.model_ws_pick_spheres_id = 0;
-				}
-			}
-		}
-	}
-	else if (eginfo->ginfo.touch_mode == PIN_ORIENTATION)
-	{
-		if (event == EVENT_LBUTTONDOWN)
-		{
-			if (eginfo->ginfo.is_calib_rs_cam)
-			{
-				if (!otrk_data.trk_info.is_detected_sstool) return;
-	
-				glm::fvec3 pt = otrk_data.trk_info.GetProbePinPoint();
-	
-				glm::fmat4x4 mat_ws2tfrm = glm::inverse(otrk_data.trk_info.mat_tfrm2ws);
-				eginfo->ginfo.ss_tool_info.pos_centers_tfrm.push_back(tr_pt(mat_ws2tfrm, pt));
-	
-				ofstream outfile(eginfo->ginfo.sst_positions);
-				if (outfile.is_open())
-				{
-					outfile.clear();
-					for (int i = 0; i < eginfo->ginfo.ss_tool_info.pos_centers_tfrm.size(); i++)
-					{
-						string line = to_string(eginfo->ginfo.ss_tool_info.pos_centers_tfrm[i].x) + " " +
-							to_string(eginfo->ginfo.ss_tool_info.pos_centers_tfrm[i].y) + " " +
-							to_string(eginfo->ginfo.ss_tool_info.pos_centers_tfrm[i].z);
-						outfile << line << endl;
-					}
-				}
-				outfile.close();
-			}
-		}
-	}
-	if (eginfo->ginfo.touch_mode == Calib_STG && otrk_data.trk_info.is_detected_rscam)
-	{
-		if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
-		{
-			int pick_obj = 0;
-			glm::fvec3 pos_pick;
-			const int r = 10;
-			for (int ry = max(y - r, 0); ry < min(y + r, eginfo->ginfo.rs_h - 1); ry++)
-				for (int rx = max(x - r, 0); rx < min(x + r, eginfo->ginfo.rs_w - 1); rx++)
-				{
-					if (vzm::PickObject(pick_obj, __FP pos_pick, rx, ry, eginfo->scene_id, eginfo->cam_id))
-					{
-						ry = eginfo->ginfo.rs_h;
-						break;
-					}
-				}
-
-			cout << "Calib_STG PICK ID : " << x << ", " << y << " ==> " << pick_obj << endl;
-			if (pick_obj != 0)
-			{
-				glm::fvec3 mk_pt = eginfo->ginfo.vzmobjid2pos[pick_obj];
-				for (int i = 0; i < (int)eginfo->ginfo.vzmobjid2pos.size(); i++)
-				{
-					glm::fvec3 mk_candi_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(i);
-					if (glm::length(mk_candi_pt - mk_pt) < 0.005f)
-					{
-						eginfo->ginfo.otrk_data.stg_calib_mk_cid = eginfo->ginfo.otrk_data.trk_info.mk_cid_list[i];
-						break;
-					}
-				}
-				cout << "Calib_STG MARKER CID : " << eginfo->ginfo.otrk_data.stg_calib_mk_cid << " / total # : " << eginfo->ginfo.vzmobjid2pos.size() << endl;
-			}
-			else
-			{
-				int stg_calib_mk_idx;
-				if (!eginfo->ginfo.otrk_data.trk_info.CheckExistCID(eginfo->ginfo.otrk_data.stg_calib_mk_cid, &stg_calib_mk_idx))
-				{
-					eginfo->ginfo.otrk_data.stg_calib_mk_cid = 0;
-					return;
-				}
-
-				const int w = eginfo->ginfo.stg_w;
-				const int h = eginfo->ginfo.stg_h;
-				static Point2f pos_2d_rs[12] = {
-					Point2f(w / 5.f, h / 4.f) , Point2f(w / 5.f * 2.f, h / 4.f) , Point2f(w / 5.f * 3.f, h / 4.f) , Point2f(w / 5.f * 4.f, h / 4.f),
-					Point2f(w / 5.f, h / 4.f * 2.f) , Point2f(w / 5.f * 2.f, h / 4.f * 2.f) , Point2f(w / 5.f * 3.f, h / 4.f * 2.f) , Point2f(w / 5.f * 4.f, h / 4.f * 2.f),
-					Point2f(w / 5.f, h / 4.f * 3.f) , Point2f(w / 5.f * 2.f, h / 4.f * 3.f) , Point2f(w / 5.f * 3.f, h / 4.f * 3.f) , Point2f(w / 5.f * 4.f, h / 4.f * 3.f) };
-
-				if (x < eginfo->ginfo.rs_w / 2)
-				{
-					if (otrk_data.stg_calib_pt_pairs.size() < 12)
-					{
-						glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
-						glm::fmat4x4 mat_ws2clf = glm::inverse(otrk_data.trk_info.mat_rbcam2ws);
-						glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
-
-						cout << "Add a STG calib marker!!" << endl;
-						otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(pos_2d_rs[otrk_data.stg_calib_pt_pairs.size()], Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
-					}
-				}
-				else
-				{
-					if (otrk_data.stg_calib_pt_pairs.size() > 0)
-					{
-						cout << "Remove the latest STG calib marker!!" << endl;
-						otrk_data.stg_calib_pt_pairs.pop_back();
-					}
-				}
-				cout << "# of STG calib point pairs : " << otrk_data.stg_calib_pt_pairs.size() << endl;
-
-				ofstream outfile(eginfo->ginfo.stg_calib);
-				if (outfile.is_open())
-				{
-					outfile.clear();
-					outfile << to_string(eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size()) << endl;
-					for (int i = 0; i < eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size(); i++)
-					{
-						pair<Point2f, Point3f>& pr = eginfo->ginfo.otrk_data.stg_calib_pt_pairs[i];
-						Point2f p2d = get<0>(pr);
-						Point3f p3d = get<1>(pr);
-
-						string line = to_string(p2d.x) + " " + to_string(p2d.y) + " " + to_string(p3d.x) + " " + to_string(p3d.y) + " " + to_string(p3d.z);
-						outfile << line << endl;
-					}
-				}
-				outfile.close();
-			}
-		}
-	}
-}
-
 void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 {
 	EventGlobalInfo* eginfo = (EventGlobalInfo*)userdata;
 	OpttrkData& otrk_data = eginfo->ginfo.otrk_data;// *(opttrk_data*)userdata;
-
-	vector<Point3f>& point3ds = otrk_data.calib_3d_pts;
-
-	static vector<glm::fvec3> pick_pts;
-	static int gathered_point_id = 0;
 
 	if (!otrk_data.trk_info.is_updated) return;
 
@@ -420,61 +152,43 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 
 	if (event == EVENT_LBUTTONDOWN | event == EVENT_RBUTTONDOWN)
 	{
-		bool touch_menu = false;
-		for (auto it = eginfo->ginfo.rs_buttons.begin(); it != eginfo->ginfo.rs_buttons.end(); it++)
+		map<RsTouchMode, ButtonState>& rs_buttons = eginfo->ginfo.rs_buttons;
+		auto disable_subbuttons = [&rs_buttons]()
 		{
-			Rect& btn = it->second;
-			if (btn.contains(Point(x, y)))
+			for (auto it = rs_buttons.begin(); it != rs_buttons.end(); it++)
 			{
-				if (it->first == RsTouchMode::ICP || it->first == RsTouchMode::Capture)
-				{
-					if (eginfo->ginfo.touch_mode != RsTouchMode::Align)
-						return;
-				}
-				eginfo->ginfo.touch_mode = it->first;
-				touch_menu = true;
-				break;
+				ButtonState& btn = it->second;
+				if (btn.is_subbutton) btn.is_activated = false;
 			}
+		};
+		for (auto it = rs_buttons.begin(); it != rs_buttons.end(); it++)
+		{
+			ButtonState& btn = it->second;
+			if (btn.is_activated && btn.rect.contains(Point(x, y)))
+			{
+				eginfo->ginfo.touch_mode = btn.mode;
+				btn.touch_count++;
+			}
+			else
+				btn.touch_count = 0;
 		}
-
-		if(touch_menu)
-			for (auto it = eginfo->ginfo.rs_buttons.begin(); it != eginfo->ginfo.rs_buttons.end(); it++)
-			{
-				if (it->first == eginfo->ginfo.touch_mode) eginfo->ginfo.rs_touch_count[it->first]++;
-				else eginfo->ginfo.rs_touch_count[it->first] = 0;
-			}
 
 		// to do //
 		switch (eginfo->ginfo.touch_mode)
 		{
 		case RsTouchMode::Pick:
 		{
-			if (!otrk_data.trk_info.is_detected_probe) return;
-			glm::fvec3 pt = otrk_data.trk_info.GetProbePinPoint();
-			point3ds.push_back(Point3f(pt.x, pt.y, pt.z));
-
-			cout << "Pick : " << pt.x << ", " << pt.y << ", " << pt.z << endl;
-
-			ofstream outfile(eginfo->ginfo.cb_positions);
-			if (outfile.is_open())
-			{
-				outfile.clear();
-				for (int i = 0; i < eginfo->ginfo.otrk_data.calib_3d_pts.size(); i++)
-				{
-					string line = to_string(eginfo->ginfo.otrk_data.calib_3d_pts[i].x) + " " +
-						to_string(eginfo->ginfo.otrk_data.calib_3d_pts[i].y) + " " +
-						to_string(eginfo->ginfo.otrk_data.calib_3d_pts[i].z);
-					outfile << line << endl;
-				}
-			}
-			outfile.close();
+			disable_subbuttons();
 		} break;
 		case RsTouchMode::Calib_TC:
 		{
-			// perform this in the main processing
+			disable_subbuttons();
+			rs_buttons[RsTouchMode::Pair_Clear].is_activated = true;
+			// processing during the main thread
 		} break;
 		case RsTouchMode::Calib_STG:
 		{
+			disable_subbuttons();
 			if (!otrk_data.trk_info.is_detected_rscam) return;
 
 			int pick_obj = 0;
@@ -563,14 +277,18 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::Align:
 		{
+			disable_subbuttons();
+			rs_buttons[RsTouchMode::ICP].is_activated = true;
+			rs_buttons[RsTouchMode::Capture].is_activated = true;
 			if (eginfo->ginfo.model_obj_id == 0) return;
-			if (eginfo->ginfo.rs_touch_count[RsTouchMode::Align] >= 2)
+			ButtonState& btn = rs_buttons[RsTouchMode::Align];
+			if (btn.touch_count >= 2)
 			{
-				int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), pick_pts.size());
+				int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), eginfo->ginfo.model_ws_pick_pts.size());
 				if (num_crrpts >= 3)
 				{
 					glm::fmat4x4 mat_tr;
-					if (helpers::ComputeRigidTransform(__FP eginfo->ginfo.model_ms_pick_pts[0], __FP pick_pts[0], num_crrpts, __FP mat_tr[0]))
+					if (helpers::ComputeRigidTransform(__FP eginfo->ginfo.model_ms_pick_pts[0], __FP eginfo->ginfo.model_ws_pick_pts[0], num_crrpts, __FP mat_tr[0]))
 					{
 						vzm::ObjStates model_obj_state;
 						vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.model_obj_id, model_obj_state);
@@ -582,7 +300,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 
 						glm::fmat4x4 mat_match_model2ws = mat_tr * (__cm4__ model_obj_state.os2ws);
 						eginfo->ginfo.mat_os2matchmodefrm = eginfo->ginfo.mat_ws2matchmodelfrm * mat_match_model2ws;
-						// currenbt issue!
+						// current issue!
 						//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
 
 						cout << "model matching done!" << endl;
@@ -594,25 +312,25 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				if (x < eginfo->ginfo.rs_w / 2)
 				{
 					TESTOUT("world position : ", eginfo->ginfo.pos_probe_pin);
-					pick_pts.push_back(eginfo->ginfo.pos_probe_pin);
+					eginfo->ginfo.model_ws_pick_pts.push_back(eginfo->ginfo.pos_probe_pin);
 				}
 				else // x >= eginfo->ginfo.rs_w / 2
 				{
-					if (pick_pts.size() > 0)
-						pick_pts.pop_back();
+					if (eginfo->ginfo.model_ws_pick_pts.size() > 0)
+						eginfo->ginfo.model_ws_pick_pts.pop_back();
 				}
-				if (pick_pts.size() > 0)
+				if (eginfo->ginfo.model_ws_pick_pts.size() > 0)
 				{
 					vector<glm::fvec4> spheres_xyzr;
 					vector<glm::fvec3> spheres_rgb;
-					for (int i = 0; i < (int)pick_pts.size(); i++)
+					for (int i = 0; i < (int)eginfo->ginfo.model_ws_pick_pts.size(); i++)
 					{
-						glm::fvec4 sphere_xyzr = glm::fvec4(pick_pts[i], 0.005);
+						glm::fvec4 sphere_xyzr = glm::fvec4(eginfo->ginfo.model_ws_pick_pts[i], 0.005);
 						spheres_xyzr.push_back(sphere_xyzr);
 						glm::fvec3 sphere_rgb = glm::fvec3(0, 1, 0);
 						spheres_rgb.push_back(sphere_rgb);
 					}
-					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)pick_pts.size(), eginfo->ginfo.model_ws_pick_spheres_id);
+					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)eginfo->ginfo.model_ws_pick_pts.size(), eginfo->ginfo.model_ws_pick_spheres_id);
 					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
 					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
 					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
@@ -626,35 +344,57 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::ICP:
 		{
+			glm::fmat4x4 mat_tr;
+			vzmproc::ComputeMatchingTransform(eginfo->ginfo.captured_model_ms_point_id, eginfo->ginfo.captured_model_ws_point_id, __FP mat_tr);
+
+			vzm::ObjStates obj_state;
+			vzm::GetSceneObjectState(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, obj_state);
+			__cm4__ obj_state.os2ws = mat_tr * __cm4__ obj_state.os2ws;
+			vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, obj_state);
+			vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, eginfo->ginfo.model_ws_obj_id, obj_state);
+			vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, eginfo->ginfo.model_ws_obj_id, obj_state);
+
 			// to do
+		} break;
+		case RsTouchMode::Pair_Clear:
+		{
+			eginfo->ginfo.otrk_data.tc_calib_pt_pairs.clear();
+			cout << "Clear point pairs!!" << endl;
 		} break;
 		case RsTouchMode::Capture:
 		{
-			// to do
-			// from x, y position!!
-			if (pick_pts.size() == 0 || eginfo->ginfo.rs_pc_id == 0) return;
-			if (event == EVENT_LBUTTONDOWN)
+			if (x < eginfo->ginfo.rs_w / 2)
 			{
-				vzm::DeleteObject(gathered_point_id);
+				if (eginfo->ginfo.rs_pc_id == 0) return;
+
+				glm::fvec3 pos_pick = otrk_data.trk_info.GetProbePinPoint();
+
 				vzm::ObjStates model_obj_state;
 				vzm::GetSceneObjectState(eginfo->ginfo.ws_scene_id, eginfo->ginfo.rs_pc_id, model_obj_state);
 				glm::fmat4x4 mat_ws2os = glm::inverse(*(glm::fmat4x4*)model_obj_state.os2ws);
-				for (int i = 0; i < (int)pick_pts.size(); i++)
-				{
-					glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, pick_pts[i]);
-					vzmproc::GenerateSamplePoints(eginfo->ginfo.rs_pc_id, (float*)&pos_pick_os, 10.f, 0.3f, gathered_point_id);
-				}
+
+				glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, pos_pick);
+
+				vzmproc::GenerateSamplePoints(eginfo->ginfo.rs_pc_id, (float*)&pos_pick_os, 0.02f, 0.0003f, eginfo->ginfo.captured_model_ws_point_id);
+				cout << "Capturing in RS PC" << endl;
 
 				vzm::ObjStates sobj_state;
-				__cv4__ sobj_state.color = glm::fvec4(1, 0, 0, 1);
+				__cv4__ sobj_state.color = glm::fvec4(1, 1, 0, 1);
 				sobj_state.emission = 0.5f;
 				sobj_state.diffusion = 0.5f;
 				sobj_state.specular = 0.0f;
-				sobj_state.point_thickness = 5.f;
-				*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
-				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, gathered_point_id, sobj_state);
-				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, gathered_point_id, sobj_state);
+				sobj_state.point_thickness = 10.f;
+				//*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
+				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.captured_model_ws_point_id, sobj_state);
+				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, eginfo->ginfo.captured_model_ws_point_id, sobj_state);
+				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, eginfo->ginfo.captured_model_ws_point_id, sobj_state);
 			}
+			else
+			{
+				vzm::DeleteObject(eginfo->ginfo.captured_model_ws_point_id);
+				cout << "Clear capture points in WS" << endl;
+			}
+			//eginfo->ginfo.touch_mode = RsTouchMode::Align;
 		} break;
 		default: return;
 		}
@@ -771,26 +511,10 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 			{
 				if (event == EVENT_LBUTTONDOWN)
 				{
-					if (eginfo->ginfo.is_meshmodel) // which means it is a primitive-type object
+					glm::fvec3 pos_pick;
+					if (GetSufacePickPos(pos_pick, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo.is_meshmodel, x, y))
 					{
-						int pick_obj = 0;
-						glm::fvec3 pos_pick;
-						vzm::PickObject(pick_obj, __FP pos_pick, x, y, eginfo->scene_id, eginfo->cam_id);
-						if (pick_obj != 0)
-						{
-							cout << "picked : " << pick_obj << endl;
-							TESTOUT("world position : ", pos_pick);
-							eginfo->ginfo.model_ms_pick_pts.push_back(pos_pick);
-						}
-					}
-					else
-					{
-						glm::fvec3 pos_pick;
-						if (vzm::Pick1stHitSurfaceUsingDepthMap(__FP pos_pick, x, y, 1000.f, eginfo->scene_id, eginfo->cam_id))
-						{
-							TESTOUT("world position : ", pos_pick);
-							eginfo->ginfo.model_ms_pick_pts.push_back(pos_pick);
-						}
+						eginfo->ginfo.model_ms_pick_pts.push_back(pos_pick);
 					}
 				}
 				else if (event == EVENT_RBUTTONDOWN)
@@ -844,22 +568,20 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 	}
 	else if (flags & EVENT_FLAG_ALTKEY)
 	{
-		if (eginfo->ginfo.model_ms_pick_pts.size() == 0) return;
 		if (event == EVENT_LBUTTONDOWN)
 		{
 			if (eginfo->ginfo.model_obj_id == 0)
 				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "NO MESH!!");
-			vzm::DeleteObject(eginfo->ginfo.gathered_model_point_id);
+
+			glm::fvec3 pos_pick;
+			if (!GetSufacePickPos(pos_pick, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo.is_meshmodel, x, y)) return;
 
 			vzm::ObjStates model_obj_state;
 			vzm::GetSceneObjectState(eginfo->scene_id, eginfo->ginfo.model_obj_id, model_obj_state);
 			glm::fmat4x4 mat_ws2os = glm::inverse(*(glm::fmat4x4*)model_obj_state.os2ws);
-			for (int i = 0; i < (int)eginfo->ginfo.model_ms_pick_pts.size(); i++)
-			{
-				glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, eginfo->ginfo.model_ms_pick_pts[i]);
-				// note that the model's os is defined in mm unit
-				vzmproc::GenerateSamplePoints(eginfo->ginfo.model_obj_id, (float*)&pos_pick_os, 30.f, 0.3f, eginfo->ginfo.gathered_model_point_id);
-			}
+
+			glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, pos_pick);
+			vzmproc::GenerateSamplePoints(eginfo->ginfo.model_obj_id, (float*)&pos_pick_os, 20.f, 0.3f, eginfo->ginfo.captured_model_ms_point_id);
 
 			vzm::ObjStates sobj_state;
 			__cv4__ sobj_state.color = glm::fvec4(1, 1, 0, 1);
@@ -867,10 +589,16 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 			sobj_state.diffusion = 0.5f;
 			sobj_state.specular = 0.0f;
 			sobj_state.point_thickness = 10.f;
-			*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
-			vzm::ReplaceOrAddSceneObject(eginfo->scene_id, eginfo->ginfo.gathered_model_point_id, sobj_state);
+			//*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
+			vzm::ReplaceOrAddSceneObject(eginfo->scene_id, eginfo->ginfo.captured_model_ms_point_id, sobj_state);
 			
-			Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "Point : " + to_string((int)eginfo->ginfo.model_ms_pick_pts.size()));
+			Show_Window(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id);
+		}
+		else if(event == EVENT_RBUTTONDOWN)
+		{
+			vzm::DeleteObject(eginfo->ginfo.captured_model_ms_point_id);
+
+			Show_Window(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id);
 		}
 	}
 	else

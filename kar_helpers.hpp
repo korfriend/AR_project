@@ -316,6 +316,25 @@ void World_GridAxis_Gen(int& coord_grid_obj_id, int& axis_lines_obj_id, int& axi
 	vzm::GenerateTextObject((float*)&pinfo[0], "Z", 0.07, true, false, axis_texZ_obj_id);
 }
 
+void GenWorldGrid(int ws_scene_id, int ws_cam_id)
+{
+	int coord_grid_obj_id = 0, axis_lines_obj_id = 0, axis_texX_obj_id = 0, axis_texZ_obj_id = 0;
+	World_GridAxis_Gen(coord_grid_obj_id, axis_lines_obj_id, axis_texX_obj_id, axis_texZ_obj_id);
+	vzm::ObjStates grid_obj_state;
+	grid_obj_state.color[3] = 0.7f;
+	grid_obj_state.line_thickness = 0;
+	vzm::ReplaceOrAddSceneObject(ws_scene_id, coord_grid_obj_id, grid_obj_state);
+	bool foremost_surf_rendering = true;
+	vzm::DebugTestSet("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), ws_scene_id, ws_cam_id, coord_grid_obj_id);
+	grid_obj_state.color[3] = 0.9f;
+	vzm::ReplaceOrAddSceneObject(ws_scene_id, axis_lines_obj_id, grid_obj_state);
+	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(1, 0.3, 0.3, 0.6);
+	vzm::ReplaceOrAddSceneObject(ws_scene_id, axis_texX_obj_id, grid_obj_state);
+	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(0.3, 0.3, 1, 0.6);
+	vzm::ReplaceOrAddSceneObject(ws_scene_id, axis_texZ_obj_id, grid_obj_state);
+}
+
+
 glm::fmat4x4 MatrixWS2CS(const glm::fvec3& pos_eye, const glm::fvec3& vec_view, const glm::fvec3& vec_up)
 {
 	using namespace glm;
@@ -443,28 +462,42 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 		}
 };
 
+#define PAIR_MAKE(P2D, P3D) std::pair<cv::Point2f, cv::Point3f>(cv::Point2f(P2D.x, P2D.y), cv::Point3f(P3D.x, P3D.y, P3D.z))
 #define double_vec3(D) ((double*)D.data)[0], ((double*)D.data)[1], ((double*)D.data)[2]
 bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm::fvec3>& points_3dws, const glm::fmat4x4& mat_ws2clf,
 	const float fx, const float fy, const float cx, const float cy, glm::fmat4x4& mat_rscs2clf, float* err, int* num_samples,
-	vector<glm::fvec3>& points_buf_3d_clf, vector<glm::fvec2>& points_buf_2d)//, const int img_w, const int img_h
+	vector<pair<Point2f, Point3f>>& pair_pts)//, const int img_w, const int img_h
 
 {
 	if (points_2d.size() == 0) return false;
 	if (points_2d.size() != points_3dws.size()) return false;
 	using namespace glm;
 
-	int num_incoming_pts = (int)points_3dws.size();
-	vector<fvec3> points_3dclf(num_incoming_pts);
-	for (int i = 0; i < num_incoming_pts; i++)
+//	pair<Point2f, Point3f>& _pair = pair_pts
+
+	vector<Point3f> points_buf_3d_clf;
+	vector<Point2f> points_buf_2d;
+	for (int i = 0; i < (int)pair_pts.size(); i++)
 	{
-		points_3dclf[i] = tr_pt(mat_ws2clf, points_3dws[i]);
+		pair<Point2f, Point3f>& _pair = pair_pts[i];
+		points_buf_2d.push_back(std::get<0>(_pair));
+		points_buf_3d_clf.push_back(std::get<1>(_pair));
 	}
 
-	points_buf_2d.insert(points_buf_2d.end(), points_2d.begin(), points_2d.end());
-	points_buf_3d_clf.insert(points_buf_3d_clf.end(), points_3dclf.begin(), points_3dclf.end());
+
+	int num_incoming_pts = (int)points_3dws.size();
+	for (int i = 0; i < num_incoming_pts; i++)
+	{
+		Point2f p2d = *(Point2f*)&points_2d[i];
+		Point3f p3d = *(Point3f*)&tr_pt(mat_ws2clf, points_3dws[i]);
+
+		points_buf_2d.push_back(p2d);
+		points_buf_3d_clf.push_back(p3d);
+		pair_pts.push_back(PAIR_MAKE(p2d, p3d));
+	}
 
 	if (num_samples) *num_samples = points_buf_2d.size();
-	if (points_buf_2d.size() < 12) return false;
+	if (pair_pts.size() < 12) return false;
 
 	Mat cam_mat = cv::Mat::zeros(3, 3, CV_64FC1); // intrinsic camera parameters
 	cam_mat.at<double>(0, 0) = fx;       //      [ fx   0  cx ]
@@ -475,8 +508,10 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 	cv::Mat distCoeffs = cv::Mat::zeros(4, 1, CV_64FC1);    // vector of distortion coefficients
 	cv::Mat rvec = cv::Mat::zeros(3, 1, CV_64FC1);          // output rotation vector
 	cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64FC1);          // output translation vector
-	cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
-	cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
+	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
+	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
+	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
+	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
 	//cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, 5, 1.f, 0.98, noArray(), SOLVEPNP_DLS);
 
 	//cv::calibrateCamera(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), Size(img_w, img_h), cam_mat, distCoeffs, rvec, tvec, 
@@ -503,7 +538,7 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 		float reproj_err_sum = 0.;
 		reproj_err_sum = cv::norm(Mat(reprojectPoints), Mat(*(vector<Point2f>*)&points_buf_2d)); //  default L2
 		*err = sqrt(reproj_err_sum * reproj_err_sum / points_buf_2d.size());
-		cout << "PnP reprojection error : " << *err << " pixels" << endl;
+		cout << "PnP reprojection error : " << *err << " pixels, # of point pairs L " << points_buf_2d.size() << endl;
 	}
 
 	// TEST //
@@ -750,6 +785,7 @@ struct OpttrkData
 	vzm::ObjStates obj_state;
 	int cb_spheres_id;
 	vector<Point3f> calib_3d_pts;
+	vector<pair<Point2f, Point3f>> tc_calib_pt_pairs;
 	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
 	bitset<128> stg_calib_mk_cid;
 
@@ -766,7 +802,7 @@ struct OpttrkData
 	}
 };
 
-ENUM(RsTouchMode, None, Pick, Calib_TC, PIN_ORIENTATION, Calib_STG, Align, ICP, Capture)
+ENUM(RsTouchMode, None, Pick, Calib_TC, PIN_ORIENTATION, Calib_STG, Align, ICP, Capture, Pair_Clear)
 
 // added by dojo at 200813
 struct SS_Tool_Guide_Pts
@@ -774,6 +810,35 @@ struct SS_Tool_Guide_Pts
 	int ss_tool_guide_points_id;
 	vector<glm::fvec3> pos_centers_tfrm;
 	SS_Tool_Guide_Pts() { ss_tool_guide_points_id = 0; }
+};
+
+struct ButtonState
+{
+	RsTouchMode mode;
+	Rect rect;
+	int touch_count;
+	bool is_activated;
+	bool is_subbutton;
+	std::string name;
+	cv::Scalar activated_bg;
+
+	ButtonState()
+	{
+		touch_count = 0;
+		is_activated = false;
+		is_subbutton = false;
+	}
+
+	ButtonState(const RsTouchMode _mode, const Rect& _rect, const int _count, const bool _is_activated, const std::string& _name, const bool _is_subbutton, const cv::Scalar& _activated_bg)
+	{
+		mode = _mode;
+		rect = _rect;
+		touch_count = 0;
+		is_activated = _is_activated;
+		name = _name;
+		activated_bg = _activated_bg;
+		is_subbutton = _is_subbutton;
+	}
 };
 
 struct GlobalInfo
@@ -794,10 +859,12 @@ struct GlobalInfo
 	int model_ws_obj_id;
 	glm::fmat4x4 mat_ws2matchmodelfrm;
 	glm::fmat4x4 mat_os2matchmodefrm;
-	int gathered_model_point_id;
+	int captured_model_ms_point_id;
+	int captured_model_ws_point_id;
 	int rs_pc_id;
 
 	vector<glm::fvec3> model_ms_pick_pts;
+	vector<glm::fvec3> model_ws_pick_pts;
 	int model_ws_pick_spheres_id;
 	int model_ms_pick_spheres_id;
 
@@ -835,8 +902,7 @@ struct GlobalInfo
 	string guide_path;		// 20200818 숭실대 guide 경로때문에 변수하나 추가했어요
 
 	// rs cam ui buttons
-	map<RsTouchMode, Rect> rs_buttons;
-	map<RsTouchMode, int> rs_touch_count;
+	map<RsTouchMode, ButtonState> rs_buttons;
 
 	GlobalInfo()
 	{
@@ -846,7 +912,7 @@ struct GlobalInfo
 		is_calib_stg_cam = false;
 		model_obj_id = 0;
 		model_ws_obj_id = 0;
-		gathered_model_point_id = 0;
+		captured_model_ms_point_id = 0;
 		is_meshmodel = true;
 		rs_pc_id = 0;
 
@@ -856,3 +922,75 @@ struct GlobalInfo
 };
 
 #define TESTOUT(NAME, P) {cout << NAME << P.x << ", " << P.y << ", " << P.z << endl;}
+
+bool IsMeshModel(const int obj_id)
+{
+	return ((obj_id >> 24) & 0xFF) == 2;
+}
+
+bool GetSufacePickPos(glm::fvec3& pos_pick_ws, const int scene_id, const int cam_id, const bool use_pickmodel, const int x, const int y)
+{
+	if (use_pickmodel) // which means it is a primitive-type object
+	{
+		int pick_obj = 0;
+		glm::fvec3 pos_pick;
+		vzm::PickObject(pick_obj, __FP pos_pick, x, y, scene_id, cam_id);
+		if (pick_obj != 0)
+		{
+			cout << "mesh model picked : " << pick_obj << endl;
+			TESTOUT("world position : ", pos_pick);
+			pos_pick_ws = pos_pick;
+			return true;
+		}
+	}
+	else 
+	{
+		glm::fvec3 pos_pick;
+		if (vzm::Pick1stHitSurfaceUsingDepthMap(__FP pos_pick, x, y, 1000.f, scene_id, cam_id))
+		{
+			TESTOUT("world position : ", pos_pick);
+			pos_pick_ws = pos_pick;
+			return true;
+		}
+	}
+	return false;
+}
+
+void Make_Buttons(const int screen_w, const int screen_h, std::map<RsTouchMode, ButtonState>& buttons)
+{
+	int w = screen_w;
+	int h = screen_h;
+	int bw = w / 5;
+	int bh = 40;
+	vector<RsTouchMode> btns_mode;
+	btns_mode.push_back(RsTouchMode::None);
+	btns_mode.push_back(RsTouchMode::Pick);
+	btns_mode.push_back(RsTouchMode::Calib_TC);
+	btns_mode.push_back(RsTouchMode::Calib_STG);
+	btns_mode.push_back(RsTouchMode::Align);
+	// create main buttons
+	for (int i = 0; i < (int)btns_mode.size(); i++)
+	{
+		buttons[btns_mode[i]] = ButtonState(btns_mode[i], Rect(bw * i, 0, bw, bh), 0, true, EtoString(btns_mode[i]), false, Scalar(50, 50, 150));
+	}
+#define ADD_SUBBTNS(MODE, RECT_INFO) buttons[MODE] = ButtonState(MODE, RECT_INFO, 0, false, EtoString(MODE), true, Scalar(150, 250, 150))
+	ADD_SUBBTNS(RsTouchMode::ICP, Rect(bw * 4, bh, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::Capture, Rect(bw * 4, bh * 2, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::Pair_Clear, Rect(bw * 2, bh, bw, bh));
+}
+
+void Draw_TouchButtons(cv::Mat img, const std::map<RsTouchMode, ButtonState>& buttons, const RsTouchMode touch_mode)
+{
+	for (auto it = buttons.begin(); it != buttons.end(); it++)
+	{
+		const ButtonState& btn = it->second;
+		if (btn.is_activated)
+		{
+			Scalar bg = Scalar(150, 150, 150);
+			if (it->first == touch_mode) bg = btn.activated_bg;
+			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), bg, -1);
+			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), Scalar(0, 0, 0), 1);
+			putText(img(btn.rect), btn.name, Point(btn.rect.width*0.1, btn.rect.height*0.4), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
+		}
+	}
+}

@@ -218,9 +218,9 @@ namespace vzmproc
 	__dojostatic bool SimplifyPModelByUGrid(const int obj_src_id, const float cell_width, int& obj_dst_id);
 	__dojostatic bool ComputePCA(const int obj_id, float* egvals /*float3*/, float* egvecs /*three of float3*/);
 
-	// kar-breast part // to do
 	__dojostatic bool GenerateSamplePoints(const int obj_src_id, const float* pos_src, const float r, const float min_interval, int& obj_dst_id);
-	//__dojostatic bool ComputeMatchingTransform(const rgbd, obj_id, mat_tr[16]); // based on special-care ICP	//
+	// based on special-care ICP
+	__dojostatic bool ComputeMatchingTransform(const int obj_from_id, const int obj_to_id, float* mat_tr /*float16*/);
 }
 
 namespace helpers
