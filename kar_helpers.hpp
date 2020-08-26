@@ -900,10 +900,11 @@ struct GlobalInfo
 	// model related
 	bool is_meshmodel;
 	bool is_modelaligned;
-	int model_obj_id;
+	int model_ms_obj_id;
 	int model_ws_obj_id;
 	glm::fmat4x4 mat_ws2matchmodelfrm;
 	glm::fmat4x4 mat_os2matchmodefrm;
+	glm::fmat4x4 mat_matchtr;
 	int captured_model_ms_point_id;
 	int captured_model_ws_point_id;
 	int rs_pc_id;
@@ -957,7 +958,7 @@ struct GlobalInfo
 		skip_call_render = false;
 		is_calib_rs_cam = false;
 		is_calib_stg_cam = false;
-		model_obj_id = 0;
+		model_ms_obj_id = 0;
 		model_ws_obj_id = 0;
 		captured_model_ms_point_id = 0;
 		is_meshmodel = true;

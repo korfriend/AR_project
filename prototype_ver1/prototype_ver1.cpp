@@ -202,8 +202,8 @@ int main()
 		//static rs2::frameset frameset0, frameset1;
 		rs2::frameset current_frameset;
 		original_data.poll_for_frame(&current_frameset);
-		rs2::frame current_depth_frame;
-		filtered_data.poll_for_frame(&current_depth_frame);
+		rs2::frame current_filtered_frame;
+		filtered_data.poll_for_frame(&current_filtered_frame);
 
 		track_info trk_info;
 		track_que.wait_and_pop(trk_info);
@@ -233,7 +233,8 @@ int main()
 
 			var_settings::SetCalibFrames(show_calib_frames);
 
-			var_settings::SetDepthMapPC(show_pc, current_depth_frame, current_color_frame);
+			rs2::depth_frame depth_frame = current_filtered_frame;
+			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
 			var_settings::SetTargetModelAssets("ss_head", show_csection); // "breastbody"
 

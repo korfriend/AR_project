@@ -376,15 +376,15 @@ namespace var_settings
 
 		int volume_obj_id = 0;
 #ifdef SS_HEAD
-		vzm::LoadModelFile(g_info.model_path, g_info.model_obj_id);
+		vzm::LoadModelFile(g_info.model_path, g_info.model_ms_obj_id);
 		g_info.is_meshmodel = true;
 #else
-		vzm::LoadModelFile(g_info.volume_model_path, g_info.model_obj_id);
+		vzm::LoadModelFile(g_info.volume_model_path, g_info.model_ms_obj_id);
 		//vzm::LoadModelFile(g_info.volume_model_path, volume_obj_id);
 		g_info.is_meshmodel = false;
 #endif
-		vzm::ValidatePickTarget(g_info.model_obj_id);
-		vzm::GenerateCopiedObject(g_info.model_obj_id, g_info.model_ws_obj_id);
+		vzm::ValidatePickTarget(g_info.model_ms_obj_id);
+		vzm::GenerateCopiedObject(g_info.model_ms_obj_id, g_info.model_ws_obj_id);
 
 		vzm::CameraParameters cam_params;
 		__cv3__ cam_params.pos = glm::fvec3(1.0, 2.0, 1.5f);
@@ -492,7 +492,7 @@ namespace var_settings
 			bool apply_samplerate2grad = true;
 			vzm::DebugTestSet("_bool_ApplySampleRateToGradient", &apply_samplerate2grad, sizeof(bool), -1, -1);//g_info.model_scene_id, model_cam_id);
 		}
-		vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_obj_id, model_state);
+		vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_obj_id, model_state);
 
 		vzm::CameraParameters rs_cam_params;
 		__cv3__ rs_cam_params.pos = glm::fvec3(0);
@@ -1174,11 +1174,11 @@ namespace var_settings
 		}
 	}
 
-	void SetDepthMapPC(const bool is_visible, const rs2::depth_frame& depth_frame, const rs2::video_frame& color_frame)
+	void SetDepthMapPC(const bool is_visible, rs2::depth_frame& depth_frame, rs2::video_frame& color_frame)
 	{
 		if (is_visible && depth_frame)
 		{
-			rs2::depth_frame depth_frame = depth_frame;// .get_depth_frame();
+			//rs2::depth_frame depth_frame = depth_frame;// .get_depth_frame();
 
 			vzm::ObjStates obj_state_pts = default_obj_state;
 			obj_state_pts.color[3] = 1.f;

@@ -184,6 +184,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		{
 			disable_subbuttons();
 			rs_buttons[RsTouchMode::Pair_Clear].is_activated = true;
+			//otrk_data.tc_calib_pt_pairs.clear();
 			// processing during the main thread
 		} break;
 		case RsTouchMode::Calib_STG:
@@ -281,7 +282,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			disable_subbuttons();
 			rs_buttons[RsTouchMode::ICP].is_activated = true;
 			rs_buttons[RsTouchMode::Capture].is_activated = true;
-			if (eginfo->ginfo.model_obj_id == 0) return;
+			if (eginfo->ginfo.model_ms_obj_id == 0) return;
 			ButtonState& btn = rs_buttons[RsTouchMode::Align];
 			if (btn.touch_count >= 2)
 			{
@@ -292,7 +293,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					if (helpers::ComputeRigidTransform(__FP eginfo->ginfo.model_ms_pick_pts[0], __FP eginfo->ginfo.model_ws_pick_pts[0], num_crrpts, __FP mat_tr[0]))
 					{
 						vzm::ObjStates model_obj_state;
-						vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.model_obj_id, model_obj_state);
+						vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.model_ms_obj_id, model_obj_state);
 
 						vzm::ObjStates model_ws_obj_state;
 						vzm::GetSceneObjectState(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, model_ws_obj_state);
@@ -301,6 +302,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 
 						glm::fmat4x4 mat_match_model2ws = mat_tr * (__cm4__ model_obj_state.os2ws);
 						eginfo->ginfo.mat_os2matchmodefrm = eginfo->ginfo.mat_ws2matchmodelfrm * mat_match_model2ws;
+						eginfo->ginfo.mat_matchtr = mat_tr;
 						// current issue!
 						//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
 						eginfo->ginfo.is_modelaligned = true;
@@ -347,16 +349,22 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		case RsTouchMode::ICP:
 		{
 			glm::fmat4x4 mat_tr;
+			vzm::ObjStates ori_obj_state;
+			vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.captured_model_ms_point_id, ori_obj_state);
+
+			vzm::ObjStates tmp_obj_state = ori_obj_state;
+			__cm4__ tmp_obj_state.os2ws = eginfo->ginfo.mat_matchtr;
+			vzm::ReplaceOrAddSceneObject(eginfo->ginfo.model_scene_id, eginfo->ginfo.captured_model_ms_point_id, tmp_obj_state);
 			vzmproc::ComputeMatchingTransform(eginfo->ginfo.captured_model_ms_point_id, eginfo->ginfo.captured_model_ws_point_id, __FP mat_tr);
+			vzm::ReplaceOrAddSceneObject(eginfo->ginfo.model_scene_id, eginfo->ginfo.captured_model_ms_point_id, ori_obj_state);
 
-			vzm::ObjStates obj_state;
-			vzm::GetSceneObjectState(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, obj_state);
-			__cm4__ obj_state.os2ws = mat_tr * __cm4__ obj_state.os2ws;
-			vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, obj_state);
-			vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, eginfo->ginfo.model_ws_obj_id, obj_state);
-			vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, eginfo->ginfo.model_ws_obj_id, obj_state);
-
-			// to do
+			vzm::ObjStates model_obj_state;
+			vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.model_ms_obj_id, model_obj_state);
+			glm::fmat4x4 mat_match_model2ws = (mat_tr * eginfo->ginfo.mat_matchtr) * (__cm4__ model_obj_state.os2ws);
+			eginfo->ginfo.mat_os2matchmodefrm = eginfo->ginfo.mat_ws2matchmodelfrm * mat_match_model2ws;
+			eginfo->ginfo.mat_matchtr = mat_tr * eginfo->ginfo.mat_matchtr;
+			eginfo->ginfo.is_modelaligned = true;
+			cout << "model ICP matching done!" << endl;
 		} break;
 		case RsTouchMode::Pair_Clear:
 		{
@@ -509,7 +517,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 	{
 		if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
 		{
-			if (eginfo->ginfo.model_obj_id == 0)
+			if (eginfo->ginfo.model_ms_obj_id == 0)
 				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "NO MESH!!");
 			if (flags & EVENT_FLAG_CTRLKEY)
 			{
@@ -574,18 +582,18 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 	{
 		if (event == EVENT_LBUTTONDOWN)
 		{
-			if (eginfo->ginfo.model_obj_id == 0)
+			if (eginfo->ginfo.model_ms_obj_id == 0)
 				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "NO MESH!!");
 
 			glm::fvec3 pos_pick;
 			if (!GetSufacePickPos(pos_pick, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo.is_meshmodel, x, y)) return;
 
 			vzm::ObjStates model_obj_state;
-			vzm::GetSceneObjectState(eginfo->scene_id, eginfo->ginfo.model_obj_id, model_obj_state);
+			vzm::GetSceneObjectState(eginfo->scene_id, eginfo->ginfo.model_ms_obj_id, model_obj_state);
 			glm::fmat4x4 mat_ws2os = glm::inverse(*(glm::fmat4x4*)model_obj_state.os2ws);
 
 			glm::fvec3 pos_pick_os = tr_pt(mat_ws2os, pos_pick);
-			vzmproc::GenerateSamplePoints(eginfo->ginfo.model_obj_id, (float*)&pos_pick_os, 20.f, 0.3f, eginfo->ginfo.captured_model_ms_point_id);
+			vzmproc::GenerateSamplePoints(eginfo->ginfo.model_ms_obj_id, (float*)&pos_pick_os, 20.f, 0.3f, eginfo->ginfo.captured_model_ms_point_id);
 
 			vzm::ObjStates sobj_state;
 			__cv4__ sobj_state.color = glm::fvec4(1, 1, 0, 1);
