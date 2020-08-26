@@ -192,6 +192,7 @@ namespace vzm
 	__dojostatic bool RemoveScene(const int scene_id);
 	__dojostatic bool DeleteObject(const int obj_id); // the obj is deleted in memory
 	__dojostatic bool SetSceneEnvParameters(const int scene_id, const SceneEnvParameters& env_params);
+	__dojostatic bool GetSceneEnvParameters(const int scene_id, SceneEnvParameters& env_params);
 	// cam id is corresponding to a specific renderer and ip states
 	__dojostatic bool SetCameraParameters(const int scene_id, const CameraParameters& cam_params, const int cam_id = 0);
 	__dojostatic bool GetCameraParameters(const int scene_id, CameraParameters& cam_params, const int cam_id = 0);

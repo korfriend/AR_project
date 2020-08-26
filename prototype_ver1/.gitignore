@@ -9,6 +9,7 @@
 *.txt
 *.pptx
 prototype_ver1 - bkup_200701.cpp
+*.bin
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

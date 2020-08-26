@@ -170,10 +170,6 @@
       <Project>{578aae55-4591-48b9-ada3-13ce883f7c5a}</Project>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\kar_helpers.hpp" />
-    <ClInclude Include="MouseEvents.hpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

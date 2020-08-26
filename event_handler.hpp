@@ -189,7 +189,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		case RsTouchMode::Calib_STG:
 		{
 			disable_subbuttons();
-			if (!otrk_data.trk_info.is_detected_rscam) return;
+			glm::fmat4x4 mat_rbcam2ws;
+			if (!otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_rbcam2ws)) return;
 
 			int pick_obj = 0;
 			glm::fvec3 pos_pick;
@@ -240,7 +241,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					if (otrk_data.stg_calib_pt_pairs.size() < 12)
 					{
 						glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
-						glm::fmat4x4 mat_ws2clf = glm::inverse(otrk_data.trk_info.mat_rbcam2ws);
+						glm::fmat4x4 mat_ws2clf = glm::inverse(mat_rbcam2ws);
 						glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
 
 						cout << "Add a STG calib marker!!" << endl;
@@ -302,6 +303,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 						eginfo->ginfo.mat_os2matchmodefrm = eginfo->ginfo.mat_ws2matchmodelfrm * mat_match_model2ws;
 						// current issue!
 						//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
+						eginfo->ginfo.is_modelaligned = true;
 
 						cout << "model matching done!" << endl;
 					}
@@ -367,7 +369,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			{
 				if (eginfo->ginfo.rs_pc_id == 0) return;
 
-				glm::fvec3 pos_pick = otrk_data.trk_info.GetProbePinPoint();
+				glm::fvec3 pos_pick;
+				if(!otrk_data.trk_info.GetProbePinPoint(pos_pick)) return;
 
 				vzm::ObjStates model_obj_state;
 				vzm::GetSceneObjectState(eginfo->ginfo.ws_scene_id, eginfo->ginfo.rs_pc_id, model_obj_state);
@@ -445,12 +448,13 @@ void CallBackFunc_StgMouse(int event, int x, int y, int flags, void* userdata)
 		int stg_calib_mk_idx;
 		if (!eginfo->ginfo.otrk_data.trk_info.CheckExistCID(eginfo->ginfo.otrk_data.stg_calib_mk_cid, &stg_calib_mk_idx)) return;
 
-		if (otrk_data.trk_info.is_detected_rscam)
+		glm::fmat4x4 mat_rbcam2ws;
+		if (otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_rbcam2ws))
 		{
 			if (event == EVENT_LBUTTONDOWN)
 			{
 				glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
-				glm::fmat4x4 mat_ws2clf = glm::inverse(otrk_data.trk_info.mat_rbcam2ws);
+				glm::fmat4x4 mat_ws2clf = glm::inverse(mat_rbcam2ws);
 				glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
 
 				otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(Point2f(x, y), Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));

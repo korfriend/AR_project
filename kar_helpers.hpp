@@ -5,6 +5,7 @@
 
 #include <queue>
 #include <bitset>
+#include <string>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -21,6 +22,9 @@
 #define __cv3__ *(glm::fvec3*)
 #define __cv4__ *(glm::fvec4*)
 #define __cm4__ *(glm::fmat4x4*)
+
+using namespace std;
+using namespace cv;
 
 glm::fvec3 tr_pt(const glm::fmat4x4& mat, const glm::fvec3& p)
 {
@@ -200,7 +204,7 @@ void Cam_Gen(const glm::fmat4x4& mat_cs2ws, const string cam_label, int& cam_tri
 	Cam_Gen(pos_cam_ws, view_ws, up_ws, cam_label, cam_tris_is, cam_lines_id, cam_label_id);
 }
 
-void Register_CamModel(const int scene_id, const glm::fmat4x4& mat_frm2ws, const string cam_label, const int cam_id)
+void Update_CamModel(const int scene_id, const glm::fmat4x4& mat_frm2ws, const string cam_label, const int cam_id)
 {
 	static int obj_ids_buf[300] = {};
 	glm::fvec3 pos_c = tr_pt(mat_frm2ws, glm::fvec3(0, 0, 0));
@@ -679,26 +683,45 @@ public:
 
 struct track_info
 {
+	//  "rs_cam" , "probe" , "ss_tool_v1" , "ss_head" , "breastbody" 
+	map<string, pair<bool, glm::fmat4x4>> map_lfrm2ws;
+
+	bool GetLFrmInfo(const string& name, glm::fmat4x4& mat_lfrm2ws) const
+	{
+		bool is_detected = false;
+		auto it = map_lfrm2ws.find(name);
+		if (it != map_lfrm2ws.end())
+		{
+			is_detected = get<0>(it->second);
+			mat_lfrm2ws = get<1>(it->second);
+		}
+		return is_detected;
+	}
+
+	void SetLFrmInfo(const string& name, const bool is_detected, const glm::fmat4x4& mat_lfrm2ws)
+	{
+		map_lfrm2ws[name] = pair<bool, glm::fmat4x4>(is_detected, mat_lfrm2ws);
+	}
 	// when changing this, please consider the serialization
 	//"rs_cam"
-	glm::fmat4x4 mat_rbcam2ws;
-	bool is_detected_rscam;
-
-	//"probe"
-	glm::fmat4x4 mat_probe2ws;
-	bool is_detected_probe;
-
-	//"ss_tool_v1"
-	glm::fmat4x4 mat_tfrm2ws;
-	bool is_detected_sstool;
-
-	//"ss_head"
-	glm::fmat4x4 mat_headfrm2ws;
-	bool is_detected_sshead;
-
-	//"breastbody"
-	glm::fmat4x4 mat_bodyfrm2ws;
-	bool is_detected_brbody;
+	//glm::fmat4x4 mat_rbcam2ws;
+	//bool is_detected_rscam;
+	//
+	////"probe"
+	//glm::fmat4x4 mat_probe2ws;
+	//bool is_detected_probe;
+	//
+	////"ss_tool_v1"
+	//glm::fmat4x4 mat_tfrm2ws;
+	//bool is_detected_sstool;
+	//
+	////"ss_head"
+	//glm::fmat4x4 mat_headfrm2ws;
+	//bool is_detected_sshead;
+	//
+	////"breastbody"
+	//glm::fmat4x4 mat_bodyfrm2ws;
+	//bool is_detected_brbody;
 
 	std::vector<float> mk_xyz_list;
 	std::vector<float> mk_residue_list;
@@ -707,9 +730,15 @@ struct track_info
 	bool is_updated;
 	track_info() { is_updated = false; }
 
-	glm::fvec3 GetProbePinPoint()
+	bool GetProbePinPoint(glm::fvec3& pos)
 	{
-		return tr_pt(mat_probe2ws, glm::fvec3(0));
+		glm::fmat4x4 mat_lfrm2ws;
+		if (GetLFrmInfo("probe", mat_lfrm2ws))
+		{
+			pos = tr_pt(mat_lfrm2ws, glm::fvec3(0));
+			return true;
+		}
+		return false;
 	}
 
 	glm::fvec3 GetMkPos(int idx)
@@ -720,45 +749,54 @@ struct track_info
 
 	char* GetSerialBuffer(size_t& bytes_size)
 	{
-		int num_mks = mk_xyz_list.size();
-		bytes_size = sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + num_mks * (sizeof(float) * 2 + (128/8)) + 4; // last 4 means num_mks
+		int num_mks = (int)mk_xyz_list.size();
+		int num_lfrms = (int)map_lfrm2ws.size();
+		bytes_size = (sizeof(glm::fmat4x4) + sizeof(bool) + sizeof(char) * 100) * num_lfrms + (sizeof(float) * 2 + (128/8)) * num_mks + 4 * 2; // last 4 * 2 means num_mks, num_lfrms
 		char* buf = new char[bytes_size];
-		*(int*)buf[0] = num_mks;
-		*(glm::fmat4x4*)buf[4] = mat_rbcam2ws;
-		*(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4)] = mat_probe2ws;
-		*(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 2] = mat_tfrm2ws;
-		*(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 3] = mat_headfrm2ws;
-		*(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 4] = mat_bodyfrm2ws;
-		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5] = is_detected_rscam;
-		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool)] = is_detected_probe;
-		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 2] = is_detected_sstool;
-		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 3] = is_detected_sshead;
-		*(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 4] = is_detected_brbody;
-		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5], &mk_xyz_list[0], sizeof(float) * num_mks);
-		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks], &mk_residue_list[0], sizeof(float) * num_mks);
-		memcpy(&buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks * 2], &mk_cid_list[0], (128/8) * num_mks);
+		memset(buf, 0, bytes_size);
+		*(int*)&buf[0] = num_mks;
+		*(int*)&buf[4] = num_lfrms;
+
+		memcpy(&buf[8], &mk_xyz_list[0], sizeof(float) * num_mks);
+		memcpy(&buf[8 + sizeof(float) * num_mks], &mk_residue_list[0], sizeof(float) * num_mks);
+		memcpy(&buf[8 + sizeof(float) * num_mks * 2], &mk_cid_list[0], (128 / 8) * num_mks);
+
+		int offset = 8 + sizeof(float) * num_mks * 2 + (128 / 8) * num_mks;
+		int unit_size = sizeof(bool) + sizeof(glm::fmat4x4) + sizeof(char) * 100;
+		int i = 0;
+		for (auto it = map_lfrm2ws.begin(); it != map_lfrm2ws.end(); it++, i++)
+		{
+			memcpy(&buf[offset + unit_size * i], it->first.c_str(), sizeof(char) * it->first.length());
+			*(bool*)&buf[offset + unit_size * i + 100] = get<0>(it->second);
+			*(glm::fmat4x4*)&buf[offset + unit_size * i + 100 + sizeof(bool)] = get<1>(it->second);
+		}
+
 		return buf;
 	}
 
 	void SetFromSerialBuffer(const char* buf)
 	{
 		int num_mks = *(int*)buf[0];
+		int num_lfrms = *(int*)buf[4];
 		mk_xyz_list.assign(num_mks, 0);
 		mk_residue_list.assign(num_mks, 0);
+		mk_cid_list.assign(num_mks, 0);
 
-		mat_rbcam2ws = *(glm::fmat4x4*)buf[4];
-		mat_probe2ws = *(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4)];
-		mat_tfrm2ws = *(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 2];
-		mat_headfrm2ws = *(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 3];
-		mat_bodyfrm2ws = *(glm::fmat4x4*)buf[4 + sizeof(glm::fmat4x4) * 4];
-		is_detected_rscam = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5];
-		is_detected_probe = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool)];
-		is_detected_sstool = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 2];
-		is_detected_sshead = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 3];
-		is_detected_brbody = *(bool*)buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 4];
-		memcpy(&mk_xyz_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5], sizeof(float) * num_mks);
-		memcpy(&mk_residue_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks], sizeof(float) * num_mks);
-		memcpy(&mk_cid_list[0], &buf[4 + sizeof(glm::fmat4x4) * 5 + sizeof(bool) * 5 + sizeof(float) * num_mks * 2], (128/8) * num_mks);
+		memcpy(&mk_xyz_list[0], &buf[8], sizeof(float) * num_mks);
+		memcpy(&mk_residue_list[0], &buf[8 + sizeof(float) * num_mks], sizeof(float) * num_mks);
+		memcpy(&mk_cid_list[0], &buf[8 + sizeof(float) * num_mks * 2], (128 / 8) * num_mks);
+
+		int offset = 8 + sizeof(float) * num_mks * 2 + (128 / 8) * num_mks;
+		int unit_size = sizeof(bool) + sizeof(glm::fmat4x4) + sizeof(char) * 100;
+		for (int i = 0; i < num_lfrms; i++)
+		{
+			char arry[100];
+			memcpy(arry, &buf[offset + unit_size * i], sizeof(char) * 100);
+			string name = arry;
+			bool is_detected = *(bool*)&buf[offset + unit_size * i + 100];
+			glm::fmat4x4 mat_lfrm2ws = *(glm::fmat4x4*)&buf[offset + unit_size * i + 100 + sizeof(bool)];
+			SetLFrmInfo(name, is_detected, mat_lfrm2ws);
+		}
 	}
 
 	bool CheckExistCID(const std::bitset<128>& cid, int* mk_idx = NULL)
@@ -784,15 +822,21 @@ struct OpttrkData
 	track_info trk_info; // available when USE_OPTITRACK
 	vzm::ObjStates obj_state;
 	int cb_spheres_id;
+	int mks_spheres_id;
+	int rs_lf_axis_id, probe_lf_axis_id; // lf means local frame
 	vector<Point3f> calib_3d_pts;
 	vector<pair<Point2f, Point3f>> tc_calib_pt_pairs;
 	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
 	bitset<128> stg_calib_mk_cid;
+	vector<int> calib_trial_rs_cam_frame_ids;
+	vector<int> mk_pickable_sphere_ids;
 
 	OpttrkData()
 	{
 		stg_calib_mk_cid = 0;
 		cb_spheres_id = 0;
+		mks_spheres_id = 0;
+		rs_lf_axis_id = probe_lf_axis_id = 0;
 		obj_state.emission = 0.4f;
 		obj_state.diffusion = 0.6f;
 		obj_state.specular = 0.2f;
@@ -855,6 +899,7 @@ struct GlobalInfo
 
 	// model related
 	bool is_meshmodel;
+	bool is_modelaligned;
 	int model_obj_id;
 	int model_ws_obj_id;
 	glm::fmat4x4 mat_ws2matchmodelfrm;
@@ -873,6 +918,8 @@ struct GlobalInfo
 
 	int rs_w, rs_h;
 	int stg_w, stg_h;
+	int eye_w, eye_h;
+	int ws_w, ws_h;
 
 	// scene definition
 	int ws_scene_id; // arbitrary integer
@@ -887,7 +934,6 @@ struct GlobalInfo
 	string window_name_ws_view;
 	string window_name_ms_view;
 	string window_name_stg_view;
-	string window_name_eye_view;
 	string window_name_zs_view;
 
 	// file path
@@ -898,6 +944,7 @@ struct GlobalInfo
 	string stg_calib;
 	string sst_positions;
 	string model_path;
+	string volume_model_path;
 	string model_predefined_pts;
 	string guide_path;		// 20200818 숭실대 guide 경로때문에 변수하나 추가했어요
 
@@ -914,6 +961,7 @@ struct GlobalInfo
 		model_ws_obj_id = 0;
 		captured_model_ms_point_id = 0;
 		is_meshmodel = true;
+		is_modelaligned = false;
 		rs_pc_id = 0;
 
 		brain_obj_id = 0;

@@ -168,6 +168,8 @@
     <ClCompile Include="ArSettings.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\event_handler.hpp" />
+    <ClInclude Include="..\kar_helpers.hpp" />
     <ClInclude Include="ArSettings.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
