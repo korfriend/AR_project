@@ -338,7 +338,8 @@ namespace var_settings
 			//ar_marker.aruco_marker_file_out(i, "armk" + to_string(i) + ".bmp");
 		}
 	}
-
+	
+	bool _show_sectional_views = false;
 	int ov_cam_id = 1; // arbitrary integer
 	int model_cam_id = 1; // arbitrary integer
 	int rs_cam_id = 1; // arbitrary integer
@@ -744,9 +745,38 @@ namespace var_settings
 		is_rsrb_detected = g_info.otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_clf2ws);
 		mat_ws2clf = glm::inverse(mat_clf2ws);
 
+		static int section_probe_line_id = 0, section_probe_end_id = 0;
 		is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo("probe", mat_probe2ws);
 		if (is_probe_detected)
-			g_info.pos_probe_pin = tr_pt(mat_probe2ws, glm::fvec3());
+		{
+			g_info.pos_probe_pin = tr_pt(mat_probe2ws, glm::fvec3(0));
+			glm::fvec3 probe_end = g_info.pos_probe_pin;
+			glm::fvec3 probe_dir = glm::normalize(tr_vec(mat_probe2ws, glm::fvec3(0, 0, -1)));
+
+			glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir * 0.2f };
+			float cyl_r = 0.002f;
+			glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
+			vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
+			vzm::GenerateSpheresObject(__FP glm::fvec4(probe_end, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_end_id);
+
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, default_obj_state);
+		}
+		else
+		{
+			vzm::ObjStates cobj_state = default_obj_state;
+			cobj_state.is_visible = false;
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, cobj_state);
+		}
 
 		auto set_rb_axis = [](const bool is_detected, const glm::fmat4x4& mat_frm2ws, int& obj_id)
 		{
@@ -1348,13 +1378,11 @@ namespace var_settings
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 
 			// PIN REF //
+			_show_sectional_views = show_sectional_views;
 			bool is_section_probe_detected = is_probe_detected;
 			glm::fmat4x4 mat_section_probe2ws = mat_probe2ws;
-			static int section_probe_line_id = 0, section_probe_end_id = 0;
 			if (is_section_probe_detected)
 			{
-				glm::fvec3 probe_end = tr_pt(mat_section_probe2ws, glm::fvec3(0));
-				glm::fvec3 probe_dir = glm::normalize(tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1)));
 				if (show_sectional_views)
 				{
 					vzm::ReplaceOrAddSceneObject(g_info.csection_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
@@ -1368,7 +1396,7 @@ namespace var_settings
 					csection_cam_params_model.w = 250;
 					csection_cam_params_model.h = 250;
 
-					__cv3__ csection_cam_params_model.pos = probe_end;
+					__cv3__ csection_cam_params_model.pos = g_info.pos_probe_pin;
 					glm::fvec3 cs_up = tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1));
 					glm::fvec3 cs_view = glm::fvec3(0, 0, 1);
 
@@ -1386,45 +1414,7 @@ namespace var_settings
 					__cv3__ csection_cam_params_model.up = cs_up;
 					__cv3__ csection_cam_params_model.view = cs_view;
 					vzm::SetCameraParameters(g_info.csection_scene_id, csection_cam_params_model, 1);
-
-					vzm::RenderScene(g_info.csection_scene_id, 0);
-					vzm::RenderScene(g_info.csection_scene_id, 1);
-					unsigned char* cs_ptr_rgba[2];
-					float* cs_ptr_zdepth[2];
-					int cs_w[2], cs_h[2];
-					for (int i = 0; i < 2; i++)
-					{
-						vzm::GetRenderBufferPtrs(g_info.csection_scene_id, &cs_ptr_rgba[i], &cs_ptr_zdepth[i], &cs_w[i], &cs_h[i], 0);
-						cv::Mat cs_cvmat(cs_h[i], cs_w[i], CV_8UC4, cs_ptr_rgba[i]);
-						cv::line(cs_cvmat, cv::Point(cs_w[i] / 2, cs_h[i] / 2), cv::Point(cs_w[i] / 2, 0), cv::Scalar(255, 255, 0), 2, 2);
-						cv::circle(cs_cvmat, cv::Point(cs_w[i] / 2, cs_h[i] / 2), 2, cv::Scalar(255, 0, 0), 2);
-						cv::imshow("Sectional View " + to_string(i), cs_cvmat);
-					}
 				}
-
-				glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir * 0.2f };
-				float cyl_r = 0.003f;
-				glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
-				vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
-				vzm::GenerateSpheresObject(__FP glm::fvec4(probe_end, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_end_id);
-
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, default_obj_state);
-			}
-			else
-			{
-				vzm::ObjStates cobj_state = default_obj_state;
-				cobj_state.is_visible = false;
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, cobj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, cobj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, cobj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, cobj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, cobj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, cobj_state);
 			}
 		}
 	}
@@ -1454,6 +1444,7 @@ namespace var_settings
 #define SHOW_WS_VIEW
 #define SHOW_RS_VIEW
 #define SHOW_MS_VIEW
+#define SHOW_SECTION_VIEW
 #define SHOW_STG_VIEW
 #ifdef SHOW_WS_VIEW
 			LARGE_INTEGER frq_render_ws = GetPerformanceFreq();
@@ -1484,6 +1475,25 @@ namespace var_settings
 			if (g_info.is_calib_rs_cam && !is_rsrb_detected)
 				cv::putText(img_rs, "RS Cam is out of tracking volume !!", cv::Point(0, 150), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
 			imshow(g_info.window_name_rs_view, img_rs);
+#endif
+
+#ifdef SHOW_SECTION_VIEW
+			if (_show_sectional_views)
+			{
+				vzm::RenderScene(g_info.csection_scene_id, 0);
+				vzm::RenderScene(g_info.csection_scene_id, 1);
+				unsigned char* cs_ptr_rgba[2];
+				float* cs_ptr_zdepth[2];
+				int cs_w[2], cs_h[2];
+				for (int i = 0; i < 2; i++)
+				{
+					vzm::GetRenderBufferPtrs(g_info.csection_scene_id, &cs_ptr_rgba[i], &cs_ptr_zdepth[i], &cs_w[i], &cs_h[i], 0);
+					cv::Mat cs_cvmat(cs_h[i], cs_w[i], CV_8UC4, cs_ptr_rgba[i]);
+					cv::line(cs_cvmat, cv::Point(cs_w[i] / 2, cs_h[i] / 2), cv::Point(cs_w[i] / 2, 0), cv::Scalar(255, 255, 0), 2, 2);
+					cv::circle(cs_cvmat, cv::Point(cs_w[i] / 2, cs_h[i] / 2), 2, cv::Scalar(255, 0, 0), 2);
+					cv::imshow("Sectional View " + to_string(i), cs_cvmat);
+				}
+			}
 #endif
 
 #if defined(ENABLE_STG) && defined(SHOW_STG_VIEW)
