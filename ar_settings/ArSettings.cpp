@@ -1147,12 +1147,10 @@ namespace var_settings
 		{
 			glm::fmat4x4 mat_stgcs2ws = mat_clf2ws * mat_stgcs2clf;
 
-			vzm::DisplayConsoleMessages(true);
 			//rs_cam_tris_id, rs_cam_lines_id, rs_cam_txt_id
 			if (is_rsrb_detected)
 				Update_CamModel(g_info.ws_scene_id, mat_stgcs2ws, "STG CAM", 3);
 
-			//vzm::DisplayConsoleMessages(true);
 			vzm::CameraParameters _stg_cam_params;
 			vzm::GetCameraParameters(g_info.stg_scene_id, _stg_cam_params, stg_cam_id);
 			ComputeCameraStates(mat_stgcs2clf, mat_clf2ws, _stg_cam_params);
@@ -1495,12 +1493,14 @@ namespace var_settings
 				{
 					const int w = g_info.stg_w;
 					const int h = g_info.stg_h;
-					static Point2f pos_2d_rs[12] = {
+					static Point2f pos_2d_rs[15] = {
 						Point2f(w / 5.f, h / 4.f) , Point2f(w / 5.f * 2.f, h / 4.f) , Point2f(w / 5.f * 3.f, h / 4.f) , Point2f(w / 5.f * 4.f, h / 4.f),
-						Point2f(w / 5.f, h / 4.f * 2.f) , Point2f(w / 5.f * 2.f, h / 4.f * 2.f) , Point2f(w / 5.f * 3.f, h / 4.f * 2.f) , Point2f(w / 5.f * 4.f, h / 4.f * 2.f),
+						Point2f(w / 8.f, h / 4.f * 2.f) , Point2f(w / 8.f * 2.f, h / 4.f * 2.f) , Point2f(w / 8.f * 3.f, h / 4.f * 2.f) , Point2f(w / 8.f * 4.f, h / 4.f * 2.f),
+						Point2f(w / 8.f * 5.f, h / 4.f * 2.f) , Point2f(w / 8.f * 6.f, h / 4.f * 2.f) , Point2f(w / 8.f * 7.f, h / 4.f * 2.f),
 						Point2f(w / 5.f, h / 4.f * 3.f) , Point2f(w / 5.f * 2.f, h / 4.f * 3.f) , Point2f(w / 5.f * 3.f, h / 4.f * 3.f) , Point2f(w / 5.f * 4.f, h / 4.f * 3.f) };
 
-					if (g_info.otrk_data.stg_calib_pt_pairs.size() < 12)
+
+					if (g_info.otrk_data.stg_calib_pt_pairs.size() < 15)
 						cv::drawMarker(img, pos_2d_rs[g_info.otrk_data.stg_calib_pt_pairs.size()], Scalar(255, 100, 100), MARKER_CROSS, 30, 3);
 					else
 						for (int i = 0; i < g_info.otrk_data.stg_calib_pt_pairs.size(); i++)

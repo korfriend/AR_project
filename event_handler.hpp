@@ -232,14 +232,15 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 
 				const int w = eginfo->ginfo.stg_w;
 				const int h = eginfo->ginfo.stg_h;
-				static Point2f pos_2d_rs[12] = {
+				static Point2f pos_2d_rs[15] = {
 					Point2f(w / 5.f, h / 4.f) , Point2f(w / 5.f * 2.f, h / 4.f) , Point2f(w / 5.f * 3.f, h / 4.f) , Point2f(w / 5.f * 4.f, h / 4.f),
-					Point2f(w / 5.f, h / 4.f * 2.f) , Point2f(w / 5.f * 2.f, h / 4.f * 2.f) , Point2f(w / 5.f * 3.f, h / 4.f * 2.f) , Point2f(w / 5.f * 4.f, h / 4.f * 2.f),
+					Point2f(w / 8.f, h / 4.f * 2.f) , Point2f(w / 8.f * 2.f, h / 4.f * 2.f) , Point2f(w / 8.f * 3.f, h / 4.f * 2.f) , Point2f(w / 8.f * 4.f, h / 4.f * 2.f),
+					Point2f(w / 8.f * 5.f, h / 4.f * 2.f) , Point2f(w / 8.f * 6.f, h / 4.f * 2.f) , Point2f(w / 8.f * 7.f, h / 4.f * 2.f),
 					Point2f(w / 5.f, h / 4.f * 3.f) , Point2f(w / 5.f * 2.f, h / 4.f * 3.f) , Point2f(w / 5.f * 3.f, h / 4.f * 3.f) , Point2f(w / 5.f * 4.f, h / 4.f * 3.f) };
 
 				if (x < eginfo->ginfo.rs_w / 2)
 				{
-					if (otrk_data.stg_calib_pt_pairs.size() < 12)
+					if (otrk_data.stg_calib_pt_pairs.size() < 15)
 					{
 						glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
 						glm::fmat4x4 mat_ws2clf = glm::inverse(mat_rbcam2ws);
@@ -368,6 +369,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::Pair_Clear:
 		{
+			eginfo->ginfo.otrk_data.calib_trial_rs_cam_frame_ids.clear();
 			eginfo->ginfo.otrk_data.tc_calib_pt_pairs.clear();
 			cout << "Clear point pairs!!" << endl;
 		} break;
