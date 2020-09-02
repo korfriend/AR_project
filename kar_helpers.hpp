@@ -915,7 +915,9 @@ struct GlobalInfo
 	int model_ms_pick_spheres_id;
 
 	SS_Tool_Guide_Pts ss_tool_info;
-	int brain_obj_id, ventricle_obj_id;
+	vector<glm::fvec3> tool_guide_pos_os;
+	int brain_ms_obj_id, ventricle_ms_obj_id;
+	int brain_ws_obj_id, ventricle_ws_obj_id;
 
 	int rs_w, rs_h;
 	int stg_w, stg_h;
@@ -965,8 +967,11 @@ struct GlobalInfo
 		is_modelaligned = false;
 		rs_pc_id = 0;
 
-		brain_obj_id = 0;
-		ventricle_obj_id = 0;
+		// SSU
+		brain_ms_obj_id = 0;
+		brain_ws_obj_id = 0;
+		ventricle_ms_obj_id = 0;
+		ventricle_ws_obj_id = 0;
 	}
 };
 
