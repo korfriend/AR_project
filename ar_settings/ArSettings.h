@@ -50,8 +50,9 @@ namespace var_settings
 	__dojostatic void DeinitializeVarSettings();
 
 	// SSU
-	__dojostatic void SetPreoperations_SSU(string modelRootPath);
+	__dojostatic void SetPreoperations_SSU(std::string modelRootPath);
 	__dojostatic void SetCvWindows_SSU();
 	__dojostatic void LoadPresets_SSU();
+	__dojostatic int GetCameraID_SSU(int scene_id);
 }
 

@@ -192,8 +192,9 @@ public:
 	btVector3				m_oriCenter;		// Origin Center (ÀÌµ¿ Àü)
 
 	// child //
-	CiSoftBody*				m_child;
-	int						m_childCnt;
+	//CiSoftBody**			m_child;
+	//int						m_childCnt;
+	btAlignedObjectArray<CiSoftBody*>			m_child;
 
 	// tetra surface //
 	tTetraArray				m_tetras;			// Tetras
@@ -221,6 +222,7 @@ public:
 	CiSoftBody();
 	CiSoftBody(int iNodeCnt, const btVector3* x, const btScalar* m);
 	~CiSoftBody();
+	void destroySoftBody();
 	void initDefaults();
 	void setSimulationSpace(Simulation* s);
 	Simulation* getSimulationSpace();

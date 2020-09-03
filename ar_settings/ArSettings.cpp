@@ -772,6 +772,20 @@ namespace var_settings
 		}
 		infile.close();
 	}
+	int GetCameraID_SSU(const int scene_id)
+	{
+		// ov_cam_id
+		// model_cam_id
+		// rs_cam_id
+		// stg_cam_id
+		// zoom_cam_id
+
+		if (scene_id == g_info.zoom_scene_id) {
+			return zoom_cam_id;
+		}
+
+		return -1;
+	}
 
 	/////////////////////////////////////////////////////////////
 

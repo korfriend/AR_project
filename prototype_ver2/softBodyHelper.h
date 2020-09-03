@@ -31,6 +31,23 @@ struct CiSoftBodyHelpers
 		btVector3& center,
 		btVector3& trans);
 
+	static CiSoftBody * CreateFromTetGenFile_test(
+		const char* ele,
+		const char* face,
+		const char* node,
+		const char* link,
+		bool bfacelinks,
+		bool btetralinks,
+		bool bfacesfromtetras,
+		float fMass,
+		CiSoftBody::Material* m,
+		int nStartIndexNum,
+		bool bFlipYZAxis,
+		float fScale,
+		bool alignObjectCenter,
+		btVector3& center,
+		btVector3& trans);
+
 	static CiSoftBody* generateHybridModel(CiSoftBody* psbTetra, const char* meshFile, bool bFlipYZAxis, float fScale, bool bAlignObjectCenter, btVector3& center, btVector3& trans);
 	static CiSoftBody* mergeTetra(CiSoftBody* psb, CiSoftBody* psb2, const char* hetero);
 

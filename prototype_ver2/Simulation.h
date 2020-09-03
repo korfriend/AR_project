@@ -28,6 +28,8 @@ public:
 public:
 	Simulation();
 	~Simulation();
+	void destroySimulation();
+
 
 	void stepPhysics(void);
 	void computeForces(void);

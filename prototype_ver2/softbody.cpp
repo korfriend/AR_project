@@ -38,8 +38,6 @@ CiSoftBody::CiSoftBody(int iNodeCnt, const btVector3* x, const btScalar* m)
 void CiSoftBody::initDefaults()
 {
 	m_simulationSpace = NULL;
-	m_child = NULL;
-	m_childCnt = 0;
 
 	m_cfg.timescale		=	1;
 	m_cfg.viterations	=	0;
@@ -61,8 +59,67 @@ void CiSoftBody::initDefaults()
 }
 CiSoftBody::~CiSoftBody()
 {
-	for(int i=0;i<m_materials.size();++i) 
+	destroySoftBody();
+}
+void CiSoftBody::destroySoftBody()
+{
+	printf("Release SoftBody\n");
+
+	for(int i=0; i< m_child.size(); i++) {
+		delete m_child[i];
+	}
+	m_child.clear();
+
+	m_simulationSpace = NULL;
+	m_cfg.m_psequence.clear();
+	m_cfg.m_vsequence.clear();
+
+	m_nodes.clear();
+	m_links.clear();
+	m_faces.clear();
+	
+
+	for(int i=0;i<m_materials.size();++i) {
 		btAlignedFree(m_materials[i]);
+	}
+	m_materials.clear();
+
+	m_tetras.clear();
+	m_tetrasFaces.clear();
+	m_tetrasSurface.clear();
+
+	m_surfaceMeshNode.clear();
+	m_surfaceMeshFace.clear();
+	m_attachedTetraIdx.clear();
+	m_bary.clear();
+	m_boundaryTetras.clear();
+
+
+
+	// constraint //
+	m_pose.m_pos.clear();
+	m_pose.m_wgh.clear();
+
+	for(int i=0; i<m_stretchConstraints.size(); i++) {
+		SAFE_DELETE_ARRAY(m_stretchConstraints[i].m_n);
+	}
+	for(int i=0; i<m_bendingConstraints_dihedral.size(); i++) {
+		SAFE_DELETE_ARRAY(m_bendingConstraints_dihedral[i].m_n);
+	}
+	for(int i=0; i<m_bendingConstraints_triangle.size(); i++) {
+		SAFE_DELETE_ARRAY(m_bendingConstraints_triangle[i].m_n);
+	}
+	for(int i=0; i<m_volumeConstraints_surface.size(); i++) {
+		SAFE_DELETE_ARRAY(m_volumeConstraints_surface[i].m_n);
+	}
+	for(int i=0; i<m_volumeConstraints.size(); i++) {
+		SAFE_DELETE_ARRAY(m_volumeConstraints[i].m_n);
+	}
+	m_stretchConstraints.clear();
+	m_bendingConstraints_dihedral.clear();
+	m_bendingConstraints_triangle.clear();
+	m_volumeConstraints_surface.clear();
+	m_volumeConstraints.clear();
 }
 
 
@@ -147,6 +204,7 @@ CiSoftBody::Material* CiSoftBody::appendMaterial()
 		*pm=*m_materials[0];
 	else
 		ZeroInitialize(*pm);
+
 	m_materials.push_back(pm);
 
 	return(pm);
@@ -614,6 +672,54 @@ void CiSoftBody::updateSurfaceVertices()
 		
 	}
 
+	if(m_child.size()) {
+		// 이종형질인 경우
+		mrgParam = 0.7;
+		fixParam = 1.2;
+
+		for (int s = 0; s < m_child.size(); s++) {
+			for (int i = 0, ni = m_child[s]->m_surfaceMeshNode.size(); i < ni; i++) {
+				CiSoftBody::Node* n = &m_child[s]->m_surfaceMeshNode[i];
+				int tetIdx = m_child[s]->m_attachedTetraIdx[i];
+
+				CiSoftBody::Tetra* t = &m_tetras[tetIdx];
+				btVector3 newPos;
+				newPos.setZero();
+
+				for (int j = 0; j < 4; j++) {
+					newPos += t->m_n[j]->m_x * (m_child[s]->m_bary[i].m_floats[j]);
+				}
+
+				btVector3 centroid = (t->m_n[0]->m_x + t->m_n[1]->m_x + t->m_n[2]->m_x + t->m_n[3]->m_x) / 4.0;
+				btScalar length = (centroid - newPos).length();
+
+				if (length*mrgParam > m_child[s]->m_avgSurfaceMargin) {
+					// 대안...? (가장 가까운 Tetra점과 선형보간....)
+					float dLen[4] = { 0 };
+					for (int j = 0; j < 4; j++) {
+						dLen[j] = (t->m_n[j]->m_x - n->m_x).length();
+					}
+					float minD = dLen[0];
+					int minIdx = 0;
+					for (int j = 1; j < 4; j++) {
+						if (minD > dLen[j]) {
+							minD = dLen[j];
+							minIdx = j;
+						}
+					}
+
+					float rate = m_child[s]->m_avgSurfaceMargin*fixParam / length;
+					n->m_x = t->m_n[minIdx]->m_x*(1 - rate) + newPos * (rate);
+
+				}
+				else {
+					n->m_x = newPos;
+				}
+			}
+		}
+	}
+
+	/*
 	if (m_child != NULL) {
 		// 이종형질인 경우
 		mrgParam = 0.7;
@@ -660,6 +766,7 @@ void CiSoftBody::updateSurfaceVertices()
 			}
 		}
 	}
+	*/
 }
 
 void CiSoftBody::transform(const btTransform& trs)

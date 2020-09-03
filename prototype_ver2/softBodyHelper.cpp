@@ -509,9 +509,12 @@ CiSoftBody * CiSoftBodyHelpers::CreateFromTetGenFile(
 	psb->setTotalMass(fMass, false);
 	psb->setMeshType(CiSoftBody::cfgMeshType::Tetra);
 
+	posIdx.clear();
+	newPos.clear();
 
 	return(psb);
 }
+
 
 CiSoftBody* CiSoftBodyHelpers::generateHybridModel(CiSoftBody* psbTetra, const char* meshFile, bool bFlipYZAxis, float fScale, bool bAlignObjectCenter, btVector3& center, btVector3& trans)
 {
@@ -719,6 +722,9 @@ CiSoftBody* CiSoftBodyHelpers::generateHybridModel(CiSoftBody* psbTetra, const c
 	avgLen /= nMeshNodeCnt;
 	psbTetra->m_avgSurfaceMargin = avgLen;
 
+	centroidTetras.clear();
+	boundaryTetras.clear();
+
 	return psbTetra;
 }
 CiSoftBody* CiSoftBodyHelpers::mergeTetra(CiSoftBody* psb, CiSoftBody* psb2, const char* hetero)
@@ -906,8 +912,7 @@ CiSoftBody* CiSoftBodyHelpers::mergeTetra(CiSoftBody* psb, CiSoftBody* psb2, con
 
 		/////////////////////////////////////////////////////////////////////
 		// child copy 
-		psb->m_child = psb2;
-		psb->m_childCnt++;
+		psb->m_child.push_back(psb2);
 
 		// coordinate mapping º¯°æ
 		if (psb2->m_surfaceMeshNode.size()) {

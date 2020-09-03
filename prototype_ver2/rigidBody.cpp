@@ -8,7 +8,14 @@ CiRigidBody::CiRigidBody(void)
 
 CiRigidBody::~CiRigidBody(void)
 {
+	m_simulationSpace = NULL;
 
+	m_vertices.clear();
+	m_indices.clear();
+	m_fiducialPoint.clear();
+
+	m_visVertices.clear();
+	m_visFiducialPoint.clear();
 }
 
 void CiRigidBody::setSimulationSpace(Simulation* s)
