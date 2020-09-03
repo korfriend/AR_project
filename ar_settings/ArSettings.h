@@ -48,5 +48,11 @@ namespace var_settings
 	__dojostatic void SetTargetModelAssets(const std::string& name, const bool show_sectional_views);
 	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs);
 	__dojostatic void DeinitializeVarSettings();
+
+	// SSU
+	__dojostatic void SetPreoperations_SSU(std::string modelRootPath);
+	__dojostatic void SetCvWindows_SSU();
+	__dojostatic void LoadPresets_SSU();
+	__dojostatic int GetCameraID_SSU(int scene_id);
 }
 

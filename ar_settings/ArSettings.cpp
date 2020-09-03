@@ -325,6 +325,11 @@ namespace var_settings
 #define SS_HEAD
 #ifdef SS_HEAD
 		g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
+
+		g_info.zoom_scene_id = 6;
+		g_info.window_name_zs_view = "Zoom View";
+		g_info.guide_path = "E:\\project_srcs\\kar\\prototype_ver1\\ss_guide_pts.txt";
+
 #else
 	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
 		g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_front_points(nrl)_simple1.ply";
@@ -344,6 +349,7 @@ namespace var_settings
 	int model_cam_id = 1; // arbitrary integer
 	int rs_cam_id = 1; // arbitrary integer
 	int stg_cam_id = 1; // arbitrary integer
+	int zoom_cam_id = 1; // arbitrary integer
 	vzm::ObjStates default_obj_state;
 
 	bool is_rsrb_detected = false;
@@ -672,6 +678,116 @@ namespace var_settings
 			infile.close();
 		}
 	}
+
+	/////////////////////////////////////////////////////////////
+	void SetPreoperations_SSU(string modelRootPath)
+	{
+		// load model //
+		string brainPath = modelRootPath + "\\brain.obj";
+		vzm::LoadModelFile(brainPath, g_info.brain_ms_obj_id);
+		vzm::GenerateCopiedObject(g_info.brain_ms_obj_id, g_info.brain_ws_obj_id);			// copy
+
+		string ventriclePath = modelRootPath + "\\ventricle.obj";
+		vzm::LoadModelFile(ventriclePath, g_info.ventricle_ms_obj_id);
+		vzm::GenerateCopiedObject(g_info.ventricle_ms_obj_id, g_info.ventricle_ws_obj_id);	// copy
+
+
+		// cam, scene //
+		vzm::CameraParameters zoom_cam_params;
+		vzm::GetCameraParameters(g_info.ws_scene_id, zoom_cam_params, ov_cam_id);			// copy
+		vzm::SetCameraParameters(g_info.zoom_scene_id, zoom_cam_params, zoom_cam_id);
+		
+		vzm::SceneEnvParameters zoom_scn_env_params;
+		vzm::GetSceneEnvParameters(g_info.ws_scene_id, zoom_scn_env_params);				// copy
+		vzm::SetSceneEnvParameters(g_info.zoom_scene_id, zoom_scn_env_params);
+
+
+		// add scene object //
+		// model
+		vzm::ObjStates model_states;
+		vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, model_states);
+
+		vzm::ObjStates brain_model_states = model_states;
+		brain_model_states.color[0] = 0.5; brain_model_states.color[1] = 0.5; brain_model_states.color[2] = 0.5; brain_model_states.color[3] = 0.3;
+
+		vzm::ObjStates ventricle_model_states = model_states;
+		ventricle_model_states.color[0] = 1.0; ventricle_model_states.color[1] = 0; ventricle_model_states.color[2] = 0; ventricle_model_states.color[3] = 1.0;
+
+		vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_obj_id, model_states);
+		vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.brain_ms_obj_id, brain_model_states);
+		vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.ventricle_ms_obj_id, ventricle_model_states);
+
+		// world, realSense, zoom
+		/*
+		vzm::ObjStates world_states;
+		vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, world_states);
+
+		vzm::ObjStates brain_world_states = world_states;
+		*/
+
+		// grid
+		GenWorldGrid(g_info.zoom_scene_id, zoom_cam_id);
+	}
+	void SetCvWindows_SSU()
+	{
+		cv::namedWindow(g_info.window_name_zs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
+		cv::moveWindow(g_info.window_name_zs_view, 2560 + 1282, 700);
+
+		Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
+		Show_Window(g_info.window_name_zs_view, g_info.zoom_scene_id, zoom_cam_id);
+	}
+	void LoadPresets_SSU()
+	{
+		std::ifstream infile;
+		string line;
+
+		// ss_tool point file load //
+		g_info.ss_tool_info.pos_centers_tfrm.clear();
+
+		infile = std::ifstream(g_info.sst_positions);
+		line = "";
+		while (getline(infile, line))
+		{
+			std::istringstream iss(line);
+			float a, b, c;
+			if (!(iss >> a >> b >> c)) { break; } // error
+			g_info.ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
+			// process pair (a,b)
+		}
+		infile.close();
+
+
+		// ss_tool_guide point file load //
+		g_info.tool_guide_pos_os.clear();
+
+		infile = std::ifstream(g_info.guide_path);
+		line = "";
+		while (getline(infile, line))
+		{
+			std::istringstream iss(line);
+			float a, b, c;
+			if (!(iss >> a >> b >> c)) { break; } // error
+			g_info.tool_guide_pos_os.push_back(glm::fvec3(a, b, c));
+			// process pair (a,b)
+		}
+		infile.close();
+	}
+	int GetCameraID_SSU(const int scene_id)
+	{
+		// ov_cam_id
+		// model_cam_id
+		// rs_cam_id
+		// stg_cam_id
+		// zoom_cam_id
+
+		if (scene_id == g_info.zoom_scene_id) {
+			return zoom_cam_id;
+		}
+
+		return -1;
+	}
+
+	/////////////////////////////////////////////////////////////
 
 	auto clear_record_info = [&]()
 	{

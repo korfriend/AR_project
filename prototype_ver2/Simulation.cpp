@@ -11,7 +11,26 @@ Simulation::Simulation()
 
 Simulation::~Simulation()
 {
+	destroySimulation();
+}
 
+void Simulation::destroySimulation()
+{
+	printf("destroySimulation\n");
+	if(rigidBodies.size()) {
+		for(int i=0, ni=rigidBodies.size(); i<ni; i++) {
+			delete rigidBodies[i];
+		}
+	}
+	if(softBodies.size()) {
+		for(int i=0, ni=softBodies.size(); i<ni; i++) {
+			printf("%d\n", i);
+			delete softBodies[i];
+		}
+	}
+
+	rigidBodies.clear();
+	softBodies.clear();
 }
 
 void Simulation::initSSUDeform(const char* pcDataRoot)
@@ -212,4 +231,3 @@ float Simulation::getTimeStep(void)
 {
 	return fTimeStep;
 }
-
