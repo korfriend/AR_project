@@ -36,6 +36,8 @@ DAMAGE.
 
 #include <string>
 #include <map>
+#include <any>
+#include <initializer_list>
 
 //#define VERSION "1.0.a" // released at 19.07.30
 //#define VERSION "1.0.b" // released at 19.08.02
@@ -169,7 +171,10 @@ namespace vzm
 	__dojostatic bool DeinitEngineLib();
 
 	// here, obj_id (without const) is [in/out].. in : when a registered object of obj_id exists, out : when there is no registered object of obj_id
-	__dojostatic bool LoadModelFile(const std::string& filename, int& obj_id, const bool unify_redundancy = false);
+	__dojostatic bool LoadModelFile(const std::string& filename, int& obj_id, const bool unify_redundancy = false); 
+	// data_type "CHAR" "BYTE" "SHORT" "USHORT" "INT" "FLOAT"
+	__dojostatic bool GenerateEmptyVolume(int& vol_id, const int ref_vol_id = 0, const std::string& data_type = "", const double min_v = 0, const double max_v = 0, const double fill_v = 0);
+	__dojostatic bool GenerateEmptyPrimitive(int& prim_id);
 	__dojostatic bool GenerateArrowObject(const float* pos_s, const float* pos_e, const float radius, int& obj_id);
 	// optional : rgb_list (if NULL, this is not used)
 	__dojostatic bool GenerateSpheresObject(const float* xyzr_list, const float* rgb_list, const int num_spheres, int& obj_id);
@@ -212,6 +217,8 @@ namespace vzm
 	// only for the contributor's (by DongJoon Kim) test info.
 	__dojostatic void DebugTestSet(const std::string& _script, const void* _pvalue, const size_t size_bytes, const int scene_id, const int cam_id, const int obj_id = -1);
 	__dojostatic void DisplayConsoleMessages(const bool is_display);
+
+	__dojostatic bool ExecuteModule2(const std::string& module_dll_file, const std::string& dll_function, const std::initializer_list<int>& io_obj_ids, const std::map<std::string, std::any>& parameters);
 }
 
 namespace vzmproc

@@ -456,11 +456,11 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 				float fg = (1.f - fa) * (float)_g + (float)g * fa;
 				float fb = (1.f - fa) * (float)_b + (float)b * fa;
 
-				data_ui[i * width_uibuf_pitch + j * 3 + 0] = (byte)min((int)fr, (int)255);
-				data_ui[i * width_uibuf_pitch + j * 3 + 1] = (byte)min((int)fg, (int)255);
-				data_ui[i * width_uibuf_pitch + j * 3 + 2] = (byte)min((int)fb, (int)255);
+				data_ui[i * width_uibuf_pitch + j * 3 + 0] = (unsigned char)min((int)fr, (int)255);
+				data_ui[i * width_uibuf_pitch + j * 3 + 1] = (unsigned char)min((int)fg, (int)255);
+				data_ui[i * width_uibuf_pitch + j * 3 + 2] = (unsigned char)min((int)fb, (int)255);
 
-				rgb = (byte)min((int)fr, (int)255) | ((byte)min((int)fg, (int)255) << 8) | ((byte)min((int)fb, (int)255) << 16);
+				rgb = (unsigned char)min((int)fr, (int)255) | ((unsigned char)min((int)fg, (int)255) << 8) | ((unsigned char)min((int)fb, (int)255) << 16);
 				memcpy(&data_ui[i * width_uibuf_pitch + j * 3 + 0], &rgb, 3);
 			}
 		}
