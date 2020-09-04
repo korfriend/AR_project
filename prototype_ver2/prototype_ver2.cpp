@@ -620,6 +620,9 @@ int main()
 			}
 
 			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr);
+
+			int zoom_cam_id = var_settings::GetCameraID_SSU(ginfo.zoom_scene_id);
+			Show_Window(ginfo.window_name_zs_view, ginfo.zoom_scene_id, zoom_cam_id);
 		}
 
 #ifdef EYE_VIS_RS
