@@ -432,7 +432,7 @@ int main()
 
 					// model scene //
 					if (ginfo.is_modelaligned) {
-						glm::fmat4 mat_ws2os = ginfo.mat_ws2matchmodelfrm * glm::inverse(ginfo.mat_os2matchmodefrm);
+						glm::fmat4 mat_ws2os = mat_sshead2ws * ginfo.mat_os2matchmodefrm;	// !!!
 						glm::fvec3 sstool_p1_os = tr_pt(mat_ws2os, sstool_p1_ws);
 						glm::fvec3 sstool_p2_os = tr_pt(mat_ws2os, sstool_p2_ws);
 						glm::fvec3 cyl_p03[2] = { sstool_p1_os, sstool_p2_os };
@@ -475,7 +475,7 @@ int main()
 						glm::fvec3 sstool_guide_p1_ws = sstool_p1_ws - sstool_dir * 0.1f;
 						glm::fvec3 sstool_guide_p2_ws = sstool_p1_ws;
 
-						glm::fmat4x4 mat_ws2os;	// !!!!
+						glm::fmat4x4 mat_ws2os = mat_sshead2ws * ginfo.mat_os2matchmodefrm;	// !!!!
 
 						glm::fvec3 sstool_guide_p1_os = tr_pt(mat_ws2os, sstool_guide_p1_ws);
 						glm::fvec3 sstool_guide_p2_os = tr_pt(mat_ws2os, sstool_guide_p2_ws);
@@ -516,7 +516,8 @@ int main()
 
 						glm::fvec3 sstool_dir = sstool_p2_ws - sstool_p1_ws;
 
-						glm::fmat4x4 os2ws;			// !!!!!
+						glm::fmat4 mat_ws2os = mat_sshead2ws * ginfo.mat_os2matchmodefrm;	// !!!
+						glm::fmat4x4 os2ws = glm::inverse(mat_ws2os);
 						glm::fvec3 ssguide_p1_ws = tr_pt(os2ws, tool_guide_pos_os[0]);	// tool guide end
 						glm::fvec3 ssguide_p2_ws = tr_pt(os2ws, tool_guide_pos_os[1]);	// tool guide entry
 						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;

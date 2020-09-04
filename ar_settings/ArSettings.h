@@ -49,7 +49,7 @@ namespace var_settings
 	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs);
 	__dojostatic void DeinitializeVarSettings();
 
-	// SSU
+	// SSU (추후 prototype ver2에 정의할 예정 (외부에서 namespace 변수 접근이 어려워 임시로 작업)
 	__dojostatic void SetPreoperations_SSU(std::string modelRootPath);
 	__dojostatic void SetCvWindows_SSU();
 	__dojostatic void LoadPresets_SSU();
