@@ -313,6 +313,7 @@ namespace var_settings
 		g_info.window_name_stg_view = "STG VIEW";
 
 		// load txt file
+		/*
 		g_info.optrack_calib = "D:\\Document\\OptiTrack\\my_test_200812_1.cal";
 		g_info.optrack_env = "D:\\Document\\OptiTrack\\my_test_200812_1.motive";
 		g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
@@ -320,11 +321,21 @@ namespace var_settings
 		g_info.rs_calib = "E:\\project_srcs\\kar\\prototype_ver1\\rs_calib.txt";
 		g_info.stg_calib = "E:\\project_srcs\\kar\\prototype_ver1\\stg_calib.txt";
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
+		*/
+		g_info.optrack_calib = "C:\\Users\\User\\Desktop\\Preset\\Optitrack\\Calibration_200904.cal";
+		g_info.optrack_env = "C:\\Users\\User\\Desktop\\Preset\\Optitrack\\Asset_200904.motive";
+		g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
+		g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
+		g_info.rs_calib = "E:\\project_srcs\\kar\\prototype_ver1\\rs_calib.txt";
+		g_info.stg_calib = "E:\\project_srcs\\kar\\prototype_ver1\\stg_calib.txt";
+		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
+
 
 		//g_info.model_path = "D:\\Data\\K-AR_Data\\demo.obj";
 #define SS_HEAD
 #ifdef SS_HEAD
-		g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
+		//g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
+		g_info.model_path = "C:\\Users\\User\\Desktop\\Preset\\Data\\skin.obj";
 
 		g_info.zoom_scene_id = 6;
 		g_info.window_name_zs_view = "Zoom View";
