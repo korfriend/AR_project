@@ -97,27 +97,7 @@ void LoadPresets(GlobalInfo& g_info)
 }
 void InitializeVarSettings(GlobalInfo& g_info)
 {
-	// set global information
-	g_info.ws_scene_id = 1;
-	g_info.rs_scene_id = 2;
-	g_info.model_scene_id = 3;
-	g_info.csection_scene_id = 4;
-	g_info.stg_scene_id = 5;
-
-	g_info.window_name_rs_view = "RealSense VIEW";
-	g_info.window_name_ws_view = "World VIEW";
-	g_info.window_name_ms_view = "Model VIEW";
-	g_info.window_name_stg_view = "STG VIEW";
-
-	g_info.optrack_calib = "..\\Preset\\Calibration_200904.cal";
-	g_info.optrack_env = "..\\Preset\\Asset_200904.motive";
-	g_info.cb_positions = "..\\Preset\\cb_points.txt";
-	g_info.sst_positions = "..\\Preset\\ss_pin_pts.txt";
-	g_info.rs_calib = "..\\Preset\\rs_calib.txt";
-	g_info.stg_calib = "..\\Preset\\stg_calib.txt";
-	g_info.model_predefined_pts = "..\\Preset\\mode_predefined_points.txt";
-	g_info.model_path = "..\\Data\\skin.obj";
-
+	var_settings::InitializeVarSettings();
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	g_info.zoom_scene_id = 6;
@@ -151,11 +131,11 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 	int zoom_cam_id = var_settings::GetCameraID_SSU(g_info.zoom_scene_id);
 
 	// load model //
-	string brainPath = "..Data\\brain.obj";
+	string brainPath = "..\\Data\\brain.obj";
 	vzm::LoadModelFile(brainPath, g_info.brain_ms_obj_id);
 	vzm::GenerateCopiedObject(g_info.brain_ms_obj_id, g_info.brain_ws_obj_id);			// copy
 
-	string ventriclePath = "..Data\\ventricle.obj";
+	string ventriclePath = "..\\Data\\ventricle.obj";
 	vzm::LoadModelFile(ventriclePath, g_info.ventricle_ms_obj_id);
 	vzm::GenerateCopiedObject(g_info.ventricle_ms_obj_id, g_info.ventricle_ws_obj_id);	// copy
 

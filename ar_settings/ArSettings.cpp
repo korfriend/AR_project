@@ -76,6 +76,9 @@ namespace rs_settings
 		//cout << serials[1] << endl; // 819312071259 // 430
 		serials["RS_RBS"] = string("839112061828");
 		serials["EYE"] = string("819312071259");
+		//serials.insert(std::pair<std::string, std::string>("RS_RBS", "819312071259"));
+		//serials.insert(std::pair<std::string, std::string>("EYE", "819312071259"));
+
 
 		// Decimation filter reduces the amount of data (while preserving best samples)
 		// If the demo is too slow, make sure you run in Release (-DCMAKE_BUILD_TYPE=Release)
@@ -322,7 +325,9 @@ namespace var_settings
 		g_info.stg_calib = "E:\\project_srcs\\kar\\prototype_ver1\\stg_calib.txt";
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
-		/*	~200907
+
+		//	~200907
+		/*
 		g_info.optrack_calib = "C:\\Users\\User\\Desktop\\Preset\\Optitrack\\Calibration_200904.cal";
 		g_info.optrack_env = "C:\\Users\\User\\Desktop\\Preset\\Optitrack\\Asset_200904.motive";
 		g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
@@ -331,6 +336,7 @@ namespace var_settings
 		g_info.stg_calib = "E:\\project_srcs\\kar\\prototype_ver1\\stg_calib.txt";
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
+		
 		g_info.optrack_calib = "..\\Preset\\Calibration_200904.cal";
 		g_info.optrack_env = "..\\Preset\\Asset_200904.motive";
 		g_info.cb_positions = "..\\Preset\\cb_points.txt";
@@ -385,6 +391,7 @@ namespace var_settings
 
 	void SetPreoperations(const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h)
 	{
+		//printf("%s", g_info.optrack_env.c_str());
 		optitrk::LoadProfileAndCalibInfo(g_info.optrack_env, g_info.optrack_calib);
 		cout << "cam0 frame rate setting ==> " << optitrk::SetCameraFrameRate(0, 120) << endl;
 		cout << "cam1 frame rate setting ==> " << optitrk::SetCameraFrameRate(1, 120) << endl;
