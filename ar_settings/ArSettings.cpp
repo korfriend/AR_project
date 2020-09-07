@@ -554,21 +554,26 @@ namespace var_settings
 	void SetCvWindows()
 	{
 		//Create a window
-		cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
-		cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL);
-		cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL);
-		cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL);
+		//cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
+		//cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL);
+		//cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL);
+		//cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL);
 
-		cv::moveWindow(g_info.window_name_ws_view, 2560 + 1282, 0);
-		cv::moveWindow(g_info.window_name_ms_view, 2560 * 2, 0);
+		//cv::moveWindow(g_info.window_name_ws_view, 2560 + 1282, 0);
+		//cv::moveWindow(g_info.window_name_ms_view, 2560 * 2, 0);
+		//
+		//cv::moveWindow(g_info.window_name_rs_view, 2560 * 3, 0);
+		//cv::moveWindow(g_info.window_name_stg_view, 2560 * 3 + 1024, 0);
+		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
+		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
-		cv::moveWindow(g_info.window_name_rs_view, 2560 * 3, 0);
-		cv::moveWindow(g_info.window_name_stg_view, 2560 * 3 + 1024, 0);
-		//cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
-		//cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
+		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		//cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 
-		cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
-		cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		cv::namedWindow(g_info.window_name_rs_view, WINDOW_AUTOSIZE);
+		cv::namedWindow(g_info.window_name_ws_view, WINDOW_AUTOSIZE);
+		cv::namedWindow(g_info.window_name_ms_view, WINDOW_AUTOSIZE);
+		cv::namedWindow(g_info.window_name_stg_view, WINDOW_AUTOSIZE);
 
 		static EventGlobalInfo rg_info_world(g_info, g_info.ws_scene_id, ov_cam_id);
 		cv::setMouseCallback(g_info.window_name_ws_view, CallBackFunc_WorldMouse, &rg_info_world);
