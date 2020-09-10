@@ -163,6 +163,23 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 
 	// grid
 	GenWorldGrid(g_info.zoom_scene_id, zoom_cam_id);
+
+
+	// generate scene
+	vzm::ObjStates model_states, brain_states, ventricle_states;
+	vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, model_states);
+	
+	brain_states = model_states;
+	ventricle_states = model_states;
+
+	model_states.color[3] = 0.7;
+	brain_states.color[0] = 0.5; brain_states.color[1] = 0.5; brain_states.color[2] = 0.5; brain_states.color[3] = 0.3;
+	ventricle_states.color[0] = 1.0; ventricle_states.color[1] = 0; ventricle_states.color[2] = 0; ventricle_states.color[3] = 1.0;
+
+	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_obj_id, model_states);
+	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, brain_ms_obj_id, brain_states);
+	vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ventricle_ms_obj_id, ventricle_states);
+
 }
 void DeinitializeVarSettings(GlobalInfo& g_info)
 {
@@ -490,9 +507,9 @@ int main()
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 
 						// zoom scene
-						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ws_obj_id, model_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, brain_ws_obj_id, brain_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
+						vzm::ReplaceOrAddSceneObject(zoom_scene_id, g_info.model_ws_obj_id, model_ws_states);
+						vzm::ReplaceOrAddSceneObject(zoom_scene_id, brain_ws_obj_id, brain_ws_states);
+						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 					}
 				}
 
@@ -512,7 +529,6 @@ int main()
 
 					// replace scene object
 					vzm::ObjStates model_ws_states;
-					//vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, probe_line_id, model_ws_states);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, probe_line_id, model_ws_states);
 				}
@@ -598,7 +614,10 @@ int main()
 						cyl_r = 1.5f;
 
 						vzm::ObjStates ssu_tool_line_ms_state;
-						//vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, ssu_tool_line_ms_state);
+						double scale_factor = 0.001;
+						glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
+						__cm4__ ssu_tool_line_ms_state.os2ws = (__cm4__ ssu_tool_line_ms_state.os2ws) * mat_s;
+
 						vzm::GenerateCylindersObject((float*)cyl_p03, &cyl_r, __FP cyl_rgb, 1, ssu_tool_ms_line_id);
 						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_ms_line_id, ssu_tool_line_ms_state);
 					}
@@ -621,10 +640,11 @@ int main()
 
 
 						// sphere (zs)
-						vzm::ObjStates model_ws_states;
+						vzm::ObjStates model_states;
+						model_states.color[3] = 0.2;
 
 						vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0015f), __FP glm::fvec3(0, 1, 1), 1, ssu_tool_end_zs_id);
-						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_end_zs_id, model_ws_states);
+						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_end_zs_id, model_states);
 					}
 				}
 
@@ -681,6 +701,8 @@ int main()
 					static int ssu_tool_guide_angleLine_id = 0, ssu_tool_guide_angleArc_id = 0;
 					static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0;
 
+					static int ssu_tool_guide_line_ws_id = 0, ssu_tool_guide_line_ms_id = 0;
+
 					if (ss_tool_guide_info.pos_centers_tfrm.size() && ss_tool_info.pos_centers_tfrm.size()) {
 						// sstool pos(ws)
 						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
@@ -694,7 +716,30 @@ int main()
 						glm::fvec3 ssguide_p2_ws = tr_pt(os2ws, ss_tool_guide_info.pos_centers_tfrm[1]);	// tool guide entry
 						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;
 
-						// guide angle
+						// model scene
+						glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
+						glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
+
+						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
+						vzm::ObjStates os_states;
+						//vzm::GetStates
+						glm::fvec3 cyl_p[2] = { ssguide_p1_os, ssguide_p2_os };
+						float cyl_r = 1.5f;
+
+						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ms_id);
+						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, os_states);
+
+						// world scene
+						vzm::ObjStates ws_states;
+						cyl_p[0] = sstool_p1_ws;
+						cyl_p[1] = sstool_p2_ws;
+						cyl_r = 0.0015f;
+
+						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+
+
+						// zoom scene
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
 						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
 
@@ -712,10 +757,7 @@ int main()
 							glm::fvec3 guide_dir_ws = ssguide_dir;
 
 							// draw direction line  ///////////////////////////////////////////////////////////////
-							vzm::ObjStates model_ws_states;
-							//vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
-							vzm::ObjStates distanceLineState = model_ws_states;
-							vzm::ObjStates distanceArrowState = model_ws_states;
+							vzm::ObjStates distanceLineState, distanceArrowState;
 
 							float dist_r = glm::dot(tip2GuideEntry, tool_right_ws);
 							float dist_u = glm::dot(tip2GuideEntry, tool_up_ws);
@@ -757,8 +799,9 @@ int main()
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
 							// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
-							vzm::ObjStates angleArrowState = model_ws_states;
-							vzm::ObjStates angleTextState = model_ws_states;
+							//vzm::ObjStates angleArrowState = model_ws_states;
+							//vzm::ObjStates angleTextState = model_ws_states;
+							vzm::ObjStates angleArrowState, angleTextState;
 
 							string angle_str = std::to_string((int)fGuideAngle) + "вк";
 
