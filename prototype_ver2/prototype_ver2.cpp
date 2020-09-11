@@ -339,8 +339,6 @@ int main()
 #ifdef __RECORD_VER
 	// fill record_trk_info and record_rsimg
 #endif
-	//var_settings::LoadPresets();
-	//LoadPresets(g_info);
 
 
 	while (key_pressed != 'q' && key_pressed != 27)
@@ -720,16 +718,16 @@ int main()
 						glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
 						glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
 
-						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
+						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
 						vzm::ObjStates os_states;
-						//vzm::GetStates
+						vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, os_states);
 						glm::fvec3 cyl_p[2] = { ssguide_p1_os, ssguide_p2_os };
 						float cyl_r = 1.5f;
 
 						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ms_id);
 						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, os_states);
 
-						// world scene
+						// world scene, realsense scene
 						vzm::ObjStates ws_states;
 						cyl_p[0] = sstool_p1_ws;
 						cyl_p[1] = sstool_p2_ws;
@@ -737,6 +735,7 @@ int main()
 
 						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
 
 						// zoom scene
