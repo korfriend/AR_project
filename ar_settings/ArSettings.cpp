@@ -338,6 +338,7 @@ namespace var_settings
 		*/
 		
 		g_info.optrack_calib = "..\\Preset\\Calibration_200904.cal";
+		//g_info.optrack_env = "..\\Preset\\Asset_200911.motive";
 		g_info.optrack_env = "..\\Preset\\Asset_200904.motive";
 		g_info.cb_positions = "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = "..\\Preset\\ss_pin_pts.txt";

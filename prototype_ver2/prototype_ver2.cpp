@@ -592,7 +592,8 @@ int main()
 
 					// (model) ssu tool transformation, model scene
 					if (g_info.is_modelaligned) {
-						glm::fmat4 mat_ws2os = mat_sshead2ws * g_info.mat_os2matchmodefrm;	// !!!
+						glm::fmat4 mat_os2ws = mat_sshead2ws * g_info.mat_os2matchmodefrm;	// !!!
+						glm::fmat4 mat_ws2os = glm::inverse(mat_os2ws);
 						glm::fvec3 sstool_p1_os = tr_pt(mat_ws2os, sstool_p1_ws);
 						glm::fvec3 sstool_p2_os = tr_pt(mat_ws2os, sstool_p2_ws);
 
@@ -607,9 +608,6 @@ int main()
 
 						s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(sstool_p1_os.x, sstool_p1_os.y, sstool_p1_os.z);
 						s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(sstool_p2_os.x, sstool_p2_os.y, sstool_p2_os.z);
-
-
-						printf("%f %f %f\n", sstool_p1_os.x, sstool_p1_os.y, sstool_p1_os.z);
 
 
 						// model scene
@@ -670,7 +668,8 @@ int main()
 						glm::fvec3 sstool_guide_p1_ws = sstool_p1_ws - sstool_dir * 0.1f;
 						glm::fvec3 sstool_guide_p2_ws = sstool_p1_ws;
 
-						glm::fmat4x4 mat_ws2os = mat_sshead2ws * g_info.mat_os2matchmodefrm;	// !!!!
+						glm::fmat4x4 mat_os2ws = mat_sshead2ws * g_info.mat_os2matchmodefrm;	// !!!!
+						glm::fmat4x4 mat_ws2os = glm::inverse(mat_os2ws);
 
 						glm::fvec3 sstool_guide_p1_os = tr_pt(mat_ws2os, sstool_guide_p1_ws);
 						glm::fvec3 sstool_guide_p2_os = tr_pt(mat_ws2os, sstool_guide_p2_ws);
@@ -714,41 +713,52 @@ int main()
 
 						glm::fvec3 sstool_dir = sstool_p2_ws - sstool_p1_ws;
 
-						glm::fmat4 mat_ws2os = mat_sshead2ws * g_info.mat_os2matchmodefrm;	// !!!
-						glm::fmat4x4 os2ws = glm::inverse(mat_ws2os);
-						glm::fvec3 ssguide_p1_ws = tr_pt(os2ws, ss_tool_guide_info.pos_centers_tfrm[0]);	// tool guide end
-						glm::fvec3 ssguide_p2_ws = tr_pt(os2ws, ss_tool_guide_info.pos_centers_tfrm[1]);	// tool guide entry
+						glm::fmat4 mat_os2ws = mat_sshead2ws * g_info.mat_os2matchmodefrm;	// !!!
+						//glm::fmat4x4 os2ws = glm::inverse(mat_ws2os);
+						glm::fvec3 ssguide_p1_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[0]);	// tool guide end
+						glm::fvec3 ssguide_p2_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[1]);	// tool guide entry
 						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;
 
 						// model scene
 						glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
 						glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
 
-
+						/*
 						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
 						vzm::ObjStates os_states;
 						//vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, os_states);
 						glm::fvec3 cyl_p[2] = { ssguide_p1_os, ssguide_p2_os };
-						float cyl_r = 0.0015f;
+						float cyl_r = 15;
 
 						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ms_id);
 						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, os_states);
+						*/
+
+						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
+						glm::fvec3 cyl_p03[2] = { ssguide_p1_os, ssguide_p2_os };
+						float cyl_r = 1.5f;
+
+						vzm::ObjStates ssu_tool_line_ms_state;
+						double scale_factor = 0.001;
+						glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
+						__cm4__ ssu_tool_line_ms_state.os2ws = (__cm4__ ssu_tool_line_ms_state.os2ws) * mat_s;
+
+						vzm::GenerateCylindersObject((float*)cyl_p03, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ms_id);
+						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, ssu_tool_line_ms_state);
+
 
 						// world scene, realsense scene
 						vzm::ObjStates ws_states;
-						vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, ws_states);
-						//cyl_p[0] = ssguide_p1_ws;
-						//cyl_p[1] = ssguide_p2_ws;
-						//cyl_r = 1.5f;
+						//vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, ws_states);
+						glm::fvec3 cyl_p2[2] = { ssguide_p1_ws, ssguide_p2_ws };
+						cyl_r = 0.0015f;
 
-						//vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
-						//vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-						//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-						//vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						vzm::GenerateCylindersObject((float*)cyl_p2, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
-						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ms_id, ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ms_id, ws_states);
-						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ms_id, ws_states);
+						ws_states.color[3] = 0.5;
+						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
 						// zoom scene
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
@@ -845,6 +855,9 @@ int main()
 			}
 			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr);
 			Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
+
+			int model_cam_id = var_settings::GetCameraID_SSU(g_info.model_scene_id);
+			Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
 		}
 
 #ifdef EYE_VIS_RS
