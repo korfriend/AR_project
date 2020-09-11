@@ -97,6 +97,7 @@ void LoadPresets(GlobalInfo& g_info)
 
 
 	// ss_tool_guide point file load //
+	/*
 	ss_tool_guide_info.pos_centers_tfrm.clear();
 
 	infile = std::ifstream(guide_path);
@@ -110,6 +111,7 @@ void LoadPresets(GlobalInfo& g_info)
 		// process pair (a,b)
 	}
 	infile.close();
+	*/
 }
 void InitializeVarSettings(GlobalInfo& g_info)
 {
@@ -607,6 +609,9 @@ int main()
 						s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(sstool_p2_os.x, sstool_p2_os.y, sstool_p2_os.z);
 
 
+						printf("%f %f %f\n", sstool_p1_os.x, sstool_p1_os.y, sstool_p1_os.z);
+
+
 						// model scene
 						glm::fvec3 cyl_p03[2] = { sstool_p1_os, sstool_p2_os };
 						cyl_r = 1.5f;
@@ -702,6 +707,7 @@ int main()
 					static int ssu_tool_guide_line_ws_id = 0, ssu_tool_guide_line_ms_id = 0;
 
 					if (ss_tool_guide_info.pos_centers_tfrm.size() && ss_tool_info.pos_centers_tfrm.size()) {
+
 						// sstool pos(ws)
 						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
 						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
@@ -718,25 +724,31 @@ int main()
 						glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
 						glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
 
+
 						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
 						vzm::ObjStates os_states;
-						vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, os_states);
+						//vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, os_states);
 						glm::fvec3 cyl_p[2] = { ssguide_p1_os, ssguide_p2_os };
-						float cyl_r = 1.5f;
+						float cyl_r = 0.0015f;
 
 						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ms_id);
 						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, os_states);
 
 						// world scene, realsense scene
 						vzm::ObjStates ws_states;
-						cyl_p[0] = sstool_p1_ws;
-						cyl_p[1] = sstool_p2_ws;
-						cyl_r = 0.0015f;
+						vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, ws_states);
+						//cyl_p[0] = ssguide_p1_ws;
+						//cyl_p[1] = ssguide_p2_ws;
+						//cyl_r = 1.5f;
 
-						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
-						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						//vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
+						//vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						//vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ms_id, ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ms_id, ws_states);
+						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ms_id, ws_states);
 
 						// zoom scene
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
