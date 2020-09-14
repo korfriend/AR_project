@@ -287,6 +287,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			ButtonState& btn = rs_buttons[RsTouchMode::Align];
 			if (btn.rect.contains(Point(x, y)))
 			{
+				/*
 				if (btn.touch_count >= 2)
 				{
 					int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), eginfo->ginfo.model_ws_pick_pts.size());
@@ -312,6 +313,32 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 
 							cout << "model matching done!" << endl;
 						}
+					}
+				}
+				*/
+
+				int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), eginfo->ginfo.model_ws_pick_pts.size());
+				if (num_crrpts >= 3)
+				{
+					glm::fmat4x4 mat_tr;
+					if (helpers::ComputeRigidTransform(__FP eginfo->ginfo.model_ms_pick_pts[0], __FP eginfo->ginfo.model_ws_pick_pts[0], num_crrpts, __FP mat_tr[0]))
+					{
+						vzm::ObjStates model_obj_state;
+						vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.model_ms_obj_id, model_obj_state);
+
+						vzm::ObjStates model_ws_obj_state;
+						vzm::GetSceneObjectState(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, model_ws_obj_state);
+						model_ws_obj_state.is_visible = true;
+						vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, model_ws_obj_state);
+
+						glm::fmat4x4 mat_match_model2ws = mat_tr * (__cm4__ model_obj_state.os2ws);
+						eginfo->ginfo.mat_os2matchmodefrm = eginfo->ginfo.mat_ws2matchmodelfrm * mat_match_model2ws;
+						eginfo->ginfo.mat_matchtr = mat_tr;
+						// current issue!
+						//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
+						eginfo->ginfo.is_modelaligned = true;
+
+						cout << "model matching done!" << endl;
 					}
 				}
 			}

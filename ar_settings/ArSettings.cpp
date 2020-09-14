@@ -120,6 +120,7 @@ namespace rs_settings
 
 		cfg.enable_device(serials["RS_RBS"]);
 		cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 60); // Enable default depth
+
 		if (!use_depthsensor)
 			cfg.disable_stream(RS2_STREAM_DEPTH); // Disable default depth
 
@@ -1454,9 +1455,11 @@ namespace var_settings
 
 		glm::fmat4x4 mat_matchmodelfrm2ws;
 		bool model_match_rb = g_info.otrk_data.trk_info.GetLFrmInfo(name, mat_matchmodelfrm2ws); // "breastbody"
+		g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	// 변경 위치
+
 		if (model_match_rb && g_info.is_modelaligned)
 		{
-			g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);
+			//g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	// 기존 위치
 
 			vzm::ObjStates model_ws_obj_state;
 			vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);

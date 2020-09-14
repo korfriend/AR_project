@@ -1863,7 +1863,7 @@ void CiSoftBody::PSolveSelfCollision(CiSoftBody* psb)
 }
 void CiSoftBody::PSolveToolCollision(CiSoftBody* psb)
 {
-	btScalar toolContactRange = 2;			// tool 충돌처리 판정범위	2.0
+	btScalar toolContactRange = 2.5;			// tool 충돌처리 판정범위	2.0
 	btScalar toolRepulsiveStrength = 1;	// tool이 밀어내는 힘 (셀수록 변형이 크게 일어나지만, 불안정해짐) 0.5
 	btScalar toolCorrectionRange = 0.1;		// tool이 밀어냈을 때 이전 frame과 비교해서 일정 거리(toolCorrectionRange)를 벗어나면 오변형으로 간주하고 변형 x
 	float marginOrigin = 1.7;	// 1.5

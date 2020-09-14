@@ -132,13 +132,21 @@ void SetCvWindows(GlobalInfo& g_info)
 
 	// SSU //////////////////////////////////////////////////////////////////
 	cv::namedWindow(window_name_zs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
-	//cv::moveWindow(g_info.window_name_zs_view, 2560 + 1282, 700);
 	Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
+
+	cv::moveWindow(g_info.window_name_rs_view, 0, 0);
+	cv::moveWindow(g_info.window_name_ws_view, 0, 520);
+	cv::moveWindow(g_info.window_name_ms_view, 960, 0);
+	cv::moveWindow(window_name_zs_view, 960, 480);
+
 }
 void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h)
 {
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 	var_settings::GetVarInfo(&g_info);
+
+	optitrk::SetCameraSettings(0, 2, 20, 100);
+	optitrk::SetCameraSettings(1, 2, 20, 100);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	int ov_cam_id = var_settings::GetCameraID_SSU(g_info.ws_scene_id);
@@ -372,6 +380,7 @@ int main()
 		case '1': guide_toggle = !guide_toggle;	break;
 		case '2': ssutool_toggle = !ssutool_toggle; break;
 		case '0': ssutool_key = true;	break;
+
 		}
 		vzm::DebugTestSet("_bool_ReloadHLSLObjFiles", &recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::DebugTestSet("_bool_PrintOutRoutineObjs", &show_apis_console, sizeof(bool), -1, -1);
@@ -483,33 +492,50 @@ int main()
 						delete[] nrl_xyz_list;
 						delete[] idx_prims;
 
-						// replace scene object
+						// world, realsense, smartglass scene
 						vzm::ObjStates model_ws_states, brain_ws_states, ventricle_ws_states;
 						vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
 
 						model_ws_states.color[3] = 0.1;
-
+						
 						brain_ws_states = model_ws_states;
 						brain_ws_states.is_wireframe = true;
 						brain_ws_states.wire_color[0] = 0.5; brain_ws_states.wire_color[1] = 0.5; brain_ws_states.wire_color[2] = 0.5; brain_ws_states.wire_color[3] = 0.2;
 						brain_ws_states.color[0] = 0.5; brain_ws_states.color[1] = 0.5; brain_ws_states.color[2] = 0.5; brain_ws_states.color[3] = 0.3;
 
 						ventricle_ws_states = model_ws_states;
+						ventricle_ws_states.is_wireframe = true;
+						ventricle_ws_states.wire_color[0] = 0.9;	ventricle_ws_states.wire_color[1] = 0.5;	ventricle_ws_states.wire_color[2] = 0.5; ventricle_ws_states.wire_color[3] = 0.2;
 						ventricle_ws_states.color[0] = 1.0; ventricle_ws_states.color[1] = 0; ventricle_ws_states.color[2] = 0; ventricle_ws_states.color[3] = 1.0;
 
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_states);
 
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, brain_ws_obj_id, brain_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, brain_ws_obj_id, brain_ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, brain_ws_obj_id, brain_ws_states);
 
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 
 						// zoom scene
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, g_info.model_ws_obj_id, model_ws_states);
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, brain_ws_obj_id, brain_ws_states);
+						
+						ventricle_ws_states.color[3] = 0.7;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
+
+						// model scene
+						vzm::ObjStates model_ms_states, ventricle_ms_states;
+						vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, model_ms_states);
+						model_ms_states.color[3] = 0.1;
+						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_obj_id, model_ms_states);
+
+						vzm::GetSceneObjectState(g_info.model_scene_id, ventricle_ms_obj_id, ventricle_ms_states);
+						ventricle_ms_states.color[0] = 1.0; ventricle_ms_states.color[1] = 0; ventricle_ms_states.color[2] = 0; ventricle_ms_states.color[3] = 0.7;
+						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ventricle_ms_obj_id, ventricle_ms_states);
 					}
 				}
 
@@ -531,6 +557,7 @@ int main()
 					vzm::ObjStates model_ws_states;
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, probe_line_id, model_ws_states);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, probe_line_id, model_ws_states);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, probe_line_id, model_ws_states);
 				}
 
 
@@ -586,9 +613,11 @@ int main()
 					vzm::ObjStates model_ws_states;
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_line_id, model_ws_states);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_line_id, model_ws_states);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_line_id, model_ws_states);
 
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_end_id, model_ws_states);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_end_id, model_ws_states);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_end_id, model_ws_states);
 
 					// (model) ssu tool transformation, model scene
 					if (g_info.is_modelaligned) {
@@ -642,7 +671,7 @@ int main()
 
 						// sphere (zs)
 						vzm::ObjStates model_states;
-						model_states.color[3] = 0.2;
+						model_states.color[3] = 0.3;
 
 						vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0015f), __FP glm::fvec3(0, 1, 1), 1, ssu_tool_end_zs_id);
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_end_zs_id, model_states);
@@ -723,17 +752,6 @@ int main()
 						glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
 						glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
 
-						/*
-						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
-						vzm::ObjStates os_states;
-						//vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, os_states);
-						glm::fvec3 cyl_p[2] = { ssguide_p1_os, ssguide_p2_os };
-						float cyl_r = 15;
-
-						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ms_id);
-						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, os_states);
-						*/
-
 						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
 						glm::fvec3 cyl_p03[2] = { ssguide_p1_os, ssguide_p2_os };
 						float cyl_r = 1.5f;
@@ -747,7 +765,7 @@ int main()
 						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, ssu_tool_line_ms_state);
 
 
-						// world scene, realsense scene
+						// world scene, realsense scene, zoom scene
 						vzm::ObjStates ws_states;
 						//vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, ws_states);
 						glm::fvec3 cyl_p2[2] = { ssguide_p1_ws, ssguide_p2_ws };
@@ -756,11 +774,12 @@ int main()
 						vzm::GenerateCylindersObject((float*)cyl_p2, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
-						ws_states.color[3] = 0.5;
+						ws_states.color[3] = 0.2;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
-						// zoom scene
+						// direction (zoom scene)
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
 						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
 
@@ -809,7 +828,7 @@ int main()
 								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, size_font, true, false, text_id);
 							};
 
-							float right_offset = -0.05f;
+							float right_offset = -0.04f;
 							vzm::CameraParameters zoom_cam_params;
 
 							vzm::GetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);			// copy
@@ -818,6 +837,7 @@ int main()
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
+							vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
 							// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
 							//vzm::ObjStates angleArrowState = model_ws_states;
@@ -845,10 +865,11 @@ int main()
 							};
 
 							// Text			
-							right_offset = -0.04f;
+							right_offset = -0.03f;
 							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id, angleTextState);
+							vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 						}
 					}
 				}
