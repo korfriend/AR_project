@@ -846,7 +846,7 @@ struct OpttrkData
 	}
 };
 
-ENUM(RsTouchMode, None, Pick, Calib_TC, PIN_ORIENTATION, Calib_STG, Align, ICP, Capture, Pair_Clear)
+ENUM(RsTouchMode, None, Pick, Calib_TC, PIN_ORIENTATION, Calib_STG, Align, ICP, Capture, Pair_Clear, STG_Pair_Clear)
 
 // added by dojo at 200813
 struct SS_Tool_Guide_Pts
@@ -1031,6 +1031,7 @@ void Make_Buttons(const int screen_w, const int screen_h, std::map<RsTouchMode, 
 	ADD_SUBBTNS(RsTouchMode::ICP, Rect(bw * 4, bh, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::Capture, Rect(bw * 4, bh * 2, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::Pair_Clear, Rect(bw * 2, bh, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::STG_Pair_Clear, Rect(bw * 3, bh, bw, bh));
 }
 
 void Draw_TouchButtons(cv::Mat img, const std::map<RsTouchMode, ButtonState>& buttons, const RsTouchMode touch_mode)

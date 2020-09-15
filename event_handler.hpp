@@ -190,6 +190,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		case RsTouchMode::Calib_STG:
 		{
 			disable_subbuttons();
+			rs_buttons[RsTouchMode::STG_Pair_Clear].is_activated = true;
 			glm::fmat4x4 mat_rbcam2ws;
 			if (!otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_rbcam2ws)) return;
 
@@ -402,6 +403,11 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			eginfo->ginfo.otrk_data.calib_trial_rs_cam_frame_ids.clear();
 			eginfo->ginfo.otrk_data.tc_calib_pt_pairs.clear();
 			cout << "Clear point pairs!!" << endl;
+		} break;
+		case RsTouchMode::STG_Pair_Clear:
+		{
+			eginfo->ginfo.otrk_data.stg_calib_pt_pairs.clear();
+			cout << "Clear STG point pairs!!" << endl;
 		} break;
 		case RsTouchMode::Capture:
 		{
