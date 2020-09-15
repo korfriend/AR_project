@@ -298,6 +298,7 @@ namespace rs_settings
 
 namespace var_settings
 {
+#define __MIRRORS
 #define __NUMMARKERS 15
 	GlobalInfo g_info;
 	ArMarkerTracker ar_marker;
@@ -588,14 +589,15 @@ namespace var_settings
 		cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL);
 		cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL);
 		cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL);
+#ifdef __MIRRORS
 		cv::namedWindow("rs mirror", WINDOW_NORMAL);
 		cv::namedWindow("stg mirror", WINDOW_NORMAL);
+		cv::moveWindow("rs mirror", 400, 525);
+		cv::moveWindow("stg mirror", 1200, 525);
+#endif
 
 		cv::moveWindow(g_info.window_name_ws_view, 850, 0);
 		cv::moveWindow(g_info.window_name_ms_view, 0, 525);
-		cv::moveWindow("rs mirror", 400, 525);
-		cv::moveWindow("stg mirror", 1200, 525);
-
 		cv::moveWindow(g_info.window_name_rs_view, 0, 0);
 		cv::moveWindow(g_info.window_name_stg_view, 2560, 0);
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
@@ -1578,6 +1580,13 @@ namespace var_settings
 			if (g_info.is_calib_rs_cam && !is_rsrb_detected)
 				cv::putText(img_rs, "RS Cam is out of tracking volume !!", cv::Point(0, 150), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
 			imshow(g_info.window_name_rs_view, img_rs);
+
+#ifdef __MIRRORS
+			{
+				cv::Mat img_rs_mirror(g_info.rs_h, g_info.rs_w, CV_8UC3, img_rs.data);
+				imshow("rs mirror", img_rs_mirror);
+			}
+#endif
 #endif
 
 #ifdef SHOW_SECTION_VIEW
@@ -1643,6 +1652,10 @@ namespace var_settings
 					cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 50), Scalar(255, 255, 255), 3);
 					Draw_STG_Calib_Point(image_stg);
 					imshow(g_info.window_name_stg_view, image_stg);
+#ifdef __MIRRORS
+					cv::Mat img_stg_mirror(Size(_stg_w, _stg_h), CV_8UC4, image_stg.data);
+					imshow("stg mirror", img_stg_mirror);
+#endif
 				}
 
 				DisplayTimes(frq_render_stg, "stg render : ");
@@ -1655,6 +1668,11 @@ namespace var_settings
 				cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 50), Scalar(255, 255, 255), 3);
 				Draw_STG_Calib_Point(image_stg);
 				imshow(g_info.window_name_stg_view, image_stg);
+
+#ifdef __MIRRORS
+				cv::Mat img_stg_mirror(Size(g_info.stg_w, g_info.stg_h), CV_8UC4, image_stg.data);
+				imshow("stg mirror", img_stg_mirror);
+#endif
 			}
 #endif
 		}
