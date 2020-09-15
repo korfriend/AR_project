@@ -441,6 +441,8 @@ namespace var_settings
 		__cv3__ cam_params_model.pos = glm::fvec3(0.3f, 0, 0);
 		__cv3__ cam_params_model.up = glm::fvec3(0, 1.f, 0);
 		__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
+		cam_params_model.w = 400;
+		cam_params_model.h = 400;
 		//__cv3__ cam_params_model.pos = glm::fvec3(0.0f, -0.5f, 0);
 		//__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
 		//__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
@@ -583,18 +585,23 @@ namespace var_settings
 		// for demo PC
 		//Create a window
 		cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
-		cv::namedWindow(g_info.window_name_ws_view, WINDOW_AUTOSIZE);
-		cv::namedWindow(g_info.window_name_ms_view, WINDOW_AUTOSIZE);
+		cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL);
+		cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL);
 		cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL);
+		cv::namedWindow("rs mirror", WINDOW_NORMAL);
+		cv::namedWindow("stg mirror", WINDOW_NORMAL);
 
-		//cv::moveWindow(g_info.window_name_ws_view, 2560 + 1282, 0);
-		//cv::moveWindow(g_info.window_name_ms_view, 2560 * 2, 0);
-		//cv::moveWindow(g_info.window_name_rs_view, 2560 * 3, 0);
-		cv::moveWindow(g_info.window_name_stg_view, -1024, 0);
+		cv::moveWindow(g_info.window_name_ws_view, 850, 0);
+		cv::moveWindow(g_info.window_name_ms_view, 0, 525);
+		cv::moveWindow("rs mirror", 400, 525);
+		cv::moveWindow("stg mirror", 1200, 525);
+
+		cv::moveWindow(g_info.window_name_rs_view, 1680, 0);
+		cv::moveWindow(g_info.window_name_stg_view, 1680 + 1024, 0);
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
-		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 		cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 
 
