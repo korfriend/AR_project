@@ -596,12 +596,12 @@ namespace var_settings
 		cv::moveWindow("rs mirror", 400, 525);
 		cv::moveWindow("stg mirror", 1200, 525);
 
-		cv::moveWindow(g_info.window_name_rs_view, 1680, 0);
-		cv::moveWindow(g_info.window_name_stg_view, 1680 + 1024, 0);
+		cv::moveWindow(g_info.window_name_rs_view, 0, 0);
+		cv::moveWindow(g_info.window_name_stg_view, 1680, 0);
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
-		cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 		cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 
 
@@ -1229,6 +1229,10 @@ namespace var_settings
 					glm::fmat4x4 mat_clf2clf;
 					helpers::ComputeArCameraCalibrateInfo(__FP mat_clf2clf, __FP point3d[0], __FP point2d[0], num_stg_calib_pairs,
 						__FP mat_stgcs2clf, &cam_state_calbirated);
+
+					float* pv = glm::value_ptr(mat_stgcs2clf);
+					for(int i =0; i < 16; i++)
+					std::cout << i << " : " << pv[i] << std::endl;
 
 					// why divide by 4?!
 					//cam_state_calbirated.fx /= 4.f;
