@@ -146,7 +146,7 @@ int main()
 		double dRunTime1 = (lIntCntEnd.QuadPart - lIntCntStart.QuadPart) / (double)(lIntFreq.QuadPart);
 
 		cout << _test << " : " << 1. / dRunTime1 << " fps" << endl;
-};
+	};
 	auto GetPerformanceFreq = []() -> LARGE_INTEGER
 	{
 		LARGE_INTEGER lIntCntFreq;
