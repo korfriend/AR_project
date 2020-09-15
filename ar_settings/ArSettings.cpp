@@ -597,7 +597,7 @@ namespace var_settings
 		cv::moveWindow("stg mirror", 1200, 525);
 
 		cv::moveWindow(g_info.window_name_rs_view, 0, 0);
-		cv::moveWindow(g_info.window_name_stg_view, 2560, 0);
+		cv::moveWindow(g_info.window_name_stg_view, 1680, 0);
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
