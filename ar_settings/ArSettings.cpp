@@ -339,9 +339,9 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = "..\\Preset\\Calibration_200904.cal";
+		g_info.optrack_calib = "..\\Preset\\Calibration_200915.cal";
 		//g_info.optrack_env = "..\\Preset\\Asset_200911.motive";
-		g_info.optrack_env = "..\\Preset\\Asset_200915.motive";
+		g_info.optrack_env = "..\\Preset\\Asset_200915(2).motive";
 		g_info.cb_positions = "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = "..\\Preset\\rs_calib.txt";
@@ -596,17 +596,10 @@ namespace var_settings
 		cv::moveWindow("stg mirror", 944, 470);
 #endif
 
-<<<<<<< HEAD
 		cv::moveWindow(g_info.window_name_ws_view, 550, 0);
 		cv::moveWindow(g_info.window_name_ms_view, 1180, 0);
 		cv::moveWindow(g_info.window_name_rs_view, 1680, 0);
 		cv::moveWindow(g_info.window_name_stg_view, 1680 + 1024, 0);
-=======
-		cv::moveWindow(g_info.window_name_ws_view, 850, 0);
-		cv::moveWindow(g_info.window_name_ms_view, 0, 525);
-		cv::moveWindow(g_info.window_name_rs_view, 0, 0);
-		cv::moveWindow(g_info.window_name_stg_view, 1680, 0);
->>>>>>> 39433637239f121c1eabc28383007b13bbf70140
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 

@@ -131,7 +131,8 @@ void SetCvWindows(GlobalInfo& g_info)
 	var_settings::GetVarInfo(&g_info);
 
 	// SSU //////////////////////////////////////////////////////////////////
-	cv::namedWindow(window_name_zs_view, WINDOW_NORMAL | WINDOW_AUTOSIZE);
+	cv::namedWindow(window_name_zs_view, WINDOW_NORMAL);
+	cv::namedWindow("zs_mirror", WINDOW_NORMAL);
 	Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 
 	cv::moveWindow(g_info.window_name_rs_view, 0, 0);
@@ -876,6 +877,17 @@ int main()
 			}
 			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr);
 			Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
+
+			{
+				unsigned char* ptr_rgba;
+				float* ptr_zdepth;
+				int _stg_w, _stg_h;
+				if (vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba, &ptr_zdepth, &_stg_w, &_stg_h, zoom_cam_id))
+				{
+					cv::Mat img_stg_mirror(Size(_stg_w, _stg_h), CV_8UC4, ptr_rgba);
+					imshow("zs_mirror", img_stg_mirror);
+				}
+			}
 
 			int model_cam_id = var_settings::GetCameraID_SSU(g_info.model_scene_id);
 			Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
