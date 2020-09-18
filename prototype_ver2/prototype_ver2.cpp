@@ -165,6 +165,10 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 	// cam, scene //
 	vzm::CameraParameters zoom_cam_params;
 	vzm::GetCameraParameters(g_info.ws_scene_id, zoom_cam_params, ov_cam_id);			// copy
+	// dojo sample
+	zoom_cam_params.w = 150;
+	zoom_cam_params.h = 150;
+	zoom_cam_params.ip_h = zoom_cam_params.ip_w;
 	vzm::SetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);
 
 	vzm::SceneEnvParameters zoom_scn_env_params;
@@ -875,7 +879,32 @@ int main()
 					}
 				}
 			}
-			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr);
+			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, true);
+
+			// dojo sample
+			{
+				vzm::RenderScene(zoom_scene_id, zoom_cam_id);
+				unsigned char *ptr_rgba_zv, *ptr_rgba_rs;
+				float *ptr_zdepth_zv, ptr_zdepth_rs;
+				int w_zv, h_zv, w_rs, h_rs;
+				if (vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba_zv, &ptr_zdepth_zv, &w_zv, &h_zv, zoom_cam_id))
+				{
+					unsigned char* rs_buffer = image_rs_bgr.data; // 3 channels bgr
+
+					//for (int y = 0; y < 150; y++)
+					//	for (int x = 0; x < 150; x++)
+					//	{
+					//		ptr_rgba_zv ==> rs_buffer
+					//	}
+					//for (int y = 0; y < image_rs_bgr.rows; y++)
+					//	for (int x = 0; x < image_rs_bgr.cols; x++)
+					//	{
+					//
+					//	}
+
+					imshow(g_info.window_name_rs_view, image_rs_bgr);
+				}
+			}
 			Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 
 			{

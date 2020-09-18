@@ -1524,7 +1524,7 @@ namespace var_settings
 		}
 	}
 
-	void RenderAndShowWindows(bool show_times, Mat& img_rs)
+	void RenderAndShowWindows(bool show_times, Mat& img_rs, bool skip_show_rs_window)
 	{
 		auto DisplayTimes = [&show_times](const LARGE_INTEGER lIntCntStart, const string& _test)
 		{
@@ -1579,7 +1579,9 @@ namespace var_settings
 
 			if (g_info.is_calib_rs_cam && !is_rsrb_detected)
 				cv::putText(img_rs, "RS Cam is out of tracking volume !!", cv::Point(0, 150), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
-			imshow(g_info.window_name_rs_view, img_rs);
+
+			if(!skip_show_rs_window)
+				imshow(g_info.window_name_rs_view, img_rs);
 
 #ifdef __MIRRORS
 			{

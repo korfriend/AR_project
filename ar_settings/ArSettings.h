@@ -46,7 +46,7 @@ namespace var_settings
 	__dojostatic void SetCalibFrames(bool is_visible);
 	__dojostatic void SetDepthMapPC(const bool is_visible, rs2::depth_frame& depth_frame, rs2::video_frame& color_frame);
 	__dojostatic void SetTargetModelAssets(const std::string& name, const bool show_sectional_views);
-	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs);
+	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs, bool skip_show_rs_window = false);
 	__dojostatic void DeinitializeVarSettings();
 
 	// SSU (추후 prototype ver2에 정의할 예정 (외부에서 namespace 변수 접근이 어려워 임시로 작업)
