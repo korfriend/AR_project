@@ -123,8 +123,8 @@ void InitializeVarSettings(GlobalInfo& g_info)
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	zoom_scene_id = 6;
 	zoom_cam_id = 1;
-	zoom_w = 150;
-	zoom_h = 150;
+	zoom_w = 300;
+	zoom_h = 300;
 	window_name_zs_view = "Zoom View";
 	sst_positions = "..\\Preset\\ss_tool_pts.txt";
 	guide_path = "..\\Preset\\ss_guide_pts.txt";
@@ -882,35 +882,40 @@ int main()
 					}
 				}
 			}
-			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, true);
 
 			// dojo sample
 			if(g_info.is_modelaligned) {
+				var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, true);
+
+
 				vzm::RenderScene(zoom_scene_id, zoom_cam_id);
 				unsigned char *ptr_rgba_zv, *ptr_rgba_rs;
 				float *ptr_zdepth_zv, ptr_zdepth_rs;
 				int w_zv, h_zv, w_rs, h_rs;
 				if (vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba_zv, &ptr_zdepth_zv, &w_zv, &h_zv, zoom_cam_id))
 				{
-					unsigned char* rs_buffer = image_rs_bgr.data; // 3 channels bgr
+					unsigned char* rs_buffer = image_rs_bgr.data;		// 3 channels bgr
 					
-					int nChan = 3;
-					int nLeftTopX = 0;
-					int nLeftTopY = 0;
+					int nChan_zs = 4;
+					int nChan_rs = 3;
+					int nLeftTopX = 650;
+					int nLeftTopY = 170;
 					
 					for (int y = 0; y < zoom_h; y++) {
 						for (int x = 0; x < zoom_w; x++) {
-							int idx_zv = nChan*zoom_w*y + nChan*x;
-							int idx_rs = nChan*rs_w*(y+nLeftTopY) + nChan*(x+nLeftTopX);
+							int idx_zv = nChan_zs *zoom_w*y + nChan_zs *x;
+							int idx_rs = nChan_rs *rs_w*(y+nLeftTopY) + nChan_rs*(x+nLeftTopX);
 
 							rs_buffer[idx_rs + 0] = ptr_rgba_zv[idx_zv + 0];
 							rs_buffer[idx_rs + 1] = ptr_rgba_zv[idx_zv + 1];
 							rs_buffer[idx_rs + 2] = ptr_rgba_zv[idx_zv + 2];
 						}
 					}
-
 					imshow(g_info.window_name_rs_view, image_rs_bgr);
 				}
+			}
+			else {
+				var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, false);
 			}
 			Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 
