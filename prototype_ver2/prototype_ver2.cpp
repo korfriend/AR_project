@@ -64,6 +64,8 @@ SS_Tool_Guide_Pts ss_tool_guide_info;
 int zoom_scene_id;
 int zoom_cam_id;
 string window_name_zs_view;
+int zoom_w;
+int zoom_h;
 
 int brain_ms_obj_id;
 int brain_ws_obj_id;
@@ -121,6 +123,8 @@ void InitializeVarSettings(GlobalInfo& g_info)
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	zoom_scene_id = 6;
 	zoom_cam_id = 1;
+	zoom_w = 150;
+	zoom_h = 150;
 	window_name_zs_view = "Zoom View";
 	sst_positions = "..\\Preset\\ss_tool_pts.txt";
 	guide_path = "..\\Preset\\ss_guide_pts.txt";
@@ -166,8 +170,8 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 	vzm::CameraParameters zoom_cam_params;
 	vzm::GetCameraParameters(g_info.ws_scene_id, zoom_cam_params, ov_cam_id);			// copy
 	// dojo sample
-	zoom_cam_params.w = 150;
-	zoom_cam_params.h = 150;
+	zoom_cam_params.w = zoom_w;
+	zoom_cam_params.h = zoom_h;
 	zoom_cam_params.ip_h = zoom_cam_params.ip_w;
 	vzm::SetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);
 
@@ -882,7 +886,7 @@ int main()
 			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, true);
 
 			// dojo sample
-			{
+			if(g_info.is_modelaligned) {
 				vzm::RenderScene(zoom_scene_id, zoom_cam_id);
 				unsigned char *ptr_rgba_zv, *ptr_rgba_rs;
 				float *ptr_zdepth_zv, ptr_zdepth_rs;
@@ -890,17 +894,21 @@ int main()
 				if (vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba_zv, &ptr_zdepth_zv, &w_zv, &h_zv, zoom_cam_id))
 				{
 					unsigned char* rs_buffer = image_rs_bgr.data; // 3 channels bgr
+					
+					int nChan = 3;
+					int nLeftTopX = 0;
+					int nLeftTopY = 0;
+					
+					for (int y = 0; y < zoom_h; y++) {
+						for (int x = 0; x < zoom_w; x++) {
+							int idx_zv = nChan*zoom_w*y + nChan*x;
+							int idx_rs = nChan*rs_w*(y+nLeftTopY) + nChan*(x+nLeftTopX);
 
-					//for (int y = 0; y < 150; y++)
-					//	for (int x = 0; x < 150; x++)
-					//	{
-					//		ptr_rgba_zv ==> rs_buffer
-					//	}
-					//for (int y = 0; y < image_rs_bgr.rows; y++)
-					//	for (int x = 0; x < image_rs_bgr.cols; x++)
-					//	{
-					//
-					//	}
+							rs_buffer[idx_rs + 0] = ptr_rgba_zv[idx_zv + 0];
+							rs_buffer[idx_rs + 1] = ptr_rgba_zv[idx_zv + 1];
+							rs_buffer[idx_rs + 2] = ptr_rgba_zv[idx_zv + 2];
+						}
+					}
 
 					imshow(g_info.window_name_rs_view, image_rs_bgr);
 				}
