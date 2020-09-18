@@ -389,7 +389,6 @@ int main()
 		case '1': guide_toggle = !guide_toggle;	break;
 		case '2': ssutool_toggle = !ssutool_toggle; break;
 		case '0': ssutool_key = true;	break;
-
 		}
 		vzm::DebugTestSet("_bool_ReloadHLSLObjFiles", &recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::DebugTestSet("_bool_PrintOutRoutineObjs", &show_apis_console, sizeof(bool), -1, -1);
