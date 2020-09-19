@@ -1653,7 +1653,9 @@ namespace var_settings
 					cv::drawMarker(image_stg, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
 					cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 50), Scalar(255, 255, 255), 3);
 					Draw_STG_Calib_Point(image_stg);
+
 					imshow(g_info.window_name_stg_view, image_stg);
+					
 #ifdef __MIRRORS
 					cv::Mat img_stg_mirror(Size(_stg_w, _stg_h), CV_8UC4, image_stg.data);
 					imshow("stg mirror", img_stg_mirror);

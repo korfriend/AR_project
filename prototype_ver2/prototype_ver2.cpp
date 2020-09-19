@@ -177,6 +177,7 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 
 	vzm::SceneEnvParameters zoom_scn_env_params;
 	vzm::GetSceneEnvParameters(g_info.ws_scene_id, zoom_scn_env_params);				// copy
+	zoom_scn_env_params.is_on_camera = true;
 	vzm::SetSceneEnvParameters(zoom_scene_id, zoom_scn_env_params);
 
 
@@ -322,6 +323,9 @@ int main()
 				if (dt > 0) {
 					//Sleep(dt);
 				}
+
+				double dSimulationTime2 = 1000.0 / dSimulationTime;
+				//printf("%f fps \n", dSimulationTime2);
 			}
 		}
 	});
@@ -335,7 +339,7 @@ int main()
 	bool show_calib_frames = true;
 	bool record_info = false;
 	bool show_pc = false;
-	bool show_workload = false;
+	bool show_workload = true;
 	bool is_ws_pick = false;
 
 	auto DisplayTimes = [&show_workload](const LARGE_INTEGER lIntCntStart, const string& _test)
@@ -363,6 +367,7 @@ int main()
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
+
 		bool load_calib_info = false;
 		bool load_stg_calib_info = false;
 		bool reset_calib = false;
@@ -836,7 +841,7 @@ int main()
 								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, size_font, true, false, text_id);
 							};
 
-							float right_offset = -0.04f;
+							float right_offset = -0.03f;
 							vzm::CameraParameters zoom_cam_params;
 
 							vzm::GetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);			// copy
@@ -873,7 +878,7 @@ int main()
 							};
 
 							// Text			
-							right_offset = -0.03f;
+							right_offset = -0.02f;
 							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id, angleTextState);
@@ -886,25 +891,27 @@ int main()
 			// dojo sample
 			if(g_info.is_modelaligned) {
 				var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, true);
-
-
 				vzm::RenderScene(zoom_scene_id, zoom_cam_id);
-				unsigned char *ptr_rgba_zv, *ptr_rgba_rs;
-				float *ptr_zdepth_zv, ptr_zdepth_rs;
-				int w_zv, h_zv, w_rs, h_rs;
-				if (vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba_zv, &ptr_zdepth_zv, &w_zv, &h_zv, zoom_cam_id))
+
+				// get zoom buffer
+				unsigned char *ptr_rgba_zv;
+				float *ptr_zdepth_zv;
+				int w_zv, h_zv;
+				bool bZoomBuffer = vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba_zv, &ptr_zdepth_zv, &w_zv, &h_zv, zoom_cam_id);
+
+				if(bZoomBuffer)
 				{
+					// realsense
 					unsigned char* rs_buffer = image_rs_bgr.data;		// 3 channels bgr
-					
 					int nChan_zs = 4;
 					int nChan_rs = 3;
-					int nLeftTopX = 650;
-					int nLeftTopY = 170;
+					int nLeftTopX_rs = 650;
+					int nLeftTopY_rs = 170;
 					
 					for (int y = 0; y < zoom_h; y++) {
 						for (int x = 0; x < zoom_w; x++) {
 							int idx_zv = nChan_zs *zoom_w*y + nChan_zs *x;
-							int idx_rs = nChan_rs *rs_w*(y+nLeftTopY) + nChan_rs*(x+nLeftTopX);
+							int idx_rs = nChan_rs *rs_w*(y+nLeftTopY_rs) + nChan_rs*(x+nLeftTopX_rs);
 
 							rs_buffer[idx_rs + 0] = ptr_rgba_zv[idx_zv + 0];
 							rs_buffer[idx_rs + 1] = ptr_rgba_zv[idx_zv + 1];
@@ -912,6 +919,35 @@ int main()
 						}
 					}
 					imshow(g_info.window_name_rs_view, image_rs_bgr);
+
+
+					// smartglass
+					int nChan_stg = 4;
+					int nLeftTopX_stg = 325;
+					int nLeftTopY_stg = 165;
+
+					int stg_cam_id = var_settings::GetCameraID_SSU(g_info.stg_scene_id);
+					float *ptr_zdepth_stg;
+					int stg_w, stg_h;
+					unsigned char* ptr_rgba_stg;
+					bool bSmartGlassBuffer = vzm::GetRenderBufferPtrs(g_info.stg_scene_id, &ptr_rgba_stg, &ptr_zdepth_stg, &stg_w, &stg_h, stg_cam_id);
+
+					if (bSmartGlassBuffer) {
+						for (int y = 0; y < zoom_h; y++) {
+							for (int x = 0; x < zoom_w; x++) {
+								int idx_zv = nChan_zs * zoom_w*y + nChan_zs * x;
+								int idx_stg = nChan_stg * stg_w * (y + nLeftTopY_stg) + nChan_stg * (x + nLeftTopX_stg);
+
+								ptr_rgba_stg[idx_stg + 0] = ptr_rgba_zv[idx_zv + 0];
+								ptr_rgba_stg[idx_stg + 1] = ptr_rgba_zv[idx_zv + 1];
+								ptr_rgba_stg[idx_stg + 2] = ptr_rgba_zv[idx_zv + 2];
+								ptr_rgba_stg[idx_stg + 3] = ptr_rgba_zv[idx_zv + 3];
+							}
+						}
+
+						Mat image_stg_bgr(cv::Size(stg_w, stg_h), CV_8UC4, (void*)ptr_rgba_stg);
+						imshow(g_info.window_name_stg_view, image_stg_bgr);
+					}
 				}
 			}
 			else {
@@ -932,6 +968,8 @@ int main()
 
 			int model_cam_id = var_settings::GetCameraID_SSU(g_info.model_scene_id);
 			Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
+
+			DisplayTimes(frq_begin, "");
 		}
 
 #ifdef EYE_VIS_RS
