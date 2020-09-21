@@ -455,7 +455,7 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("ss_head", show_csection); // "breastbody"
+			var_settings::SetTargetModelAssets("ss_head"); // "breastbody"
 
 			var_settings::GetVarInfo(&g_info);
 

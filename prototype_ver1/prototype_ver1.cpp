@@ -53,6 +53,94 @@ using namespace cv;
 
 SS_Tool_Guide_Pts ss_tool_info;
 
+int cancer_id = 0;
+int needles_guide_id = 0;
+bool loadScrewInha(std::string screwfile)
+{
+	std::ifstream screwinfile(screwfile, std::ios_base::binary);
+
+	if (!screwinfile.good())
+		return false;
+
+	int screwcount = 0;
+	//screwinfile >> screwcount;
+	screwinfile.read((char*)(&screwcount), 4);
+
+	glm::vec3 startpos, endpos;
+	float screwdiameter;
+	/*
+	screw number
+	1st screw start position	1st screw end position	1st screw diameter
+	2nd screw end position		2nd screw end position	2nd screw diameter
+	.
+	.
+	.
+	n-th screw start position	n-th screw end position	n-th screw diameter
+	*/
+	vector<float> needles_radii(screwcount);
+	vector<glm::fvec3> needles_pos(screwcount * 2);
+	vector<glm::fvec3> needles_clr(screwcount);
+	for (int i = 0; i < screwcount; i++)
+	{
+		screwinfile.read((char*)(&startpos), sizeof(glm::vec3));
+		screwinfile.read((char*)(&endpos), sizeof(glm::vec3));
+		screwinfile.read((char*)(&screwdiameter), sizeof(float));
+
+		//glm::vec3 direction = endpos - startpos;
+		//float length = glm::length(direction);
+
+		// pos »óÀÇ tr
+
+		needles_pos[2 * i + 0] = startpos;
+		needles_pos[2 * i + 1] = endpos;
+		needles_clr[i] = glm::fvec3(0.2, 0.8, 1);
+		needles_radii[i] = screwdiameter / 2.0;
+		//this->PreloadedScrew_target->push_back(ScrewModelInfo(startpos, direction, length, screwdiameter / 2.0));
+	}
+
+	vzm::GenerateCylindersObject((float*)&needles_pos[0], &needles_radii[0], (float*)&needles_clr[0], screwcount, needles_guide_id);
+
+	return true;
+}
+
+bool loadScrewTest(std::string screwfile)
+{
+
+	std::ifstream infile(screwfile);
+	string line;
+	if (infile.is_open())
+	{
+		getline(infile, line);
+		std::istringstream iss_num(line);
+
+		int screwcount;
+		iss_num >> screwcount;
+		
+		vector<float> needles_radii(screwcount);
+		vector<glm::fvec3> needles_pos(screwcount * 2);
+		vector<glm::fvec3> needles_clr(screwcount);
+
+		int _line_idx = 0;
+		while (getline(infile, line))
+		{
+			std::istringstream iss(line);
+			float a, b, c, d, e, f, g;
+			if (!(iss >> a >> b >> c >> d >> e >> f >> g)) { break; } // error
+
+			needles_pos[2 * _line_idx + 0] = glm::fvec3(a, b, c);
+			needles_pos[2 * _line_idx + 1] = glm::fvec3(d, e, f);
+			needles_clr[_line_idx] = glm::fvec3(0.2, 0.8, 1);
+			needles_radii[_line_idx] = g / 2.f * 2.f;
+			_line_idx++;
+		}
+		infile.close();
+
+		vzm::GenerateCylindersObject((float*)&needles_pos[0], &needles_radii[0], (float*)&needles_clr[0], screwcount, needles_guide_id);
+	}
+
+	return true;
+}
+
 int main()
 {
 
@@ -87,9 +175,11 @@ int main()
 	//rs2_extrinsics rgb_extrinsics;
 	//rs_settings::GetRsCamParams(rgb_intrinsics, depth_intrinsics, rgb_extrinsics);
 
-	var_settings::InitializeVarSettings();
+	var_settings::InitializeVarSettings(0);
 	var_settings::SetCvWindows();
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
+
+	loadScrewTest(var_settings::GetDefaultFilePath() + "..\\Data\\breast\\chest_pins.txt");
 
 	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
@@ -161,8 +251,6 @@ int main()
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
-		bool load_calib_info = false;
-		bool load_stg_calib_info = false;
 		bool reset_calib = false;
 		bool write_recoded_info = false;
 		bool recompile_hlsl = false;
@@ -171,8 +259,6 @@ int main()
 		case '[': postpone = max(postpone - 1, 0); cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
 		case ']': postpone += 1; cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
 		case 'r': recompile_hlsl = true; cout << "Recompile Shader!" << endl; break; 
-		case 'l': load_calib_info = true; break; 
-		case 'g': load_stg_calib_info = true; break; 
 		case 'v': show_calib_frames = !show_calib_frames; break; 
 		case 'p': show_pc = !show_pc; break; 
 		case 'e': show_apis_console = !show_apis_console; break;
@@ -236,7 +322,7 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("ss_head", show_csection); // "breastbody"
+			var_settings::SetTargetModelAssets("ss_head"); // "breastbody" "ss_head"
 
 			// SS tool custom vis.
 			{

@@ -445,7 +445,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			}
 			//eginfo->ginfo.touch_mode = RsTouchMode::Align;
 		} break;
-		default: return;
+		default:
+			disable_subbuttons(); return;
 		}
 	}
 	return;
@@ -562,7 +563,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 				if (event == EVENT_LBUTTONDOWN)
 				{
 					glm::fvec3 pos_pick;
-					if (GetSufacePickPos(pos_pick, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo.is_meshmodel, x, y))
+					if (GetSufacePickPos(pos_pick, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo.model_volume_id == 0, x, y))
 					{
 						eginfo->ginfo.model_ms_pick_pts.push_back(pos_pick);
 					}
@@ -578,7 +579,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 					vector<glm::fvec3> spheres_rgb;
 					for (int i = 0; i < (int)eginfo->ginfo.model_ms_pick_pts.size(); i++)
 					{
-						glm::fvec4 sphere_xyzr = glm::fvec4(eginfo->ginfo.model_ms_pick_pts[i], 0.001);
+						glm::fvec4 sphere_xyzr = glm::fvec4(eginfo->ginfo.model_ms_pick_pts[i], 0.002);
 						spheres_xyzr.push_back(sphere_xyzr);
 						glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 0);
 						spheres_rgb.push_back(sphere_rgb);
@@ -624,7 +625,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 				Show_Window_with_Texts(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, "NO MESH!!");
 
 			glm::fvec3 pos_pick;
-			if (!GetSufacePickPos(pos_pick, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo.is_meshmodel, x, y)) return;
+			if (!GetSufacePickPos(pos_pick, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo.model_volume_id == 0, x, y)) return;
 
 			vzm::ObjStates model_obj_state;
 			vzm::GetSceneObjectState(eginfo->scene_id, eginfo->ginfo.model_ms_obj_id, model_obj_state);

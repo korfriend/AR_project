@@ -14,6 +14,8 @@ using namespace cv;
 #include "../kar_helpers.hpp"
 #include "../event_handler.hpp"
 
+//#define __MIRRORS
+
 namespace rs_settings
 {
 	map<string, string> serials;
@@ -298,13 +300,21 @@ namespace rs_settings
 
 namespace var_settings
 {
-#define __MIRRORS
 #define __NUMMARKERS 15
 	GlobalInfo g_info;
 	ArMarkerTracker ar_marker;
 	set<int> mk_ids;
-	void InitializeVarSettings()
+	string preset_path;
+	string GetDefaultFilePath() {
+		return preset_path;
+	}
+
+	int scenario = 0;
+
+	void InitializeVarSettings(int _scenario)
 	{
+		scenario = _scenario;
+
 		// set global information
 		g_info.ws_scene_id = 1;
 		g_info.rs_scene_id = 2;
@@ -316,6 +326,23 @@ namespace var_settings
 		g_info.window_name_ws_view = "World VIEW";
 		g_info.window_name_ms_view = "Model VIEW";
 		g_info.window_name_stg_view = "STG VIEW";
+
+		char ownPth[2048];
+		GetModuleFileNameA(NULL, ownPth, (sizeof(ownPth)));
+		string exe_path = ownPth;
+		size_t pos = 0;
+		std::string token;
+		string delimiter = "\\";
+		preset_path = "";
+		while ((pos = exe_path.find(delimiter)) != std::string::npos) {
+			token = exe_path.substr(0, pos);
+			if (token.find(".exe") != std::string::npos) break;
+			preset_path += token + "\\";
+			exe_path.erase(0, pos + delimiter.length());
+		}
+		preset_path += "..\\";
+		//cout << hlslobj_path << endl;
+
 
 		// load txt file
 		/*
@@ -339,28 +366,25 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = "..\\Preset\\Calibration_200915.cal";
-		//g_info.optrack_env = "..\\Preset\\Asset_200911.motive";
-		g_info.optrack_env = "..\\Preset\\Asset_200915(2).motive";
-		g_info.cb_positions = "..\\Preset\\cb_points.txt";
-		g_info.sst_positions = "..\\Preset\\ss_pin_pts.txt";
-		g_info.rs_calib = "..\\Preset\\rs_calib.txt";
-		g_info.stg_calib = "..\\Preset\\stg_calib.txt";
-		g_info.model_predefined_pts = "..\\Preset\\mode_predefined_points.txt";
+		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_200915.cal";
+		//g_info.optrack_env = preset_path + "..\\Preset\\Asset_200911.motive";
+		g_info.optrack_env = preset_path + "..\\Preset\\Asset_200921.motive";
+		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
+		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
+		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
+		g_info.stg_calib = preset_path + "..\\Preset\\stg_calib.txt";
 
-
-		//g_info.model_path = "D:\\Data\\K-AR_Data\\demo.obj";
-#define SS_HEAD
-#ifdef SS_HEAD
-		//g_info.model_path = "D:\\Data\\K-AR_Data\\brain\\1\\skin_c_output.obj";
-		//g_info.model_path = "C:\\Users\\User\\Desktop\\Preset\\Data\\skin.obj";
-		g_info.model_path = "..\\Data\\skin.obj";
-
-#else
-	//g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
-		g_info.model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_front_points(nrl)_simple1.ply";
-		g_info.volume_model_path = "D:\\Data\\K-AR_Data\\chest_x3d\\chest_x3d.x3d";
-#endif
+		if (scenario == 0)
+		{
+			g_info.model_path = preset_path + "..\\Data\\skin.obj";
+			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points.txt";
+		}
+		else if (scenario == 1)
+		{
+			g_info.model_path = preset_path + "..\\Data\\breast\\chest_front_points(nrl)_simple1.ply";
+			g_info.volume_model_path = preset_path + "..\\Data\\breast\\chest_x3d.x3d";
+			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(breast).txt";
+		}
 
 		for (int i = 1; i <= __NUMMARKERS; i++)
 		{
@@ -409,16 +433,18 @@ namespace var_settings
 		g_info.rs_h = rs_h;
 
 		int volume_obj_id = 0;
-#ifdef SS_HEAD
-		vzm::LoadModelFile(g_info.model_path, g_info.model_ms_obj_id);
-		g_info.is_meshmodel = true;
-#else
-		vzm::LoadModelFile(g_info.volume_model_path, g_info.model_ms_obj_id);
-		//vzm::LoadModelFile(g_info.volume_model_path, volume_obj_id);
-		g_info.is_meshmodel = false;
-#endif
+		if (scenario == 0)
+		{
+			vzm::LoadModelFile(g_info.model_path, g_info.model_ms_obj_id);
+			vzm::GenerateCopiedObject(g_info.model_ms_obj_id, g_info.model_ws_obj_id);
+		}
+		else if (scenario == 1)
+		{
+			vzm::LoadModelFile(g_info.model_path, g_info.model_ms_obj_id);
+			vzm::GenerateCopiedObject(g_info.model_ms_obj_id, g_info.model_ws_obj_id);
+			vzm::LoadModelFile(g_info.volume_model_path, g_info.model_volume_id);
+		}
 		vzm::ValidatePickTarget(g_info.model_ms_obj_id);
-		vzm::GenerateCopiedObject(g_info.model_ms_obj_id, g_info.model_ws_obj_id);
 
 		vzm::CameraParameters cam_params;
 		__cv3__ cam_params.pos = glm::fvec3(1.0, 2.0, 1.5f);
@@ -439,14 +465,21 @@ namespace var_settings
 		vzm::CameraParameters cam_params_model = cam_params;
 		cam_params_model.np = 0.01f;
 		cam_params_model.fp = 10.0f;
-		__cv3__ cam_params_model.pos = glm::fvec3(0.3f, 0, 0);
-		__cv3__ cam_params_model.up = glm::fvec3(0, 1.f, 0);
-		__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
+		if (scenario == 0)
+		{
+			__cv3__ cam_params_model.pos = glm::fvec3(0.3f, 0, 0);
+			__cv3__ cam_params_model.up = glm::fvec3(0, 1.f, 0);
+			__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
+		}
+		else if (scenario == 1)
+		{
+			__cv3__ cam_params_model.pos = glm::fvec3(0, -0.7f, 0);
+			__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
+			__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
+		}
 		cam_params_model.w = 400;
 		cam_params_model.h = 400;
-		//__cv3__ cam_params_model.pos = glm::fvec3(0.0f, -0.5f, 0);
-		//__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
-		//__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
+
 		vzm::SetCameraParameters(g_info.model_scene_id, cam_params_model, model_cam_id);
 
 		vzm::SceneEnvParameters scn_env_params;
@@ -485,18 +518,21 @@ namespace var_settings
 		vzm::DebugTestSet("_bool_TestOit", &use_new_version, sizeof(bool), -1, -1);
 
 		vzm::ObjStates model_state = obj_state;
+		model_state.emission = 0.3f;
+		model_state.diffusion = 0.5f;
+		model_state.specular = 0.1f;
 		model_state.color[3] = 0.8;
 		double scale_factor = 0.001;
 		glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
 		g_info.mat_os2matchmodefrm = __cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
 		model_state.point_thickness = 10;
 		vzm::ObjStates model_ws_state;
-		//if (!g_info.is_meshmodel)
+		if (g_info.model_volume_id != 0)
 		{
 			int vr_tmap_id = 0, vr_tmap_id1 = 0, mpr_tmap_id = 0;
 			std::vector<glm::fvec2> alpha_ctrs;
-			alpha_ctrs.push_back(glm::fvec2(0, 7760));
-			alpha_ctrs.push_back(glm::fvec2(1, 11700));
+			alpha_ctrs.push_back(glm::fvec2(0, 17760));
+			alpha_ctrs.push_back(glm::fvec2(1, 21700));
 			alpha_ctrs.push_back(glm::fvec2(1, 65536));
 			alpha_ctrs.push_back(glm::fvec2(0, 65537));
 			std::vector<glm::fvec4> rgb_ctrs;
@@ -515,18 +551,21 @@ namespace var_settings
 			rgb_ctrs[1] = glm::fvec4(1);
 			rgb_ctrs[2] = glm::fvec4(1);
 			vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], mpr_tmap_id);
-			model_state.associated_obj_ids["VR_OTF"] = vr_tmap_id;
-			model_state.associated_obj_ids["MPR_WINDOWING"] = mpr_tmap_id;
 
-			model_ws_state = model_state;
-			model_ws_state.associated_obj_ids["VR_OTF"] = vr_tmap_id1;
-			model_ws_state.is_visible = false;
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_state);
+			vzm::ObjStates volume_ws_state = model_state;
+			volume_ws_state.associated_obj_ids["VR_OTF"] = vr_tmap_id;
+			volume_ws_state.associated_obj_ids["MPR_WINDOWING"] = mpr_tmap_id;
+
+			volume_ws_state.associated_obj_ids["VR_OTF"] = vr_tmap_id1;
+			volume_ws_state.is_visible = false;
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_state);
 
 			double sample_rate = 1. / scale_factor;
 			vzm::DebugTestSet("_double_UserSampleRate", &sample_rate, sizeof(double), -1, -1);// g_info.model_scene_id, model_cam_id);
 			bool apply_samplerate2grad = true;
 			vzm::DebugTestSet("_bool_ApplySampleRateToGradient", &apply_samplerate2grad, sizeof(bool), -1, -1);//g_info.model_scene_id, model_cam_id);
+
+			//vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_volume_id, volume_ws_state);
 		}
 		vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_obj_id, model_state);
 
@@ -565,23 +604,28 @@ namespace var_settings
 
 	void SetCvWindows()
 	{
+#define __DOJO_PC
+		//#define __DEMO_PC
+#ifdef __DOJO_PC
 		//Create a window
-		//cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
-		//cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL);
-		//cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL);
-		//cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL);
+		cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
+		cv::namedWindow(g_info.window_name_ws_view, WINDOW_AUTOSIZE | WINDOW_NORMAL);
+		cv::namedWindow(g_info.window_name_ms_view, WINDOW_AUTOSIZE | WINDOW_NORMAL);
+		cv::namedWindow(g_info.window_name_stg_view, WINDOW_AUTOSIZE | WINDOW_NORMAL);
 
-		//cv::moveWindow(g_info.window_name_ws_view, 2560 + 1282, 0);
-		//cv::moveWindow(g_info.window_name_ms_view, 2560 * 2, 0);
-		//
-		//cv::moveWindow(g_info.window_name_rs_view, 2560 * 3, 0);
-		//cv::moveWindow(g_info.window_name_stg_view, 2560 * 3 + 1024, 0);
-		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
-		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
+		cv::moveWindow(g_info.window_name_ws_view, 2560, 0);
+		cv::moveWindow(g_info.window_name_ms_view, 2560 + 1000, 0);
 
-		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		cv::moveWindow(g_info.window_name_rs_view, 2560 * 3, 0);
+		cv::moveWindow(g_info.window_name_stg_view, 2560 * 2, 700);
+		//cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
+		//cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
+
+		cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 		//cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+#endif
 
+#ifdef __DEMO_PC
 		// for demo PC
 		//Create a window
 
@@ -605,11 +649,7 @@ namespace var_settings
 
 		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 		cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
-
-
-
-
-
+#endif
 
 		// for developers
 		//cv::namedWindow(g_info.window_name_rs_view, WINDOW_AUTOSIZE);
@@ -699,7 +739,7 @@ namespace var_settings
 					vector<glm::fvec3> spheres_rgb;
 					for (int i = 0; i < (int)g_info.model_ms_pick_pts.size(); i++)
 					{
-						glm::fvec4 sphere_xyzr = glm::fvec4(g_info.model_ms_pick_pts[i], 0.001);
+						glm::fvec4 sphere_xyzr = glm::fvec4(g_info.model_ms_pick_pts[i], 0.002);
 						spheres_xyzr.push_back(sphere_xyzr);
 						glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 0);
 						spheres_rgb.push_back(sphere_rgb);
@@ -1454,7 +1494,7 @@ namespace var_settings
 		}
 	}
 
-	void SetTargetModelAssets(const std::string& name, const bool show_sectional_views)
+	void SetTargetModelAssets(const std::string& name)
 	{
 		if (g_info.model_ws_pick_spheres_id != 0)
 		{
@@ -1467,7 +1507,7 @@ namespace var_settings
 		}
 
 		glm::fmat4x4 mat_matchmodelfrm2ws;
-		bool model_match_rb = g_info.otrk_data.trk_info.GetLFrmInfo(name, mat_matchmodelfrm2ws); // "breastbody"
+		bool model_match_rb = g_info.otrk_data.trk_info.GetLFrmInfo(name, mat_matchmodelfrm2ws); 
 		g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	// 변경 위치
 
 		if (model_match_rb && g_info.is_modelaligned)
@@ -1478,49 +1518,73 @@ namespace var_settings
 			vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 
 			__cm4__ model_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
+			if (scenario == 1)
+			{
+				vzm::ObjStates volume_ws_obj_state;
+				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+				__cm4__ volume_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
+				volume_ws_obj_state.is_visible = true;
+
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+
+				model_ws_obj_state.color[3] = 0.05f;
+				model_ws_obj_state.point_thickness = 15;
+			}
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+		}
+	}
 
-			// PIN REF //
-			_show_sectional_views = show_sectional_views;
-			bool is_section_probe_detected = is_probe_detected;
-			glm::fmat4x4 mat_section_probe2ws = mat_probe2ws;
-			if (is_section_probe_detected)
+	void SetSectionalImageAssets(const bool show_sectional_views, const float* _pos_tip, const float* _pos_end)
+	{
+		// ws
+		glm::fvec3 pos_tip = __cv3__ _pos_tip;
+		glm::fvec3 pos_end = __cv3__ _pos_end;
+
+		// after calling SetTargetModelAssets
+		_show_sectional_views = show_sectional_views;
+		if (show_sectional_views)
+		{
+			vzm::ObjStates model_ws_obj_state;
+			vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+			if (g_info.model_volume_id == 0)
 			{
-				if (show_sectional_views)
-				{
-					vzm::ReplaceOrAddSceneObject(g_info.csection_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
-
-					vzm::CameraParameters csection_cam_params_model;
-					csection_cam_params_model.np = 0.0f;
-					csection_cam_params_model.fp = 10.0f;
-					csection_cam_params_model.projection_mode = 4;
-					csection_cam_params_model.ip_w = 0.1;
-					csection_cam_params_model.ip_h = 0.1;
-					csection_cam_params_model.w = 250;
-					csection_cam_params_model.h = 250;
-
-					__cv3__ csection_cam_params_model.pos = g_info.pos_probe_pin;
-					glm::fvec3 cs_up = tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1));
-					glm::fvec3 cs_view = glm::fvec3(0, 0, 1);
-
-					glm::fvec3 cs_right = glm::cross(cs_view, cs_up);
-					cs_up = glm::normalize(glm::cross(cs_up, cs_right));
-					__cv3__ csection_cam_params_model.up = cs_up;
-					__cv3__ csection_cam_params_model.view = cs_view;
-					vzm::SetCameraParameters(g_info.csection_scene_id, csection_cam_params_model, 0);
-
-					cs_up = tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1));
-					cs_view = glm::fvec3(1, 0, 0);
-
-					cs_right = glm::cross(cs_view, cs_up);
-					cs_up = glm::normalize(glm::cross(cs_up, cs_right));
-					__cv3__ csection_cam_params_model.up = cs_up;
-					__cv3__ csection_cam_params_model.view = cs_view;
-					vzm::SetCameraParameters(g_info.csection_scene_id, csection_cam_params_model, 1);
-				}
+				vzm::ReplaceOrAddSceneObject(g_info.csection_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			}
+			else
+			{
+				vzm::ObjStates volume_ws_obj_state;
+				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.csection_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+			}
+
+			vzm::CameraParameters csection_cam_params_model;
+			csection_cam_params_model.np = 0.0f;
+			csection_cam_params_model.fp = 10.0f;
+			csection_cam_params_model.projection_mode = 4;
+			csection_cam_params_model.ip_w = 0.1;
+			csection_cam_params_model.ip_h = 0.1;
+			csection_cam_params_model.w = 180;
+			csection_cam_params_model.h = 180;
+
+			__cv3__ csection_cam_params_model.pos = pos_tip; // g_info.pos_probe_pin;
+			glm::fvec3 cs_up = glm::normalize(pos_end - pos_tip);// tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1));
+			__cv3__ csection_cam_params_model.up = cs_up;
+
+			glm::fvec3 cs_view = glm::fvec3(0, 0, 1);
+			glm::fvec3 cs_right = glm::cross(cs_view, cs_up);
+			cs_view = glm::normalize(glm::cross(cs_up, cs_right));
+			__cv3__ csection_cam_params_model.view = cs_view;
+			vzm::SetCameraParameters(g_info.csection_scene_id, csection_cam_params_model, 0);
+
+			cs_view = glm::fvec3(1, 0, 0);
+			cs_right = glm::cross(cs_view, cs_up);
+			cs_view = glm::normalize(glm::cross(cs_up, cs_right));
+			__cv3__ csection_cam_params_model.view = cs_view;
+			vzm::SetCameraParameters(g_info.csection_scene_id, csection_cam_params_model, 1);
 		}
 	}
 
@@ -1571,6 +1635,28 @@ namespace var_settings
 				LARGE_INTEGER frq_render_cb = GetPerformanceFreq();
 				if (vzm::GetRenderBufferPtrs(g_info.rs_scene_id, &ptr_rgba, &ptr_zdepth, &rs_w, &rs_h, rs_cam_id))
 					copy_back_ui_buffer(img_rs.data, ptr_rgba, rs_w, rs_h, false);
+
+
+				if (_show_sectional_views)
+				{
+					vzm::RenderScene(g_info.csection_scene_id, 0);
+					vzm::RenderScene(g_info.csection_scene_id, 1);
+
+					for (int i = 0; i < 2; i++)
+					{
+						unsigned char* cs_ptr_rgba;
+						float* cs_ptr_zdepth;
+						int cs_w, cs_h;
+						vzm::GetRenderBufferPtrs(g_info.csection_scene_id, &cs_ptr_rgba, &cs_ptr_zdepth, &cs_w, &cs_h, i);
+						cv::Mat cs_cvmat(cs_h, cs_w, CV_8UC4, cs_ptr_rgba);
+						cv::line(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), cv::Point(cs_w / 2, 0), cv::Scalar(255, 255, 0), 2, 2);
+						cv::circle(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), 2, cv::Scalar(255, 0, 0), 2);
+
+						// to do //
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, rs_w - cs_w, rs_h - cs_h - cs_h * i, false);
+					}
+				}
+
 				DisplayTimes(frq_render_rs, "rs copy-back : ");
 			}
 
@@ -1589,25 +1675,6 @@ namespace var_settings
 				imshow("rs mirror", img_rs_mirror);
 			}
 #endif
-#endif
-
-#ifdef SHOW_SECTION_VIEW
-			if (_show_sectional_views)
-			{
-				vzm::RenderScene(g_info.csection_scene_id, 0);
-				vzm::RenderScene(g_info.csection_scene_id, 1);
-				unsigned char* cs_ptr_rgba[2];
-				float* cs_ptr_zdepth[2];
-				int cs_w[2], cs_h[2];
-				for (int i = 0; i < 2; i++)
-				{
-					vzm::GetRenderBufferPtrs(g_info.csection_scene_id, &cs_ptr_rgba[i], &cs_ptr_zdepth[i], &cs_w[i], &cs_h[i], 0);
-					cv::Mat cs_cvmat(cs_h[i], cs_w[i], CV_8UC4, cs_ptr_rgba[i]);
-					cv::line(cs_cvmat, cv::Point(cs_w[i] / 2, cs_h[i] / 2), cv::Point(cs_w[i] / 2, 0), cv::Scalar(255, 255, 0), 2, 2);
-					cv::circle(cs_cvmat, cv::Point(cs_w[i] / 2, cs_h[i] / 2), 2, cv::Scalar(255, 0, 0), 2);
-					cv::imshow("Sectional View " + to_string(i), cs_cvmat);
-				}
-			}
 #endif
 
 #if defined(ENABLE_STG) && defined(SHOW_STG_VIEW)
