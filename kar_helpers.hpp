@@ -456,12 +456,64 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 				float fg = (1.f - fa) * (float)_g + (float)g * fa;
 				float fb = (1.f - fa) * (float)_b + (float)b * fa;
 
-				data_ui[i * width_uibuf_pitch + j * 3 + 0] = (unsigned char)min((int)fr, (int)255);
-				data_ui[i * width_uibuf_pitch + j * 3 + 1] = (unsigned char)min((int)fg, (int)255);
-				data_ui[i * width_uibuf_pitch + j * 3 + 2] = (unsigned char)min((int)fb, (int)255);
+				//data_ui[i * width_uibuf_pitch + j * 3 + 0] = (unsigned char)min((int)fr, (int)255);
+				//data_ui[i * width_uibuf_pitch + j * 3 + 1] = (unsigned char)min((int)fg, (int)255);
+				//data_ui[i * width_uibuf_pitch + j * 3 + 2] = (unsigned char)min((int)fb, (int)255);
 
 				rgb = (unsigned char)min((int)fr, (int)255) | ((unsigned char)min((int)fg, (int)255) << 8) | ((unsigned char)min((int)fb, (int)255) << 16);
 				memcpy(&data_ui[i * width_uibuf_pitch + j * 3 + 0], &rgb, 3);
+			}
+		}
+};
+
+void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned char* data_render_bf, int w_bf, int h_bf, int offset_x, int offset_y, bool v_flib)
+{
+	// cpu mem ==> dataPtr
+	int width_uibuf_pitch = w * 3;
+	int width_fbbuf_pitch = w_bf * GL_CLR_CHANNELS;
+#pragma omp parallel for 
+	for (int i = 0; i < h_bf; i++)
+		for (int j = 0; j < w_bf; j++)
+		{
+			min(offset_y + h_bf, h);
+			min(offset_x + w_bf, w);//
+
+			int y = v_flib ? (h - 1 - i) : i;
+
+			unsigned int rgba;
+			memcpy(&rgba, &data_render_bf[y * width_fbbuf_pitch + j * GL_CLR_CHANNELS + 0], sizeof(int));
+
+			unsigned char r = rgba & 0xFF;
+			unsigned char g = (rgba >> 8) & 0xFF;
+			unsigned char b = (rgba >> 16) & 0xFF;
+			unsigned char a = (rgba >> 24) & 0xFF;
+
+			if ((a > 0) && (j + offset_y < w) && (i + offset_y < h))
+			{
+				unsigned int rgb;
+				int ui_x = j + offset_x;
+				int ui_y = i + offset_y;
+				memcpy(&rgb, &data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 0], 3);
+
+				//unsigned char _r = data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 0];
+				//unsigned char _g = data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 1];
+				//unsigned char _b = data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 2];
+
+				unsigned char _r = rgb & 0xFF;
+				unsigned char _g = (rgb >> 8) & 0xFF;
+				unsigned char _b = (rgb >> 16) & 0xFF;
+
+				float fa = (float)a / 255.f;
+				float fr = (1.f - fa) * (float)_r + (float)r * fa;
+				float fg = (1.f - fa) * (float)_g + (float)g * fa;
+				float fb = (1.f - fa) * (float)_b + (float)b * fa;
+
+				//data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 0] = (unsigned char)min((int)fr, (int)255);
+				//data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 1] = (unsigned char)min((int)fg, (int)255);
+				//data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 2] = (unsigned char)min((int)fb, (int)255);
+
+				rgb = (unsigned char)min((int)fr, (int)255) | ((unsigned char)min((int)fg, (int)255) << 8) | ((unsigned char)min((int)fb, (int)255) << 16);
+				memcpy(&data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 0], &rgb, 3);
 			}
 		}
 };
@@ -898,10 +950,10 @@ struct GlobalInfo
 	glm::fvec3 pos_probe_pin;
 
 	// model related
-	bool is_meshmodel;
 	bool is_modelaligned;
 	int model_ms_obj_id;
 	int model_ws_obj_id;
+	int model_volume_id; // only for ws
 	glm::fmat4x4 mat_ws2matchmodelfrm;
 	glm::fmat4x4 mat_os2matchmodefrm;
 	glm::fmat4x4 mat_matchtr;
@@ -963,9 +1015,9 @@ struct GlobalInfo
 		model_ms_obj_id = 0;
 		model_ws_obj_id = 0;
 		captured_model_ms_point_id = 0;
-		is_meshmodel = true;
 		is_modelaligned = false;
 		rs_pc_id = 0;
+		model_volume_id = 0;
 
 		// SSU
 		brain_ms_obj_id = 0;

@@ -29,7 +29,7 @@ namespace rs_settings
 
 namespace var_settings
 {
-	__dojostatic void InitializeVarSettings();
+	__dojostatic void InitializeVarSettings(int scenario = 0);
 	__dojostatic void SetPreoperations(const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h);
 	__dojostatic void SetCvWindows();
 	__dojostatic void LoadPresets();
@@ -45,9 +45,12 @@ namespace var_settings
 	__dojostatic void TryCalibrationSTG();
 	__dojostatic void SetCalibFrames(bool is_visible);
 	__dojostatic void SetDepthMapPC(const bool is_visible, rs2::depth_frame& depth_frame, rs2::video_frame& color_frame);
-	__dojostatic void SetTargetModelAssets(const std::string& name, const bool show_sectional_views);
+	__dojostatic void SetTargetModelAssets(const std::string& name);
+	__dojostatic void SetSectionalImageAssets(const bool show_sectional_views, const float* pos_tip, const float* pos_end);
 	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs, bool skip_show_rs_window = false);
 	__dojostatic void DeinitializeVarSettings();
+
+	__dojostatic std::string GetDefaultFilePath();
 
 	// SSU (추후 prototype ver2에 정의할 예정 (외부에서 namespace 변수 접근이 어려워 임시로 작업)
 	__dojostatic int GetCameraID_SSU(int scene_id);
