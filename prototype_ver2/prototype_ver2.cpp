@@ -67,6 +67,11 @@ string window_name_zs_view;
 int zoom_w;
 int zoom_h;
 
+int zoom_scene_stg_id;
+int zoom_cam_stg_id;
+int zoom_stg_w;
+int zoom_stg_h;
+
 int brain_ms_obj_id;
 int brain_ws_obj_id;
 int ventricle_ms_obj_id;
@@ -128,6 +133,11 @@ void InitializeVarSettings(GlobalInfo& g_info)
 	window_name_zs_view = "Zoom View";
 	sst_positions = "..\\Preset\\ss_tool_pts.txt";
 	guide_path = "..\\Preset\\ss_guide_pts.txt";
+
+	zoom_scene_stg_id = 7;
+	zoom_cam_stg_id = 1;
+	zoom_stg_w = 300;
+	zoom_stg_h = 300;
 }
 void SetCvWindows(GlobalInfo& g_info)
 {
@@ -179,6 +189,10 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 	vzm::GetSceneEnvParameters(g_info.ws_scene_id, zoom_scn_env_params);				// copy
 	zoom_scn_env_params.is_on_camera = true;
 	vzm::SetSceneEnvParameters(zoom_scene_id, zoom_scn_env_params);
+
+
+	vzm::SetCameraParameters(zoom_scene_stg_id, zoom_cam_params, zoom_cam_stg_id);
+	vzm::SetSceneEnvParameters(zoom_scene_stg_id, zoom_scn_env_params);
 
 
 	// grid
@@ -540,6 +554,15 @@ int main()
 						ventricle_ws_states.color[3] = 0.7;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 
+						// zoom stg scene
+						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, g_info.model_ws_obj_id, model_ws_states);
+						brain_ws_states.is_wireframe = false;
+						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, brain_ws_obj_id, brain_ws_states);
+						ventricle_ws_states.is_wireframe = false;
+						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ventricle_ws_obj_id, ventricle_ws_states);
+
+
+
 						// model scene
 						vzm::ObjStates model_ms_states, ventricle_ms_states;
 						vzm::GetSceneObjectState(g_info.model_scene_id, g_info.model_ms_obj_id, model_ms_states);
@@ -688,6 +711,11 @@ int main()
 
 						vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0015f), __FP glm::fvec3(0, 1, 1), 1, ssu_tool_end_zs_id);
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_end_zs_id, model_states);
+
+
+						// zoom stg
+						vzm::SetCameraParameters(zoom_scene_stg_id, zoom_cam_params, zoom_cam_id);
+						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_end_zs_id, model_states);
 					}
 				}
 
@@ -792,6 +820,8 @@ int main()
 						ws_states.color[3] = 0.2;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
+						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_line_ws_id, ws_states);
+
 						// direction (zoom scene)
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
 						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
@@ -831,6 +861,9 @@ int main()
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
 
+							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
+							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
+
 
 							string dist_str = std::to_string((int)(fGuideDist * 1000));
 							auto MakeDistTextWidget = [&dist_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
@@ -851,6 +884,9 @@ int main()
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
+
+							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_id, distanceLineState);
+							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
 							// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
 							//vzm::ObjStates angleArrowState = model_ws_states;
@@ -881,6 +917,7 @@ int main()
 							right_offset = -0.02f;
 							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
+							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleText_id, angleTextState);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 							vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 						}
@@ -894,12 +931,13 @@ int main()
 				vzm::RenderScene(zoom_scene_id, zoom_cam_id);
 
 				// get zoom buffer
-				unsigned char *ptr_rgba_zv;
-				float *ptr_zdepth_zv;
-				int w_zv, h_zv;
+				unsigned char *ptr_rgba_zv, *ptr_rgba_zv_stg;
+				float *ptr_zdepth_zv, *ptr_zdepth_zv_stg;
+				int w_zv, h_zv, w_zv_stg, h_zv_stg;
 				bool bZoomBuffer = vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba_zv, &ptr_zdepth_zv, &w_zv, &h_zv, zoom_cam_id);
+				bool bZoomBuffer_stg = vzm::GetRenderBufferPtrs(zoom_scene_stg_id, &ptr_rgba_zv_stg, &ptr_zdepth_zv_stg, &w_zv_stg, &h_zv_stg, zoom_cam_stg_id);
 
-				if(bZoomBuffer)
+				if(bZoomBuffer && bZoomBuffer_stg)
 				{
 					// realsense
 					unsigned char* rs_buffer = image_rs_bgr.data;		// 3 channels bgr
@@ -938,14 +976,25 @@ int main()
 								int idx_zv = nChan_zs * zoom_w*y + nChan_zs * x;
 								int idx_stg = nChan_stg * stg_w * (y + nLeftTopY_stg) + nChan_stg * (x + nLeftTopX_stg);
 
+								/*
 								ptr_rgba_stg[idx_stg + 0] = ptr_rgba_zv[idx_zv + 0];
 								ptr_rgba_stg[idx_stg + 1] = ptr_rgba_zv[idx_zv + 1];
 								ptr_rgba_stg[idx_stg + 2] = ptr_rgba_zv[idx_zv + 2];
 								ptr_rgba_stg[idx_stg + 3] = ptr_rgba_zv[idx_zv + 3];
+								*/
+								ptr_rgba_stg[idx_stg + 0] = ptr_rgba_zv_stg[idx_zv + 0];
+								ptr_rgba_stg[idx_stg + 1] = ptr_rgba_zv_stg[idx_zv + 1];
+								ptr_rgba_stg[idx_stg + 2] = ptr_rgba_zv_stg[idx_zv + 2];
+								ptr_rgba_stg[idx_stg + 3] = ptr_rgba_zv_stg[idx_zv + 3];
 							}
 						}
 
 						Mat image_stg_bgr(cv::Size(stg_w, stg_h), CV_8UC4, (void*)ptr_rgba_stg);
+						cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg), Scalar(255, 255, 255));
+						cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg), cv::Point(nLeftTopX_stg, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
+						cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
+						cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg + zoom_h), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
+
 						imshow(g_info.window_name_stg_view, image_stg_bgr);
 					}
 				}
