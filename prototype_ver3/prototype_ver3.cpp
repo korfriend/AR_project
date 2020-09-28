@@ -198,7 +198,7 @@ int main()
 	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
-	int postpone = 0;
+	int postpone = 3;
 	concurrent_queue<track_info> track_que(10);
 	std::atomic_bool tracker_alive{ true };
 	std::thread tracker_processing_thread([&]() {

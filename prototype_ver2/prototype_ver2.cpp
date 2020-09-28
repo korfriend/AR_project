@@ -145,14 +145,14 @@ void SetCvWindows(GlobalInfo& g_info)
 	var_settings::GetVarInfo(&g_info);
 
 	// SSU //////////////////////////////////////////////////////////////////
-	cv::namedWindow(window_name_zs_view, WINDOW_NORMAL);
-	cv::namedWindow("zs_mirror", WINDOW_NORMAL);
+	cv::namedWindow(window_name_zs_view, WINDOW_AUTOSIZE);
+	//cv::namedWindow("zs_mirror", WINDOW_NORMAL);
 	Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 
-	cv::moveWindow(g_info.window_name_rs_view, 0, 0);
-	cv::moveWindow(g_info.window_name_ws_view, 0, 520);
-	cv::moveWindow(g_info.window_name_ms_view, 960, 0);
-	cv::moveWindow(window_name_zs_view, 960, 480);
+	//cv::moveWindow(g_info.window_name_rs_view, 0, 0);
+	//cv::moveWindow(g_info.window_name_ws_view, 0, 520);
+	//cv::moveWindow(g_info.window_name_ms_view, 960, 0);
+	//cv::moveWindow(window_name_zs_view, 960, 480);
 
 }
 void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h)
@@ -267,7 +267,7 @@ int main()
 	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
-	int postpone = 0;
+	int postpone = 3;
 	concurrent_queue<track_info> track_que(10);
 	std::atomic_bool tracker_alive{ true };
 	std::thread tracker_processing_thread([&]() {
@@ -338,7 +338,7 @@ int main()
 					//Sleep(dt);
 				}
 
-				double dSimulationTime2 = 1000.0 / dSimulationTime;
+				//double dSimulationTime2 = 1000.0 / dSimulationTime;
 				//printf("%f fps \n", dSimulationTime2);
 			}
 		}
@@ -429,7 +429,7 @@ int main()
 
 		if (trk_info.is_updated && current_frameset)
 		{
-			DisplayTimes(frq_begin, "device_stream_load");
+			//DisplayTimes(frq_begin, "device_stream_load");
 
 			var_settings::UpdateTrackInfo(&trk_info);
 
@@ -819,7 +819,7 @@ int main()
 
 						ws_states.color[3] = 0.2;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-
+						ws_states.color[3] = 0.8;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_line_ws_id, ws_states);
 
 						// direction (zoom scene)
@@ -929,6 +929,7 @@ int main()
 			if(g_info.is_modelaligned) {
 				var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, true);
 				vzm::RenderScene(zoom_scene_id, zoom_cam_id);
+				vzm::RenderScene(zoom_scene_stg_id, zoom_cam_stg_id);
 
 				// get zoom buffer
 				unsigned char *ptr_rgba_zv, *ptr_rgba_zv_stg;
@@ -937,7 +938,7 @@ int main()
 				bool bZoomBuffer = vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba_zv, &ptr_zdepth_zv, &w_zv, &h_zv, zoom_cam_id);
 				bool bZoomBuffer_stg = vzm::GetRenderBufferPtrs(zoom_scene_stg_id, &ptr_rgba_zv_stg, &ptr_zdepth_zv_stg, &w_zv_stg, &h_zv_stg, zoom_cam_stg_id);
 
-				if(bZoomBuffer && bZoomBuffer_stg)
+				if(bZoomBuffer)
 				{
 					// realsense
 					unsigned char* rs_buffer = image_rs_bgr.data;		// 3 channels bgr
@@ -957,9 +958,11 @@ int main()
 						}
 					}
 					imshow(g_info.window_name_rs_view, image_rs_bgr);
+				}
 
-
+				if (bZoomBuffer_stg) {
 					// smartglass
+					int nChan_zs = 4;
 					int nChan_stg = 4;
 					int nLeftTopX_stg = 325;
 					int nLeftTopY_stg = 165;
@@ -971,29 +974,25 @@ int main()
 					bool bSmartGlassBuffer = vzm::GetRenderBufferPtrs(g_info.stg_scene_id, &ptr_rgba_stg, &ptr_zdepth_stg, &stg_w, &stg_h, stg_cam_id);
 
 					if (bSmartGlassBuffer) {
-						for (int y = 0; y < zoom_h; y++) {
-							for (int x = 0; x < zoom_w; x++) {
-								int idx_zv = nChan_zs * zoom_w*y + nChan_zs * x;
+						for (int y = 0; y < zoom_stg_h; y++) {
+							for (int x = 0; x < zoom_stg_w; x++) {
+								int idx_zv_stg = nChan_zs * zoom_stg_w*y + nChan_zs * x;
 								int idx_stg = nChan_stg * stg_w * (y + nLeftTopY_stg) + nChan_stg * (x + nLeftTopX_stg);
 
-								/*
-								ptr_rgba_stg[idx_stg + 0] = ptr_rgba_zv[idx_zv + 0];
-								ptr_rgba_stg[idx_stg + 1] = ptr_rgba_zv[idx_zv + 1];
-								ptr_rgba_stg[idx_stg + 2] = ptr_rgba_zv[idx_zv + 2];
-								ptr_rgba_stg[idx_stg + 3] = ptr_rgba_zv[idx_zv + 3];
-								*/
-								ptr_rgba_stg[idx_stg + 0] = ptr_rgba_zv_stg[idx_zv + 0];
-								ptr_rgba_stg[idx_stg + 1] = ptr_rgba_zv_stg[idx_zv + 1];
-								ptr_rgba_stg[idx_stg + 2] = ptr_rgba_zv_stg[idx_zv + 2];
-								ptr_rgba_stg[idx_stg + 3] = ptr_rgba_zv_stg[idx_zv + 3];
+								ptr_rgba_stg[idx_stg + 0] = ptr_rgba_zv_stg[idx_zv_stg + 0];
+								ptr_rgba_stg[idx_stg + 1] = ptr_rgba_zv_stg[idx_zv_stg + 1];
+								ptr_rgba_stg[idx_stg + 2] = ptr_rgba_zv_stg[idx_zv_stg + 2];
+								ptr_rgba_stg[idx_stg + 3] = ptr_rgba_zv_stg[idx_zv_stg + 3];
 							}
 						}
 
 						Mat image_stg_bgr(cv::Size(stg_w, stg_h), CV_8UC4, (void*)ptr_rgba_stg);
-						cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg), Scalar(255, 255, 255));
-						cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg), cv::Point(nLeftTopX_stg, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
-						cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
-						cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg + zoom_h), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
+						cv::rectangle(image_stg_bgr, cv::Rect(nLeftTopX_stg, nLeftTopY_stg, zoom_stg_w, zoom_stg_h), Scalar(255, 255, 255), 3);
+
+						//cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg), Scalar(255, 255, 255));
+						//cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg), cv::Point(nLeftTopX_stg, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
+						//cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
+						//cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg + zoom_h), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
 
 						imshow(g_info.window_name_stg_view, image_stg_bgr);
 					}
@@ -1002,8 +1001,10 @@ int main()
 			else {
 				var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, false);
 			}
+
 			Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 
+			/*
 			{
 				unsigned char* ptr_rgba;
 				float* ptr_zdepth;
@@ -1014,11 +1015,12 @@ int main()
 					imshow("zs_mirror", img_stg_mirror);
 				}
 			}
+			*/
 
 			int model_cam_id = var_settings::GetCameraID_SSU(g_info.model_scene_id);
 			Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
 
-			DisplayTimes(frq_begin, "");
+			//DisplayTimes(frq_begin, "");
 		}
 
 #ifdef EYE_VIS_RS

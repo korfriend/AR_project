@@ -14,7 +14,7 @@ using namespace cv;
 #include "../kar_helpers.hpp"
 #include "../event_handler.hpp"
 
-//#define __MIRRORS
+#define __MIRRORS
 
 namespace rs_settings
 {
@@ -366,9 +366,9 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_200915.cal";
+		g_info.optrack_calib = preset_path + "..\\Preset\\CalibrationResult 2020-09-22 9.cal";
 		//g_info.optrack_env = preset_path + "..\\Preset\\Asset_200911.motive";
-		g_info.optrack_env = preset_path + "..\\Preset\\Asset_200921.motive";
+		g_info.optrack_env = preset_path + "..\\Preset\\Motive Profile - 2020-09-22.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
@@ -604,8 +604,8 @@ namespace var_settings
 
 	void SetCvWindows()
 	{
-#define __DOJO_PC
-		//#define __DEMO_PC
+//#define __DOJO_PC
+#define __DEMO_PC
 #ifdef __DOJO_PC
 		//Create a window
 		cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
@@ -626,9 +626,9 @@ namespace var_settings
 #endif
 
 #ifdef __DEMO_PC
+		const int display_w = 1680;
 		// for demo PC
 		//Create a window
-
 		cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
 		cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL);
 		cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL);
@@ -642,12 +642,12 @@ namespace var_settings
 
 		cv::moveWindow(g_info.window_name_ws_view, 550, 0);
 		cv::moveWindow(g_info.window_name_ms_view, 1180, 0);
-		cv::moveWindow(g_info.window_name_rs_view, 1680, 0);
-		cv::moveWindow(g_info.window_name_stg_view, 1680 + 1024, 0);
+		cv::moveWindow(g_info.window_name_rs_view, display_w, 0);
+		cv::moveWindow(g_info.window_name_stg_view, display_w + 1024, 0);
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
-		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 		cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 #endif
 
@@ -1718,7 +1718,7 @@ namespace var_settings
 
 					Mat image_stg(Size(_stg_w, _stg_h), CV_8UC4, (void*)ptr_rgba, Mat::AUTO_STEP);
 					cv::drawMarker(image_stg, Point(_stg_w / 2, _stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
-					cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 50), Scalar(255, 255, 255), 3);
+					cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 5), Scalar(255, 255, 255), 3);
 					Draw_STG_Calib_Point(image_stg);
 
 					imshow(g_info.window_name_stg_view, image_stg);
@@ -1736,7 +1736,7 @@ namespace var_settings
 				static Mat image_stg(Size(g_info.stg_w, g_info.stg_h), CV_8UC4, Mat::AUTO_STEP);
 				image_stg = cv::Mat::zeros(image_stg.size(), image_stg.type());
 				cv::drawMarker(image_stg, Point(g_info.stg_w / 2, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
-				cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 50), Scalar(255, 255, 255), 3);
+				cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 5), Scalar(255, 255, 255), 3);
 				Draw_STG_Calib_Point(image_stg);
 				imshow(g_info.window_name_stg_view, image_stg);
 
