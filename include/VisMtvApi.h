@@ -77,17 +77,27 @@ namespace vzm
 		float emission, diffusion, specular, sp_pow; // Phong's material reflection model
 		bool is_visible;
 		float color[4]; // rgba [0,1]
+
+		enum USAGE
+		{
+			VR_OTF,
+			MPR_WINDOWING,
+			VOLUME_MAP,
+			COLOR_MAP
+		};
 		// usage : "VR_OTF", "MPR_WINDOWING", "VOLUME_MAP", "COLOR_MAP"
-		std::map<std::string, int> associated_obj_ids; // <usage, obj_id> 
+		std::map<USAGE, int> associated_obj_ids; // <usage, obj_id> 
 
 		// 3D only
 		bool show_outline;
 		
 		// primitive 3D only
 		bool use_vertex_color; // use vertex color instead of color[0,1,2], if vertex buffer contains color information. note that color[3] is always used for the transparency
-		float point_thickness; // when the object consists of point cloud
-		float line_thickness; // not available for the wireframe's line
-		bool is_wireframe; // only for polygonal mesh
+		float point_thickness; // (diameter in pixels) when the object is defined as a point cloud without surfels
+		float surfel_size; // (diameter in world unit) when the object is defined as a point cloud with surfels
+		bool represent_points_to_surfels; // available when the object is defined as a point cloud
+		float line_thickness; // (pixels) available when the object is defined as line primitives and not available for wire frame lines
+		bool is_wireframe; // available when the object is a polygonal mesh
 		bool use_vertex_wirecolor; // use vertex color instead of wire_color[0,1,2], if vertex buffer contains color information. note that color[3] is always used for the transparency
 		float wire_color[4]; // rgba [0,1].. only for wireframe object
 
@@ -106,9 +116,11 @@ namespace vzm
 			color[0] = color[1] = color[2] = color[3] = 1.f;
 			memset(wire_color, 0, sizeof(float) * 4);
 			wire_color[3] = 1.f;
-			point_thickness = 0;
-			line_thickness = 0;
+			point_thickness = 0; // using 1 pixel 
+			line_thickness = 0; // using 1 pixel
+			surfel_size = 0; // using 0.002 size of object boundary
 			show_outline = false;
+			represent_points_to_surfels = true;
 
 			sample_rate = 1.f;
 		}
@@ -154,7 +166,8 @@ namespace vzm
 	__dojostatic bool DeinitEngineLib();
 
 	// here, obj_id (without const) is [in/out].. in : when a registered object of obj_id exists, out : when there is no registered object of obj_id
-	__dojostatic bool LoadModelFile(const std::string& filename, int& obj_id, const bool unify_redundancy = false); 
+	__dojostatic bool LoadModelFile(const std::string& filename, int& obj_id, const bool unify_redundancy = false);
+	__dojostatic bool LoadMultipleModelsFile(const std::string& filename, std::list<int>& obj_ids, const bool unify_redundancy = false);
 	// data_type "CHAR" "BYTE" "SHORT" "USHORT" "INT" "FLOAT"
 	__dojostatic bool GenerateEmptyVolume(int& vol_id, const int ref_vol_id = 0, const std::string& data_type = "", const double min_v = 0, const double max_v = 0, const double fill_v = 0);
 	__dojostatic bool GenerateEmptyPrimitive(int& prim_id);
@@ -177,7 +190,7 @@ namespace vzm
 	__dojostatic bool ReplaceOrAddSceneObject(const int scene_id, const int obj_id, const ObjStates& obj_states);
 	__dojostatic bool GetSceneObjectState(const int scene_id, const int obj_id, ObjStates& obj_states);
 	// when empty initializer_list, all objs in the scene are considered.
-	__dojostatic bool GetSceneBoundingBox(const std::initializer_list<int>& io_obj_ids, const int scene_id, float* pos_aabb_min_ws, float* pos_aabb_max_ws);
+	__dojostatic bool GetSceneBoundingBox(const std::list<int>& io_obj_ids, const int scene_id, float* pos_aabb_min_ws, float* pos_aabb_max_ws);
 	__dojostatic bool RemoveSceneObject(const int scene_id, const int obj_id);
 	__dojostatic bool RemoveScene(const int scene_id);
 	__dojostatic bool DeleteObject(const int obj_id); // the obj is deleted in memory
@@ -189,10 +202,11 @@ namespace vzm
 	__dojostatic bool GetCamProjMatrix(const int scene_id, const int cam_id, float* mat_ws2ss, float* mat_ss2ws = NULL, bool is_col_major = true);
 
 	__dojostatic bool RenderScene(const int scene_id, const int cam_id = 0);
-	__dojostatic bool GetRenderBufferPtrs(const int scene_id, unsigned char** ptr_rgba, float** ptr_zdepth, int* fbuf_w, int* fbuf_h, const int cam_id = 0);
+	__dojostatic bool GetRenderBufferPtrs(const int scene_id, unsigned char** ptr_rgba, float** ptr_zdepth, int* fbuf_w, int* fbuf_h, const int cam_id = 0, size_t* render_count = NULL);
 
 	// etc
 	__dojostatic bool GetPModelData(const int obj_id, float** pos_vtx, float** nrl_vtx, float** rgb_vtx, float** tex_vtx, int& num_vtx, unsigned int** idx_prims, int& num_prims, int& stride_prim_idx);
+	__dojostatic bool GetVolumeInfo(const int obj_id, void*** vol_slices_2darray_pointer, int* size_xyz, float* pitch_xyz, int* stride_bytes);
 
 	// picking
 	__dojostatic bool ValidatePickTarget(const int obj_id);
@@ -200,10 +214,11 @@ namespace vzm
 	__dojostatic bool Pick1stHitSurfaceUsingDepthMap(float* pos_pick, const int x, const int y, const float valid_depth_range, const int scene_id, const int cam_id);
 
 	// only for the contributor's (by DongJoon Kim) test info.
-	__dojostatic void DebugTestSet(const std::string& _script, const void* _pvalue, const size_t size_bytes, const int scene_id, const int cam_id, const int obj_id = -1);
+	__dojostatic void SetRenderTestParam(const std::string& _script, const std::any& value, const size_t size_bytes, const int scene_id, const int cam_id, const int obj_id = -1);
+	__dojostatic bool GetRenderTestParam(const std::string& _script, void* pvalue, const size_t size_bytes,  const int scene_id, const int cam_id, const int obj_id = -1);
 	__dojostatic void DisplayConsoleMessages(const bool is_display);
 
-	__dojostatic bool ExecuteModule2(const std::string& module_dll_file, const std::string& dll_function, const std::initializer_list<int>& io_obj_ids, const std::map<std::string, std::any>& parameters);
+	__dojostatic bool ExecuteModule2(const std::string& module_dll_file, const std::string& dll_function, const std::list<int>& io_obj_ids, const std::map<std::string, std::any>& parameters);
 }
 
 namespace vzmproc

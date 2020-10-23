@@ -329,7 +329,7 @@ void GenWorldGrid(int ws_scene_id, int ws_cam_id)
 	grid_obj_state.line_thickness = 0;
 	vzm::ReplaceOrAddSceneObject(ws_scene_id, coord_grid_obj_id, grid_obj_state);
 	bool foremost_surf_rendering = true;
-	vzm::DebugTestSet("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), ws_scene_id, ws_cam_id, coord_grid_obj_id);
+	vzm::SetRenderTestParam("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), ws_scene_id, ws_cam_id, coord_grid_obj_id);
 	grid_obj_state.color[3] = 0.9f;
 	vzm::ReplaceOrAddSceneObject(ws_scene_id, axis_lines_obj_id, grid_obj_state);
 	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(1, 0.3, 0.3, 0.6);

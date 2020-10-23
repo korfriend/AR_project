@@ -511,11 +511,11 @@ namespace var_settings
 		default_obj_state = obj_state;
 
 		double vz = 0.001;
-		vzm::DebugTestSet("_double_VZThickness", &vz, sizeof(double), -1, -1);
+		vzm::SetRenderTestParam("_double_VZThickness", &vz, sizeof(double), -1, -1);
 		double cvz = 0.0005;
-		vzm::DebugTestSet("_double_CopVZThickness", &cvz, sizeof(double), -1, -1);
+		vzm::SetRenderTestParam("_double_CopVZThickness", &cvz, sizeof(double), -1, -1);
 		bool use_new_version = true;
-		vzm::DebugTestSet("_bool_TestOit", &use_new_version, sizeof(bool), -1, -1);
+		vzm::SetRenderTestParam("_bool_TestOit", &use_new_version, sizeof(bool), -1, -1);
 
 		vzm::ObjStates model_state = obj_state;
 		model_state.emission = 0.3f;
@@ -553,17 +553,17 @@ namespace var_settings
 			vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], mpr_tmap_id);
 
 			vzm::ObjStates volume_ws_state = model_state;
-			volume_ws_state.associated_obj_ids["VR_OTF"] = vr_tmap_id;
-			volume_ws_state.associated_obj_ids["MPR_WINDOWING"] = mpr_tmap_id;
+			volume_ws_state.associated_obj_ids[vzm::ObjStates::USAGE::VR_OTF] = vr_tmap_id;
+			volume_ws_state.associated_obj_ids[vzm::ObjStates::USAGE::MPR_WINDOWING] = mpr_tmap_id;
 
-			volume_ws_state.associated_obj_ids["VR_OTF"] = vr_tmap_id1;
+			volume_ws_state.associated_obj_ids[vzm::ObjStates::USAGE::VR_OTF] = vr_tmap_id1;
 			volume_ws_state.is_visible = false;
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_state);
 
 			double sample_rate = 1. / scale_factor;
-			vzm::DebugTestSet("_double_UserSampleRate", &sample_rate, sizeof(double), -1, -1);// g_info.model_scene_id, model_cam_id);
+			vzm::SetRenderTestParam("_double_UserSampleRate", &sample_rate, sizeof(double), -1, -1);// g_info.model_scene_id, model_cam_id);
 			bool apply_samplerate2grad = true;
-			vzm::DebugTestSet("_bool_ApplySampleRateToGradient", &apply_samplerate2grad, sizeof(bool), -1, -1);//g_info.model_scene_id, model_cam_id);
+			vzm::SetRenderTestParam("_bool_ApplySampleRateToGradient", &apply_samplerate2grad, sizeof(bool), -1, -1);//g_info.model_scene_id, model_cam_id);
 
 			//vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_volume_id, volume_ws_state);
 		}
@@ -1480,7 +1480,7 @@ namespace var_settings
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.rs_pc_id, obj_state_pts);
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.rs_pc_id, obj_state_pts);
 				bool foremost_surf_rendering = true;
-				vzm::DebugTestSet("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), g_info.ws_scene_id, ov_cam_id, g_info.rs_pc_id);
+				vzm::SetRenderTestParam("_bool_OnlyForemostSurfaces", &foremost_surf_rendering, sizeof(bool), g_info.ws_scene_id, ov_cam_id, g_info.rs_pc_id);
 			}
 		}
 		else
