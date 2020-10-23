@@ -381,8 +381,7 @@ int main()
 
 	vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1);
 	//vzm::SetRenderTestParam("_int_OitMode", (int)1, sizeof(bool), -1, -1);
-	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), 
-		sizeof(glm::dvec4), 1, 1);
+	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
 
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
@@ -544,14 +543,25 @@ int main()
 
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_states);
 
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, brain_ws_obj_id, brain_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, brain_ws_obj_id, brain_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, brain_ws_obj_id, brain_ws_states);
-
+						
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
+						
+
+						vzm::ObjStates model_stg_states, brain_stg_states, ventricle_stg_states;
+						model_stg_states = model_ws_states;
+						brain_stg_states = brain_ws_states;
+						ventricle_stg_states = ventricle_ws_states;
+
+						model_stg_states.color[3] = 0.5;
+						brain_stg_states.color[3] = 0.8;
+						ventricle_stg_states.color[3] = 1.0;
+
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, brain_ws_obj_id, brain_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 
 						// zoom scene
@@ -562,6 +572,7 @@ int main()
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 
 						// zoom stg scene
+
 						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, g_info.model_ws_obj_id, model_ws_states);
 						brain_ws_states.is_wireframe = false;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, brain_ws_obj_id, brain_ws_states);
@@ -822,6 +833,10 @@ int main()
 						vzm::GenerateCylindersObject((float*)cyl_p2, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+
+						vzm::ObjStates stg_states;
+						stg_states = ws_states;
+						stg_states.color[3] = 1;
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
 						ws_states.color[3] = 0.2;
