@@ -366,7 +366,7 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201022.cal";
+		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201023.cal";
 		//g_info.optrack_env = preset_path + "..\\Preset\\Asset_200911.motive";
 		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201022.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
@@ -510,9 +510,9 @@ namespace var_settings
 		__cm4__ obj_state.os2ws = glm::fmat4x4();
 		default_obj_state = obj_state;
 
-		double vz = 0.001;
+		double vz = 0.0;
 		vzm::SetRenderTestParam("_double_VZThickness", vz, sizeof(double), -1, -1);
-		double cvz = 0.0005;
+		double cvz = 0.00001;
 		vzm::SetRenderTestParam("_double_CopVZThickness", cvz, sizeof(double), -1, -1);
 
 		vzm::ObjStates model_state = obj_state;
@@ -640,8 +640,8 @@ namespace var_settings
 
 		cv::moveWindow(g_info.window_name_ws_view, 550, 0);
 		cv::moveWindow(g_info.window_name_ms_view, 1180, 0);
-		//cv::moveWindow(g_info.window_name_rs_view, display_w, 0);
-		cv::moveWindow(g_info.window_name_rs_view, 0, 0);
+		cv::moveWindow(g_info.window_name_rs_view, display_w, 0);
+		//cv::moveWindow(g_info.window_name_rs_view, 0, 0);
 		cv::moveWindow(g_info.window_name_stg_view, display_w + 1024, 0);
 
 
@@ -649,7 +649,7 @@ namespace var_settings
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
-		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 		cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 #endif
 
@@ -1481,7 +1481,7 @@ namespace var_settings
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.rs_pc_id, obj_state_pts);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.rs_pc_id, obj_state_pts);
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.rs_pc_id, obj_state_pts);
-				bool foremost_surf_rendering = true;
+				bool foremost_surf_rendering = false;
 				vzm::SetRenderTestParam("_bool_OnlyForemostSurfaces", foremost_surf_rendering, sizeof(bool), g_info.ws_scene_id, ov_cam_id, g_info.rs_pc_id);
 			}
 		}
@@ -1594,6 +1594,7 @@ namespace var_settings
 	{
 		auto DisplayTimes = [&show_times](const LARGE_INTEGER lIntCntStart, const string& _test)
 		{
+			return;
 			if (!show_times) return;
 			LARGE_INTEGER lIntFreq, lIntCntEnd;
 			QueryPerformanceFrequency(&lIntFreq);

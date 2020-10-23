@@ -378,7 +378,11 @@ int main()
 #endif
 
 	vzm::DisplayConsoleMessages(false);
-	vzm::SetRenderTestParam("_int_OitMode", 1, sizeof(bool), -1, -1);
+
+	vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1);
+	//vzm::SetRenderTestParam("_int_OitMode", (int)1, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), 
+		sizeof(glm::dvec4), 1, 1);
 
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
@@ -406,6 +410,7 @@ int main()
 		case 'w': write_recoded_info = true; break;
 		case 'f': show_workload = !show_workload; break;
 		case 'c': is_ws_pick = !is_ws_pick; break;
+		case 'o': vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1); break;
 
 		case '1': guide_toggle = !guide_toggle;	break;
 		case '2': ssutool_toggle = !ssutool_toggle; break;
