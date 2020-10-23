@@ -290,8 +290,8 @@ int main()
 		//case '4': g_info.touch_mode = RsTouchMode::PIN_ORIENTATION; break; 
 		//case '5': g_info.touch_mode = RsTouchMode::Calib_STG; break; 
 		}
-		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", &recompile_hlsl, sizeof(bool), -1, -1);
-		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", &show_apis_console, sizeof(bool), -1, -1);
+		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
+		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", show_apis_console, sizeof(bool), -1, -1);
 		vzm::DisplayConsoleMessages(show_apis_console);
 
 		if (reset_calib) var_settings::ResetCalib();

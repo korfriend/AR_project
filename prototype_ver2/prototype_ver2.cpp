@@ -412,7 +412,7 @@ int main()
 		case '0': ssutool_key = true;	break;
 		}
 		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
-		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", &show_apis_console, sizeof(bool), -1, -1);
+		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", show_apis_console, sizeof(bool), -1, -1);
 		//vzm::DisplayConsoleMessages(show_apis_console);
 
 		if (reset_calib) var_settings::ResetCalib();
