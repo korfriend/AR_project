@@ -377,6 +377,8 @@ int main()
 	// fill record_trk_info and record_rsimg
 #endif
 
+	vzm::DisplayConsoleMessages(false);
+	vzm::SetRenderTestParam("_int_OitMode", 1, sizeof(bool), -1, -1);
 
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
@@ -409,8 +411,8 @@ int main()
 		case '2': ssutool_toggle = !ssutool_toggle; break;
 		case '0': ssutool_key = true;	break;
 		}
-		vzm::DebugTestSet("_bool_ReloadHLSLObjFiles", &recompile_hlsl, sizeof(bool), -1, -1);
-		vzm::DebugTestSet("_bool_PrintOutRoutineObjs", &show_apis_console, sizeof(bool), -1, -1);
+		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
+		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", &show_apis_console, sizeof(bool), -1, -1);
 		//vzm::DisplayConsoleMessages(show_apis_console);
 
 		if (reset_calib) var_settings::ResetCalib();
