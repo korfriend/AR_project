@@ -366,9 +366,9 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = preset_path + "..\\Preset\\CalibrationResult 2020-09-22 9.cal";
+		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201022.cal";
 		//g_info.optrack_env = preset_path + "..\\Preset\\Asset_200911.motive";
-		g_info.optrack_env = preset_path + "..\\Preset\\Motive Profile - 2020-09-22.motive";
+		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201022.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
@@ -642,12 +642,16 @@ namespace var_settings
 
 		cv::moveWindow(g_info.window_name_ws_view, 550, 0);
 		cv::moveWindow(g_info.window_name_ms_view, 1180, 0);
-		cv::moveWindow(g_info.window_name_rs_view, display_w, 0);
+		//cv::moveWindow(g_info.window_name_rs_view, display_w, 0);
+		cv::moveWindow(g_info.window_name_rs_view, 0, 0);
 		cv::moveWindow(g_info.window_name_stg_view, display_w + 1024, 0);
+
+
+
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
-		cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 		cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 #endif
 

@@ -411,7 +411,7 @@ int main()
 		}
 		vzm::DebugTestSet("_bool_ReloadHLSLObjFiles", &recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::DebugTestSet("_bool_PrintOutRoutineObjs", &show_apis_console, sizeof(bool), -1, -1);
-		vzm::DisplayConsoleMessages(show_apis_console);
+		//vzm::DisplayConsoleMessages(show_apis_console);
 
 		if (reset_calib) var_settings::ResetCalib();
 
