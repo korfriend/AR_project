@@ -599,6 +599,32 @@ namespace var_settings
 
 		// make 3d ui widgets
 		GenWorldGrid(g_info.ws_scene_id, ov_cam_id);
+
+		vzm::SetRenderTestParam("_double_AbsCopVZThickness", 0.001, sizeof(double), -1, -1);
+
+		//{
+		//	int coord_grid_obj_id = 0, axis_lines_obj_id = 0, axis_texX_obj_id = 0, axis_texZ_obj_id = 0;
+		//	World_GridAxis_Gen(coord_grid_obj_id, axis_lines_obj_id, axis_texX_obj_id, axis_texZ_obj_id);
+		//	vzm::ObjStates grid_obj_state;
+		//	grid_obj_state.color[3] = 0.7f;
+		//	grid_obj_state.line_thickness = 0;
+		//	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, coord_grid_obj_id, grid_obj_state);
+		//	bool foremost_surf_rendering = false;
+		//	vzm::SetRenderTestParam("_bool_OnlyForemostSurfaces", foremost_surf_rendering, sizeof(bool), g_info.ws_scene_id, ov_cam_id, coord_grid_obj_id);
+		//	grid_obj_state.color[3] = 0.9f;
+		//	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_lines_obj_id, grid_obj_state);
+		//	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(1, 0.3, 0.3, 0.6);
+		//	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texX_obj_id, grid_obj_state);
+		//	*(glm::fvec4*) grid_obj_state.color = glm::fvec4(0.3, 0.3, 1, 0.6);
+		//	vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, axis_texZ_obj_id, grid_obj_state);
+		//	SetDashEffectInRendering(g_info.ws_scene_id, ov_cam_id, coord_grid_obj_id, 0.01);
+		//
+		//	vzm::SetRenderTestParam("_bool_IsDashed", true, sizeof(bool), g_info.ws_scene_id, ov_cam_id, coord_grid_obj_id);
+		//	vzm::SetRenderTestParam("_bool_IsInvertColorDashLine", false, sizeof(bool), g_info.ws_scene_id, ov_cam_id, coord_grid_obj_id);
+		//	vzm::SetRenderTestParam("_double_LineDashInterval", 2.0, sizeof(double), g_info.ws_scene_id, ov_cam_id, coord_grid_obj_id);
+		//}
+
+
 		// touch interface buttons
 		Make_Buttons(g_info.rs_w, g_info.rs_h, g_info.rs_buttons);
 	}

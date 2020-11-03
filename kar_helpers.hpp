@@ -359,10 +359,10 @@ std::string to_string_with_precision(const T a_value, const int n = 6)
 	return out.str();
 }
 
-void SetDashEffectInRendering(const int scene_id, const int cam_id, const int line_obj_id, const double dash_interval)
+void SetDashEffectInRendering(const int scene_id, const int cam_id, const int line_obj_id, const double dash_interval, const bool is_InvertColorDashLine)
 {
 	vzm::SetRenderTestParam("_bool_IsDashed", true, sizeof(bool), scene_id, cam_id, line_obj_id);
-	vzm::SetRenderTestParam("_bool_IsInvertColorDashLine", true, sizeof(bool), scene_id, cam_id, line_obj_id);
+	vzm::SetRenderTestParam("_bool_IsInvertColorDashLine", is_InvertColorDashLine, sizeof(bool), scene_id, cam_id, line_obj_id);
 	vzm::SetRenderTestParam("_double_LineDashInterval", dash_interval, sizeof(double), scene_id, cam_id, line_obj_id);
 }
 

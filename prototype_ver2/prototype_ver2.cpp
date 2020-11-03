@@ -824,16 +824,22 @@ int main()
 						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, ssu_tool_line_ms_state);
 
 
-						// world scene, realsense scene, zoom scene
+						// world scene, realsense scene
 						vzm::ObjStates ws_states;
-						//vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, ws_states);
-						glm::fvec3 cyl_p2[2] = { ssguide_p1_ws, ssguide_p2_ws };
-						cyl_r = 0.0015f;
 
-						vzm::GenerateCylindersObject((float*)cyl_p2, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ws_id);
+						glm::fvec3 tempP = ssguide_p1_ws + ssguide_dir * 1000.0f;
+						glm::fvec3 guide_p[2] = { ssguide_p1_ws, tempP};
+						glm::fvec3 guide_c[2] = { glm::fvec3(1,0,0), glm::fvec3(0,0,0) };
+						vzm::GenerateLinesObject((float*)guide_p, (float*)guide_c, 1, ssu_tool_guide_line_ws_id);
+						ws_states.line_thickness = 5;
+
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						SetDashEffectInRendering(g_info.ws_scene_id, 1, ssu_tool_guide_line_ws_id, 0.01);
 
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						SetDashEffectInRendering(g_info.rs_scene_id, 1, ssu_tool_guide_line_ws_id, 0.01);
+
+						// smartglass scene
 						vzm::ObjStates stg_states;
 						stg_states = ws_states;
 						stg_states.color[3] = 1;
@@ -844,7 +850,7 @@ int main()
 						ws_states.color[3] = 0.8;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_line_ws_id, ws_states);
 
-						// direction (zoom scene)
+						// navigation (zoom scene)
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
 						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
 
@@ -922,16 +928,6 @@ int main()
 								text_xyzlt_view_up[0] = pos_lt;
 								text_xyzlt_view_up[1] = __cv3__ cam_param.view;
 								text_xyzlt_view_up[2] = __cv3__ cam_param.up;
-								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
-							};
-							auto MakeAngleTextWidget_2 = [&angle_str](const glm::fvec3 pos_tip, const glm::fvec3 dir_driver_s2e, const glm::fvec3 dir_screw_s2e, glm::fvec3 tx_view, glm::fvec3 tx_up, const float size_font, int& text_id)
-							{
-								glm::fvec3 dir_driver_s2e_unit = glm::normalize(dir_driver_s2e);
-								glm::fvec3 pos_lt = pos_tip + dir_driver_s2e_unit * 0.08f;// +dir_screw2dirver * 1.1f;
-								vector<glm::fvec3> text_xyzlt_view_up(3);
-								text_xyzlt_view_up[0] = pos_lt;
-								text_xyzlt_view_up[1] = tx_view;
-								text_xyzlt_view_up[2] = tx_up;
 								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
 							};
 
