@@ -6,12 +6,16 @@
 #include <queue>
 #include <bitset>
 #include <string>
+#include <sstream>
+#include <iomanip>
+
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -338,6 +342,119 @@ void GenWorldGrid(int ws_scene_id, int ws_cam_id)
 	vzm::ReplaceOrAddSceneObject(ws_scene_id, axis_texZ_obj_id, grid_obj_state);
 }
 
+void ComputeClosestPointBetweenLineAndPoint(const glm::fvec3& pos_line, const glm::fvec3& dir_line, const glm::fvec3& pos_point, glm::fvec3& pos_closest_point)
+{
+	float len = glm::length(dir_line);
+	if (len <= 0.000001f) return;
+	//http://math.stackexchange.com/questions/748315/finding-the-coordinates-of-a-point-on-a-line-that-produces-the-shortest-distance
+	float t = ((pos_point.x * dir_line.x + pos_point.y * dir_line.y + pos_point.z * dir_line.z) - (pos_line.x * dir_line.x + pos_line.y * dir_line.y + pos_line.z * dir_line.z)) / len;
+	pos_closest_point = pos_line + dir_line * t;
+}
+
+template <typename T>
+std::string to_string_with_precision(const T a_value, const int n = 6)
+{
+	std::ostringstream out;
+	out << std::setprecision(n) << a_value;
+	return out.str();
+}
+
+void SetDashEffectInRendering(const int scene_id, const int cam_id, const int line_obj_id, const double dash_interval)
+{
+	vzm::SetRenderTestParam("_bool_IsDashed", true, sizeof(bool), scene_id, cam_id, line_obj_id);
+	vzm::SetRenderTestParam("_bool_IsInvertColorDashLine", true, sizeof(bool), scene_id, cam_id, line_obj_id);
+	vzm::SetRenderTestParam("_double_LineDashInterval", dash_interval, sizeof(double), scene_id, cam_id, line_obj_id);
+}
+
+void MakeDistanceLine(const glm::fvec3& pos_tool_tip, const glm::fvec3& pos_dst_point, const float font_size, int& closest_point_line_id, int& dist_text_id)
+{
+	//const float font_size = 30.f; // mm
+	//static int closest_point_line_id = 0, dist_text_id = 0;
+	glm::fvec3 pos_closest_line[2] = { pos_tool_tip, pos_dst_point };
+	glm::fvec3 clr_closest_line[2] = { glm::fvec3(1, 1, 0), glm::fvec3(1, 1, 0) };
+	vzm::GenerateLinesObject(__FP pos_closest_line, __FP clr_closest_line, 1, closest_point_line_id);
+	//vzm::ObjStates obj_state_closest_point_line;
+	//obj_state_closest_point_line.line_thickness = 2;
+	//vzm::ReplaceOrAddSceneObject(0, closest_point_line_id, obj_state_closest_point_line);
+	//vzm::SetRenderTestParam("_bool_IsDashed", true, sizeof(bool), 0, 0, closest_point_line_id);
+	//vzm::SetRenderTestParam("_bool_IsInvertColorDashLine", true, sizeof(bool), 0, 0, closest_point_line_id);
+	//vzm::SetRenderTestParam("_double_LineDashInterval", 2.0, sizeof(double), 0, 0, closest_point_line_id);
+
+	vzm::CameraParameters cam_params;
+	vzm::GetCameraParameters(0, cam_params, 0);
+	glm::fvec3 xyz_LT_view_up[3] = { (pos_closest_line[0] + pos_closest_line[1]) * 0.5f, __cv3__ cam_params.view, __cv3__ cam_params.up };
+	float dist = glm::length(pos_closest_line[0] - pos_closest_line[1]);
+	if (dist < 0.001f) dist = 0;
+	vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(dist, 3) + "mm", font_size, true, false, dist_text_id);
+	//vzm::ReplaceOrAddSceneObject(0, dist_text_id, obj_state_closest_point_line);
+}
+
+void MakeAngle(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length, int& angle_tris_id, int& angle_text_id)
+{
+	//const float font_size = 30.f;
+	const int num_angle_tris = 10;
+	//const float angle_tris_length = 50.f;
+	glm::fvec3 vec_ref = glm::normalize(glm::cross(tool_tip2end_dir, guide_dst2end_dir));
+	float angle = glm::orientedAngle(tool_tip2end_dir, guide_dst2end_dir, vec_ref);
+	std::cout << angle << std::endl;
+	std::vector<glm::fvec3> anlge_polygon_pos(num_angle_tris + 2);
+	std::vector<glm::fvec3> anlge_polygon_clr(num_angle_tris + 2);
+	anlge_polygon_pos[0] = pos_dst_point;
+	anlge_polygon_clr[0] = glm::fvec3(1);
+	std::vector<unsigned int> idx_prims(num_angle_tris * 3);
+	for (int i = 0; i < num_angle_tris + 1; i++)
+	{
+		glm::fvec3 r_vec = glm::rotate(guide_dst2end_dir, angle / (float)num_angle_tris * (float)i, vec_ref);
+		anlge_polygon_pos[1 + i] = pos_dst_point + r_vec * angle_tris_length;
+		anlge_polygon_clr[1 + i] = glm::fvec3((float)i / (float)num_angle_tris, 0, 1.f - (float)i / (float)num_angle_tris);
+		if (i < num_angle_tris)
+		{
+			idx_prims[3 * i + 0] = 0;
+			idx_prims[3 * i + 1] = i + 1;
+			idx_prims[3 * i + 2] = i + 2;
+		}
+	}
+	//static int angle_tris_id = 0, angle_text_id = 0;
+	vzm::GeneratePrimitiveObject(__FP anlge_polygon_pos[0], NULL, __FP anlge_polygon_clr[0], NULL, num_angle_tris + 2, (unsigned int*)&idx_prims[0], num_angle_tris, 3, angle_tris_id);
+	//vzm::ObjStates obj_state_angle_tris;
+	//obj_state_angle_tris.color[3] = 0.5f;
+	//vzm::ReplaceOrAddSceneObject(0, angle_tris_id, obj_state_angle_tris);
+
+	vzm::CameraParameters cam_params;
+	vzm::GetCameraParameters(0, cam_params, 0);
+	glm::fvec3 xyz_LT_view_up[3] = { anlge_polygon_pos[1], __cv3__ cam_params.view, __cv3__ cam_params.up };
+	if (angle * 180.f / glm::pi<float>() < 0.1) angle = 0;
+	vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(angle * 180.f / glm::pi<float>(), 3) + "вк", font_size, true, false, angle_text_id);
+	vzm::ObjStates obj_state_angle_text;
+	//vzm::ReplaceOrAddSceneObject(0, angle_text_id, obj_state_angle_text);
+}
+
+void MakeTrackeffect(const int track_fade_num, const glm::fvec3& pos_dst, int& track_spheres_id, std::vector<glm::fvec3>& track_points)
+{
+	//const int track_fade_num = 100;
+	//static int track_spheres_id = 0;
+	//static std::vector<glm::fvec3> track_points;
+	if (track_points.size() == 0)// || glm::length(track_points[0] - pos_dst) > 0.5)
+	{
+		if (track_points.size() < track_fade_num)
+		{
+			track_points.push_back(pos_dst);
+		}
+		else
+		{
+			memcpy(&track_points[0], &track_points[1], sizeof(glm::fvec3) * (track_fade_num - 1));
+			track_points[track_fade_num - 1] = pos_dst;
+		}
+		std::vector<glm::fvec4> trackspheres(track_points.size());
+		for (int i = 0; i < (int)track_points.size(); i++)
+		{
+			trackspheres[i] = glm::fvec4(track_points[i], 0.5f + i * 1.f / track_fade_num);
+		}
+		vzm::GenerateSpheresObject(__FP trackspheres[0], NULL, track_points.size(), track_spheres_id);
+		//vzm::ObjStates obj_state_track_spheres;
+		//vzm::ReplaceOrAddSceneObject(0, track_spheres_id, obj_state_track_spheres);
+	}
+}
 
 glm::fmat4x4 MatrixWS2CS(const glm::fvec3& pos_eye, const glm::fvec3& vec_view, const glm::fvec3& vec_up)
 {
