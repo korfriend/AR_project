@@ -366,9 +366,9 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201023.cal";
+		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201029.cal";
 		//g_info.optrack_env = preset_path + "..\\Preset\\Asset_200911.motive";
-		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201023.motive";
+		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201029.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
@@ -1695,7 +1695,7 @@ namespace var_settings
 
 
 					if (g_info.otrk_data.stg_calib_pt_pairs.size() < 15)
-						cv::drawMarker(img, pos_2d_rs[g_info.otrk_data.stg_calib_pt_pairs.size()], Scalar(255, 100, 100), MARKER_CROSS, 30, 3);
+						cv::drawMarker(img, pos_2d_rs[g_info.otrk_data.stg_calib_pt_pairs.size()], Scalar(255, 100, 255), MARKER_CROSS, 30, 7);
 					else
 						for (int i = 0; i < g_info.otrk_data.stg_calib_pt_pairs.size(); i++)
 						{
