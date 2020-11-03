@@ -371,7 +371,7 @@ namespace var_settings
 		
 		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201023.cal";
 		//g_info.optrack_env = preset_path + "..\\Preset\\Asset_200911.motive";
-		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201022.motive";
+		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201023.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
