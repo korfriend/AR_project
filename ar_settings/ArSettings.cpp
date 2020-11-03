@@ -14,6 +14,9 @@ using namespace cv;
 #include "../kar_helpers.hpp"
 #include "../event_handler.hpp"
 
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 #define __MIRRORS
 
 namespace rs_settings
@@ -1122,9 +1125,23 @@ namespace var_settings
 					point2d.push_back(pt2d / 4.f);
 					point3d.push_back(g_info.otrk_data.calib_3d_pts[armk.id - 1]);
 				}
-
-				static glm::fmat4x4 prev_mat_clf2ws;
+				/*
+				static glm::fmat4x4 prev_mat_clf2ws = mat_clf2ws;
 				glm::fvec3 diff = tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3());
+
+				//auto get_quter = [](const glm::fmat4x4& tr)
+				//{
+				//	//glm::vec3 scale;
+				//	//glm::quat rotation;
+				//	//glm::vec3 translation;
+				//	//glm::vec3 skew;
+				//	//glm::vec4 perspective;
+				//	//glm::decompose(tr, scale, rotation, translation, skew, perspective);
+				//	glm::quat rotation = glm::toQuat(tr);
+				//};
+				glm::quat q_c = glm::toQuat(mat_clf2ws);
+				glm::quat q_prev = glm::toQuat(prev_mat_clf2ws);
+				glm::fvec3 rx
 
 				if (glm::length(diff) > 0.05 && point2d.size() > 0)
 				{
@@ -1177,6 +1194,7 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_frame_id, cstate);
 					g_info.otrk_data.calib_trial_rs_cam_frame_ids.push_back(calib_frame_id);
 				}
+				/**/
 			}
 		}
 
