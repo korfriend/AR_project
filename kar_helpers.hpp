@@ -394,8 +394,8 @@ void MakeAngle(const int scene_id, const glm::fvec3& tool_tip2end_dir, const glm
 	//const float font_size = 30.f;
 	const int num_angle_tris = 10;
 	//const float angle_tris_length = 50.f;
-	glm::fvec3 vec_ref = glm::normalize(glm::cross(tool_tip2end_dir, guide_dst2end_dir));
-	float angle = glm::orientedAngle(tool_tip2end_dir, guide_dst2end_dir, vec_ref);
+	glm::fvec3 vec_ref = glm::normalize(glm::cross(guide_dst2end_dir, tool_tip2end_dir));
+	float angle = glm::orientedAngle(guide_dst2end_dir, tool_tip2end_dir, vec_ref);
 	//std::cout << angle << std::endl;
 	std::vector<glm::fvec3> anlge_polygon_pos(num_angle_tris + 2);
 	std::vector<glm::fvec3> anlge_polygon_clr(num_angle_tris + 2);
