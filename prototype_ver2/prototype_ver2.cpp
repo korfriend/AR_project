@@ -381,8 +381,8 @@ int main()
 
 	vzm::DisplayConsoleMessages(false);
 
-	vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1);
-	//vzm::SetRenderTestParam("_int_OitMode", (int)1, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_bool_UseSpinLock", true, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
 
 	while (key_pressed != 'q' && key_pressed != 27)
@@ -534,12 +534,22 @@ int main()
 						model_ws_states.color[3] = 0.1;
 						
 						brain_ws_states = model_ws_states;
-						brain_ws_states.is_wireframe = true;
+						if (show_mks) {
+							brain_ws_states.is_wireframe = true;
+						}
+						else {
+							brain_ws_states.is_wireframe = false;
+						}
 						brain_ws_states.wire_color[0] = 0.5; brain_ws_states.wire_color[1] = 0.5; brain_ws_states.wire_color[2] = 0.5; brain_ws_states.wire_color[3] = 0.2;
 						brain_ws_states.color[0] = 0.5; brain_ws_states.color[1] = 0.5; brain_ws_states.color[2] = 0.5; brain_ws_states.color[3] = 0.3;
 
 						ventricle_ws_states = model_ws_states;
-						ventricle_ws_states.is_wireframe = true;
+						if (show_mks) {
+							ventricle_ws_states.is_wireframe = true;
+						}
+						else {
+							ventricle_ws_states.is_wireframe = false;
+						}
 						ventricle_ws_states.wire_color[0] = 0.9;	ventricle_ws_states.wire_color[1] = 0.5;	ventricle_ws_states.wire_color[2] = 0.5; ventricle_ws_states.wire_color[3] = 0.2;
 						ventricle_ws_states.color[0] = 1.0; ventricle_ws_states.color[1] = 0; ventricle_ws_states.color[2] = 0; ventricle_ws_states.color[3] = 1.0;
 
@@ -790,14 +800,17 @@ int main()
 					// ssu tool guide visualization //
 					static int ssu_tool_guide_distance_id = 0, ssu_tool_guide_distance_text_id = 0;
 					static int ssu_tool_guide_distance_arrow1_id = 0, ssu_tool_guide_distance_arrow2_id = 0;
-					static int ssu_tool_guide_angleLine_id = 0, ssu_tool_guide_angleArc_id = 0;
 					static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0;
 
 					static int ssu_tool_guide_line_ws_id = 0, ssu_tool_guide_line_ms_id = 0;
+					static int ssu_tool_guide_cylline_ws_id = 0;
+
+					static int ssu_tool_guide_distanceLine_id = 0, ssu_tool_guide_distanceLineText_id = 0;
+					static int ssu_tool_guide_angle_id = 0, ssu_tool_guide_angleText_id2 = 0;
 
 					if (ss_tool_guide_info.pos_centers_tfrm.size() && ss_tool_info.pos_centers_tfrm.size()) {
 
-						// sstool pos(ws)
+						// sstool pos(ws) //
 						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
 						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
 
@@ -809,24 +822,28 @@ int main()
 						glm::fvec3 ssguide_p2_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[1]);	// tool guide entry
 						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;
 
-						// model scene
-						glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
-						glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
+						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
+						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
 
-						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
-						glm::fvec3 cyl_p03[2] = { ssguide_p1_os, ssguide_p2_os };
-						float cyl_r = 1.5f;
+						// model scene //
+						{
+							glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
+							glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
 
-						vzm::ObjStates ssu_tool_line_ms_state;
-						double scale_factor = 0.001;
-						glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
-						__cm4__ ssu_tool_line_ms_state.os2ws = (__cm4__ ssu_tool_line_ms_state.os2ws) * mat_s;
+							glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
+							glm::fvec3 cyl_p[2] = { ssguide_p1_os, ssguide_p2_os };
+							float cyl_r = 1.5f;
 
-						vzm::GenerateCylindersObject((float*)cyl_p03, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ms_id);
-						vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, ssu_tool_line_ms_state);
+							vzm::ObjStates ssu_tool_line_ms_state;
+							double scale_factor = 0.001;
+							glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
+							__cm4__ ssu_tool_line_ms_state.os2ws = (__cm4__ ssu_tool_line_ms_state.os2ws) * mat_s;
 
+							vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_ms_id);
+							vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, ssu_tool_line_ms_state);
+						}
 
-						// world scene, realsense scene
+						// world scene, realsense scene //
 						vzm::ObjStates ws_states;
 
 						glm::fvec3 tempP = ssguide_p1_ws + ssguide_dir * 1000.0f;
@@ -836,26 +853,68 @@ int main()
 						ws_states.line_thickness = 5;
 
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-						SetDashEffectInRendering(g_info.ws_scene_id, 1, ssu_tool_guide_line_ws_id, 0.01);
+						SetDashEffectInRendering(g_info.ws_scene_id, 1, ssu_tool_guide_line_ws_id, 0.01, false);
 
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-						SetDashEffectInRendering(g_info.rs_scene_id, 1, ssu_tool_guide_line_ws_id, 0.01);
+						SetDashEffectInRendering(g_info.rs_scene_id, 1, ssu_tool_guide_line_ws_id, 0.01, false);
 
-						// smartglass scene
+						// -- distance line, angle
+						if (show_guide_view) {
+
+							// distance line
+							glm::fvec3 closetPoint;
+							ComputeClosestPointBetweenLineAndPoint(ssguide_p1_ws, ssguide_dir_norm, sstool_p1_ws, closetPoint);
+							MakeDistanceLine(g_info.rs_scene_id, sstool_p1_ws, closetPoint, 0.15, ssu_tool_guide_distanceLine_id, ssu_tool_guide_distanceLineText_id);
+
+							vzm::ObjStates ws_distanceLine_states;
+							ws_distanceLine_states = ws_states;
+
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_distanceLine_id, ws_states);
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_distanceLineText_id, ws_states);
+
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distanceLine_id, ws_states);
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distanceLineText_id, ws_states);
+
+							// angle
+							MakeAngle(g_info.rs_scene_id, sstool_dir_norm, ssguide_dir_norm, closetPoint, 0.05, 0.1, ssu_tool_guide_angle_id, ssu_tool_guide_angleText_id2);
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angle_id, ws_states);
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angleText_id2, ws_states);
+
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angle_id, ws_states);
+							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id2, ws_states);
+						}
+
+						// smartglass scene //
 						vzm::ObjStates stg_states;
 						stg_states = ws_states;
 						stg_states.color[3] = 1;
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_line_ws_id, ws_states);
 
-						ws_states.color[3] = 0.2;
-						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-						ws_states.color[3] = 0.8;
-						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_line_ws_id, ws_states);
+						// zoom scene //
+						{
+							// cylinder
+							if (true) {
+								glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
+								glm::fvec3 cyl_p[2] = { ssguide_p1_ws, ssguide_p2_ws };
+								float cyl_r = 0.0015f;
 
-						// navigation (zoom scene)
-						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
-						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
+								vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_cylline_ws_id);
 
+								ws_states.color[3] = 0.2;
+								vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_cylline_ws_id, ws_states);
+								ws_states.color[3] = 0.8;
+								vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_cylline_ws_id, ws_states);
+							}
+							else {
+								// line
+								ws_states.color[3] = 0.2;
+								vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+								ws_states.color[3] = 0.8;
+								vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_line_ws_id, ws_states);
+							}
+						}
+
+						// navigation (zoom scene) //
 						float fGuideAngle = glm::acos(glm::dot(sstool_dir_norm, ssguide_dir_norm)) * 180 / 3.141592;
 						float fGuideDist = glm::distance(ssguide_p1_ws, sstool_p1_ws);
 
@@ -912,15 +971,13 @@ int main()
 
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
-							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
-							vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
+							//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
+							//vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
 							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
 							// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
-							//vzm::ObjStates angleArrowState = model_ws_states;
-							//vzm::ObjStates angleTextState = model_ws_states;
 							vzm::ObjStates angleArrowState, angleTextState;
 
 							string angle_str = std::to_string((int)fGuideAngle) + "вк";
@@ -938,8 +995,8 @@ int main()
 							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleText_id, angleTextState);
-							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id, angleTextState);
-							vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_angleText_id, angleTextState);
+							//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id, angleTextState);
+							//vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 						}
 					}
 				}
@@ -964,7 +1021,7 @@ int main()
 					unsigned char* rs_buffer = image_rs_bgr.data;		// 3 channels bgr
 					int nChan_zs = 4;
 					int nChan_rs = 3;
-					int nLeftTopX_rs = 650;
+					int nLeftTopX_rs = 30;
 					int nLeftTopY_rs = 170;
 					
 					for (int y = 0; y < zoom_h; y++) {
@@ -984,7 +1041,7 @@ int main()
 					// smartglass
 					int nChan_zs = 4;
 					int nChan_stg = 4;
-					int nLeftTopX_stg = 325;
+					int nLeftTopX_stg = 15;
 					int nLeftTopY_stg = 165;
 
 					int stg_cam_id = var_settings::GetCameraID_SSU(g_info.stg_scene_id);
@@ -1008,11 +1065,6 @@ int main()
 
 						Mat image_stg_bgr(cv::Size(stg_w, stg_h), CV_8UC4, (void*)ptr_rgba_stg);
 						cv::rectangle(image_stg_bgr, cv::Rect(nLeftTopX_stg, nLeftTopY_stg, zoom_stg_w, zoom_stg_h), Scalar(255, 255, 255), 3);
-
-						//cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg), Scalar(255, 255, 255));
-						//cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg), cv::Point(nLeftTopX_stg, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
-						//cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
-						//cv::line(image_stg_bgr, cv::Point(nLeftTopX_stg, nLeftTopY_stg + zoom_h), cv::Point(nLeftTopX_stg + zoom_w, nLeftTopY_stg + zoom_h), Scalar(255, 255, 255));
 
 						imshow(g_info.window_name_stg_view, image_stg_bgr);
 					}

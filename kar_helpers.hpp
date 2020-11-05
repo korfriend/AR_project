@@ -366,7 +366,7 @@ void SetDashEffectInRendering(const int scene_id, const int cam_id, const int li
 	vzm::SetRenderTestParam("_double_LineDashInterval", dash_interval, sizeof(double), scene_id, cam_id, line_obj_id);
 }
 
-void MakeDistanceLine(const glm::fvec3& pos_tool_tip, const glm::fvec3& pos_dst_point, const float font_size, int& closest_point_line_id, int& dist_text_id)
+void MakeDistanceLine(const int scene_id, const glm::fvec3& pos_tool_tip, const glm::fvec3& pos_dst_point, const float font_size, int& closest_point_line_id, int& dist_text_id)
 {
 	//const float font_size = 30.f; // mm
 	//static int closest_point_line_id = 0, dist_text_id = 0;
@@ -381,7 +381,7 @@ void MakeDistanceLine(const glm::fvec3& pos_tool_tip, const glm::fvec3& pos_dst_
 	//vzm::SetRenderTestParam("_double_LineDashInterval", 2.0, sizeof(double), 0, 0, closest_point_line_id);
 
 	vzm::CameraParameters cam_params;
-	vzm::GetCameraParameters(0, cam_params, 0);
+	vzm::GetCameraParameters(scene_id, cam_params, 0);
 	glm::fvec3 xyz_LT_view_up[3] = { (pos_closest_line[0] + pos_closest_line[1]) * 0.5f, __cv3__ cam_params.view, __cv3__ cam_params.up };
 	float dist = glm::length(pos_closest_line[0] - pos_closest_line[1]);
 	if (dist < 0.001f) dist = 0;
@@ -389,14 +389,14 @@ void MakeDistanceLine(const glm::fvec3& pos_tool_tip, const glm::fvec3& pos_dst_
 	//vzm::ReplaceOrAddSceneObject(0, dist_text_id, obj_state_closest_point_line);
 }
 
-void MakeAngle(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length, int& angle_tris_id, int& angle_text_id)
+void MakeAngle(const int scene_id, const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length, int& angle_tris_id, int& angle_text_id)
 {
 	//const float font_size = 30.f;
 	const int num_angle_tris = 10;
 	//const float angle_tris_length = 50.f;
 	glm::fvec3 vec_ref = glm::normalize(glm::cross(tool_tip2end_dir, guide_dst2end_dir));
 	float angle = glm::orientedAngle(tool_tip2end_dir, guide_dst2end_dir, vec_ref);
-	std::cout << angle << std::endl;
+	//std::cout << angle << std::endl;
 	std::vector<glm::fvec3> anlge_polygon_pos(num_angle_tris + 2);
 	std::vector<glm::fvec3> anlge_polygon_clr(num_angle_tris + 2);
 	anlge_polygon_pos[0] = pos_dst_point;
@@ -421,7 +421,7 @@ void MakeAngle(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2e
 	//vzm::ReplaceOrAddSceneObject(0, angle_tris_id, obj_state_angle_tris);
 
 	vzm::CameraParameters cam_params;
-	vzm::GetCameraParameters(0, cam_params, 0);
+	vzm::GetCameraParameters(scene_id, cam_params, 0);
 	glm::fvec3 xyz_LT_view_up[3] = { anlge_polygon_pos[1], __cv3__ cam_params.view, __cv3__ cam_params.up };
 	if (angle * 180.f / glm::pi<float>() < 0.1) angle = 0;
 	vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(angle * 180.f / glm::pi<float>(), 3) + "вк", font_size, true, false, angle_text_id);
