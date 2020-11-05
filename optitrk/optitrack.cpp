@@ -402,6 +402,23 @@ bool optitrk::UpdateFrame(bool use_latest)
 	return TT_Update() == NPRESULT_SUCCESS;
 }
 
+bool optitrk::__test()
+{
+	using namespace std;
+	using namespace glm;
+
+	auto it = rb_id_map.find("ss_head");
+	if (it == rb_id_map.end())
+		return false;
+	int rb_idx = it->second;
+	int num_mks = TT_RigidBodyMarkerCount(rb_idx);
+
+	vector<float> _x(num_mks), _y(num_mks), _z(num_mks);
+	TT_RigidBodyUpdateMarker(rb_idx, -1, //== Update RigidBody mrkr
+		(float*)&_x[0], (float*)&_y[0], (float*)&_z[0]);
+	return true;
+}
+
 bool optitrk::DeinitOptiTrackLib()
 {
 	if (!is_initialized) return false;

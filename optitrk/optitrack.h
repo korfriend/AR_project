@@ -34,5 +34,8 @@ namespace optitrk
 	// normal camera space.. up : y down (-y), view : +z
 	__dojostatic bool GetCameraLocation(const int cam_idx, float* mat_cam2ws);
 	__dojostatic bool UpdateFrame(bool use_latest = false);
+
+	__dojostatic bool __test();
+
 	__dojostatic bool DeinitOptiTrackLib();
 }

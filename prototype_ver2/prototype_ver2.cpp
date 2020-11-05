@@ -299,6 +299,8 @@ int main()
 	cv::moveWindow(g_info.window_name_eye_view, 2560, 0);
 #endif
 
+	optitrk::__test();
+
 	// ssu ///////////////////////////////////////////////////////////////
 	bool bSaveGuideFile = false;
 	bool guide_toggle = false;
