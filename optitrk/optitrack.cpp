@@ -417,6 +417,8 @@ bool optitrk::__test()
 	TT_RigidBodyUpdateMarker(rb_idx, -1, //== Update RigidBody mrkr
 		(float*)&_x[0], (float*)&_y[0], (float*)&_z[0]);
 	return true;
+
+	// TT_CreateRigidBody
 }
 
 bool optitrk::DeinitOptiTrackLib()

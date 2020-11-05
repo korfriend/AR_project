@@ -538,7 +538,7 @@ int main()
 						vzm::ObjStates model_ws_states, brain_ws_states, ventricle_ws_states;
 						vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
 
-						model_ws_states.color[3] = 0.1;
+						model_ws_states.color[3] = 1.0;// 0.1;
 						
 						brain_ws_states = model_ws_states;
 						if (show_mks) {
@@ -547,8 +547,8 @@ int main()
 						else {
 							brain_ws_states.is_wireframe = false;
 						}
-						brain_ws_states.wire_color[0] = 0.5; brain_ws_states.wire_color[1] = 0.5; brain_ws_states.wire_color[2] = 0.5; brain_ws_states.wire_color[3] = 0.2;
-						brain_ws_states.color[0] = 0.5; brain_ws_states.color[1] = 0.5; brain_ws_states.color[2] = 0.5; brain_ws_states.color[3] = 0.3;
+						brain_ws_states.wire_color[0] = 0.5; brain_ws_states.wire_color[1] = 0.5; brain_ws_states.wire_color[2] = 0.5; brain_ws_states.wire_color[3] = 1.0;
+						brain_ws_states.color[0] = 0.5; brain_ws_states.color[1] = 0.5; brain_ws_states.color[2] = 0.5; brain_ws_states.color[3] = 1.0;
 
 						ventricle_ws_states = model_ws_states;
 						if (show_mks) {
@@ -557,7 +557,7 @@ int main()
 						else {
 							ventricle_ws_states.is_wireframe = false;
 						}
-						ventricle_ws_states.wire_color[0] = 0.9;	ventricle_ws_states.wire_color[1] = 0.5;	ventricle_ws_states.wire_color[2] = 0.5; ventricle_ws_states.wire_color[3] = 0.2;
+						ventricle_ws_states.wire_color[0] = 0.9;	ventricle_ws_states.wire_color[1] = 0.5;	ventricle_ws_states.wire_color[2] = 0.5; ventricle_ws_states.wire_color[3] = 1.0;
 						ventricle_ws_states.color[0] = 1.0; ventricle_ws_states.color[1] = 0; ventricle_ws_states.color[2] = 0; ventricle_ws_states.color[3] = 1.0;
 
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
@@ -882,6 +882,9 @@ int main()
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distanceLine_id, ws_states);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distanceLineText_id, ws_states);
 
+							SetDashEffectInRendering(g_info.ws_scene_id, 1, ssu_tool_guide_distanceLine_id, 0.01, true);
+							SetDashEffectInRendering(g_info.rs_scene_id, 1, ssu_tool_guide_distanceLine_id, 0.01, true);
+
 							// angle
 							MakeAngle(g_info.rs_scene_id, sstool_dir_norm, ssguide_dir_norm, closetPoint, 0.05, 0.1, ssu_tool_guide_angle_id, ssu_tool_guide_angleText_id2);
 							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_angle_id, ws_states);
@@ -889,9 +892,6 @@ int main()
 
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angle_id, ws_states);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id2, ws_states);
-
-							SetDashEffectInRendering(g_info.ws_scene_id, 1, ssu_tool_guide_angle_id, 0.01, true);
-							SetDashEffectInRendering(g_info.rs_scene_id, 1, ssu_tool_guide_angle_id, 0.01, true);
 
 							vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
 						}
