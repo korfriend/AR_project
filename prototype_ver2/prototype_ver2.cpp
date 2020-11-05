@@ -381,7 +381,7 @@ int main()
 
 	vzm::DisplayConsoleMessages(false);
 
-	vzm::SetRenderTestParam("_bool_UseSpinLock", true, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1);
 	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
 
@@ -864,7 +864,7 @@ int main()
 							// distance line
 							glm::fvec3 closetPoint;
 							ComputeClosestPointBetweenLineAndPoint(ssguide_p1_ws, ssguide_dir_norm, sstool_p1_ws, closetPoint);
-							MakeDistanceLine(g_info.rs_scene_id, sstool_p1_ws, closetPoint, 0.15, ssu_tool_guide_distanceLine_id, ssu_tool_guide_distanceLineText_id);
+							MakeDistanceLine(g_info.rs_scene_id, sstool_p1_ws, closetPoint, 0.05, ssu_tool_guide_distanceLine_id, ssu_tool_guide_distanceLineText_id);
 
 							vzm::ObjStates ws_distanceLine_states;
 							ws_distanceLine_states = ws_states;
