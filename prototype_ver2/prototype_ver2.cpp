@@ -385,6 +385,13 @@ int main()
 	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
 
+	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 150, 0.5), sizeof(glm::dvec4), -1, -1);
+	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(1, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, g_info.model_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, g_info.brain_ws_obj_id);
+
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
@@ -882,6 +889,11 @@ int main()
 
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angle_id, ws_states);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id2, ws_states);
+
+							SetDashEffectInRendering(g_info.ws_scene_id, 1, ssu_tool_guide_angle_id, 0.01, true);
+							SetDashEffectInRendering(g_info.rs_scene_id, 1, ssu_tool_guide_angle_id, 0.01, true);
+
+							vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
 						}
 
 						// smartglass scene //
