@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <map>
+#include <set>
 #include <queue>
 #include <iostream>
 
@@ -361,6 +362,32 @@ bool optitrk::GetRigidBodyLocationByName(const string& name, float* mat_rb2ws, s
 	int rb_idx = it->second;
 	if (rb_id) *rb_id = rb_idx;
 	return GetRigidBodyLocationById(rb_idx, mat_rb2ws, rbmk_xyz_list, trmk_xyz_list, tr_list, NULL);
+}
+
+bool optitrk::ReplaceOrAddRigidBody(const std::string& name, std::vector<float>* rbmk_xyz_list, int* rb_idx)
+{
+	if (rbmk_xyz_list->size() % 3 != 0) return false;
+
+	std::set<int, std::greater<int>> ids;
+	int dst_idx = -1;
+	for (auto it = rb_id_map.begin(); it != rb_id_map.end(); it++)
+	{
+		if (name == it->first)
+		{
+			dst_idx = it->second;
+			TT_RemoveRigidBody(dst_idx);
+			break;
+		}
+		ids.insert(it->second);
+	}
+
+	if (dst_idx < 0) dst_idx = *ids.begin();
+	rb_id_map[name] = dst_idx;
+
+	int num_mks = rbmk_xyz_list->size() / 3;
+	assert(TT_CreateRigidBody(name.c_str(), dst_idx, num_mks, &rbmk_xyz_list->at(0)) == NPRESULT_SUCCESS);
+
+	return true;
 }
 
 bool optitrk::GetCameraLocation(const int cam_idx, float* mat_cam2ws)

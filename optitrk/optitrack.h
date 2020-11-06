@@ -30,6 +30,7 @@ namespace optitrk
 	__dojostatic bool SetRigidBodyPropertyByName(const std::string& name, const float smooth_term, const int test_smooth_term);
 	__dojostatic bool GetRigidBodyLocationById(const int rb_idx, float* mat_rb2ws, std::vector<float>* rbmk_xyz_list = NULL, std::vector<float>* trmk_xyz_list = NULL, std::vector<bool>* tr_list = NULL, std::string* rb_name = NULL);
 	__dojostatic bool GetRigidBodyLocationByName(const std::string& name, float* mat_rb2ws, std::vector<float>* rbmk_xyz_list = NULL, std::vector<float>* trmk_xyz_list = NULL, std::vector<bool>* tr_list = NULL, int* rb_id = NULL);
+	__dojostatic bool ReplaceOrAddRigidBody(const std::string& name, std::vector<float>* rbmk_xyz_list, int* rb_idx = NULL);
 	// mat_cam2ws ==> glm::fmat4x4
 	// normal camera space.. up : y down (-y), view : +z
 	__dojostatic bool GetCameraLocation(const int cam_idx, float* mat_cam2ws);
