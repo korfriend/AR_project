@@ -381,8 +381,9 @@ bool optitrk::ReplaceOrAddRigidBody(const std::string& name, std::vector<float>*
 		ids.insert(it->second);
 	}
 
-	if (dst_idx < 0) dst_idx = *ids.begin();
+	if (dst_idx < 0) dst_idx = ids.size() > 0 ? *ids.begin() + 1 : 1;
 	rb_id_map[name] = dst_idx;
+	if (rb_idx) *rb_idx = dst_idx;
 
 	int num_mks = rbmk_xyz_list->size() / 3;
 	assert(TT_CreateRigidBody(name.c_str(), dst_idx, num_mks, &rbmk_xyz_list->at(0)) == NPRESULT_SUCCESS);
