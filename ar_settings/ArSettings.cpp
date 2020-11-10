@@ -347,17 +347,7 @@ namespace var_settings
 		//cout << hlslobj_path << endl;
 
 
-		// load txt file
-		/*
-		g_info.optrack_calib = "D:\\Document\\OptiTrack\\my_test_200812_1.cal";
-		g_info.optrack_env = "D:\\Document\\OptiTrack\\my_test_200812_1.motive";
-		g_info.cb_positions = "E:\\project_srcs\\kar\\prototype_ver1\\cb_points.txt";
-		g_info.sst_positions = "E:\\project_srcs\\kar\\prototype_ver1\\ss_pin_pts.txt";
-		g_info.rs_calib = "E:\\project_srcs\\kar\\prototype_ver1\\rs_calib.txt";
-		g_info.stg_calib = "E:\\project_srcs\\kar\\prototype_ver1\\stg_calib.txt";
-		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
-		*/
-
+		// load file
 		//	~200907
 		/*
 		g_info.optrack_calib = "C:\\Users\\User\\Desktop\\Preset\\Optitrack\\Calibration_200904.cal";
@@ -369,9 +359,8 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201029.cal";
-		//g_info.optrack_env = preset_path + "..\\Preset\\Asset_200911.motive";
-		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201029.motive";
+		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201110.cal";
+		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201110.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
@@ -1151,7 +1140,7 @@ namespace var_settings
 					point2d.push_back(pt2d / 4.f);
 					point3d.push_back(g_info.otrk_data.calib_3d_pts[armk.id - 1]);
 				}
-				/*
+				
 				static glm::fmat4x4 prev_mat_clf2ws = mat_clf2ws;
 				glm::fvec3 diff = tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3());
 
@@ -1165,9 +1154,10 @@ namespace var_settings
 				//	//glm::decompose(tr, scale, rotation, translation, skew, perspective);
 				//	glm::quat rotation = glm::toQuat(tr);
 				//};
-				glm::quat q_c = glm::toQuat(mat_clf2ws);
-				glm::quat q_prev = glm::toQuat(prev_mat_clf2ws);
-				glm::fvec3 rx
+				//glm::quat q_c = glm::toQuat(mat_clf2ws);
+				//glm::quat q_prev = glm::toQuat(prev_mat_clf2ws);
+				//glm::fvec3 rx
+				/**/
 
 				if (glm::length(diff) > 0.05 && point2d.size() > 0)
 				{
@@ -1220,7 +1210,6 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_frame_id, cstate);
 					g_info.otrk_data.calib_trial_rs_cam_frame_ids.push_back(calib_frame_id);
 				}
-				/**/
 			}
 		}
 

@@ -382,6 +382,10 @@ int main()
 	vzm::DisplayConsoleMessages(false);
 
 	vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_double_AbsCopVZThickness", 0.001, sizeof(double), -1, -1);
+	vzm::SetRenderTestParam("_double_VZThickness", 0.0, sizeof(double), -1, -1);
+	vzm::SetRenderTestParam("_double_MergingBeta", 0.5, sizeof(double), -1, -1);
+	vzm::SetRenderTestParam("_double_RobustRatio", 0.5, sizeof(double), -1, -1);
 	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
 
@@ -389,6 +393,7 @@ int main()
 	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
 	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 150, 0.5), sizeof(glm::dvec4), -1, -1);
 	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(1, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
+	vzm::SetRenderTestParam("_double_InDepthVis", 0.01, sizeof(double), -1, -1);
 	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, g_info.model_ws_obj_id);
 	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, g_info.brain_ws_obj_id);
 
