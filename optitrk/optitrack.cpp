@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <map>
+#include <set>
 #include <queue>
 #include <iostream>
 
@@ -20,6 +21,12 @@ using namespace std;
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
+
+template<size_t sz> struct bitset_comparer {
+	bool operator() (const bitset<sz> &b1, const bitset<sz> &b2) const {
+		return b1.to_ulong() < b2.to_ulong();
+	}
+};
 
 // Local function prototypes
 void CheckResult(NPRESULT result);
@@ -361,6 +368,55 @@ bool optitrk::GetRigidBodyLocationByName(const string& name, float* mat_rb2ws, s
 	int rb_idx = it->second;
 	if (rb_id) *rb_id = rb_idx;
 	return GetRigidBodyLocationById(rb_idx, mat_rb2ws, rbmk_xyz_list, trmk_xyz_list, tr_list, NULL);
+}
+
+bool optitrk::SetRigidBodyByMkPositions(const std::string& name, const float* rbmk_xyz_array, const int num_mks, int* rb_idx)
+{
+	std::set<int, std::greater<int>> ids;
+	int dst_idx = -1;
+	for (auto it = rb_id_map.begin(); it != rb_id_map.end(); it++)
+	{
+		if (name == it->first)
+		{
+			dst_idx = it->second;
+			TT_RemoveRigidBody(dst_idx);
+			break;
+		}
+		ids.insert(it->second);
+	}
+
+	if (dst_idx < 0) dst_idx = ids.size() > 0 ? *ids.begin() + 1 : 1;
+	rb_id_map[name] = dst_idx;
+	if (rb_idx) *rb_idx = dst_idx;
+
+	assert(TT_CreateRigidBody(name.c_str(), dst_idx, num_mks, (float*)rbmk_xyz_array) == NPRESULT_SUCCESS);
+
+	return true;
+}
+
+bool optitrk::SetRigidBodyByMkIds(const std::string& name, const std::bitset<128>* rbmk_id_array, const int num_mks, int* rb_idx)
+{
+	std::vector<float> mk_xyz_list;
+	std::vector<std::bitset<128>> mk_cid_list;
+	if (!GetMarkersLocation(&mk_xyz_list, NULL, &mk_cid_list)) return false;
+
+	std::map<std::bitset<128>, int, bitset_comparer<128>> map_cids;
+	for (int i = 0; i < (int)mk_cid_list.size(); i++)
+		map_cids[mk_cid_list[i]] = i;
+
+	glm::fvec3* pos_mks = (glm::fvec3*)&mk_xyz_list[0];
+	std::vector<glm::fvec3> mk_dst_pos;
+	for (int i = 0; i < num_mks; i++)
+	{
+		auto it = map_cids.find(rbmk_id_array[i]);
+		if (it == map_cids.end())
+		{
+			std::cout << "MISSING MARKER!!" << std::endl;
+			return false;
+		}
+		mk_dst_pos.push_back(pos_mks[it->second]);
+	}
+	return SetRigidBodyByMkPositions(name, (float*)&pos_mks[0], num_mks, rb_idx);
 }
 
 bool optitrk::GetCameraLocation(const int cam_idx, float* mat_cam2ws)

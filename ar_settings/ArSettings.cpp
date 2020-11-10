@@ -1143,7 +1143,7 @@ namespace var_settings
 				
 				static glm::fmat4x4 prev_mat_clf2ws = mat_clf2ws;
 				glm::fvec3 diff = tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3());
-
+				bitset
 				//auto get_quter = [](const glm::fmat4x4& tr)
 				//{
 				//	//glm::vec3 scale;
