@@ -389,9 +389,9 @@ int main()
 	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
 
-	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), g_info.rs_scene_id, 1);
 	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
-	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 150, 0.5), sizeof(glm::dvec4), -1, -1);
+	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 50, 0.5), sizeof(glm::dvec4), -1, -1);
 	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(1, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
 	vzm::SetRenderTestParam("_double_InDepthVis", 0.01, sizeof(double), -1, -1);
 	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, g_info.model_ws_obj_id);
@@ -539,11 +539,54 @@ int main()
 						delete[] nrl_xyz_list;
 						delete[] idx_prims;
 
-						// world, realsense, smartglass scene
-						vzm::ObjStates model_ws_states, brain_ws_states, ventricle_ws_states;
-						vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
+						// rendering ///////////////////
+						// realsense scene (20201111 - 현재 rs scene state에 ghost effect가 적용되어 있음)
+						vzm::ObjStates model_rs_states, brain_rs_states, ventricle_rs_states;
+						vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_rs_states);
+						model_rs_states.color[3] = 1;// 0.1;
 
-						model_ws_states.color[3] = 1.0;// 0.1;
+						brain_rs_states = model_rs_states;
+						if (show_mks) {
+							brain_rs_states.is_wireframe = true;
+						}
+						else {
+							brain_rs_states.is_wireframe = false;
+						}
+						brain_rs_states.wire_color[0] = 0.5; brain_rs_states.wire_color[1] = 0.5; brain_rs_states.wire_color[2] = 0.5; brain_rs_states.wire_color[3] = 1.0;
+						brain_rs_states.color[0] = 0.5; brain_rs_states.color[1] = 0.5; brain_rs_states.color[2] = 0.5; brain_rs_states.color[3] = 1.0;
+
+						ventricle_rs_states = model_rs_states;
+						if (show_mks) {
+							ventricle_rs_states.is_wireframe = true;
+						}
+						else {
+							ventricle_rs_states.is_wireframe = false;
+						}
+						ventricle_rs_states.wire_color[0] = 0.9;	ventricle_rs_states.wire_color[1] = 0.5;	ventricle_rs_states.wire_color[2] = 0.5; ventricle_rs_states.wire_color[3] = 1.0;
+						ventricle_rs_states.color[0] = 1.0; ventricle_rs_states.color[1] = 0; ventricle_rs_states.color[2] = 0; ventricle_rs_states.color[3] = 1.0;
+
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_rs_states);
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, brain_ws_obj_id, brain_rs_states);
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ventricle_ws_obj_id, ventricle_rs_states);
+
+						// smartglass scene
+						vzm::ObjStates model_stg_states, brain_stg_states, ventricle_stg_states;
+						model_stg_states = model_rs_states;
+						brain_stg_states = brain_rs_states;
+						ventricle_stg_states = ventricle_rs_states;
+
+						model_stg_states.color[3] = 0.5;
+						brain_stg_states.color[3] = 0.8;
+						ventricle_stg_states.color[3] = 1.0;
+
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_stg_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, brain_ws_obj_id, brain_stg_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ventricle_ws_obj_id, ventricle_stg_states);
+
+						// world scene
+						vzm::ObjStates model_ws_states, brain_ws_states, ventricle_ws_states;
+						memcpy(model_ws_states.os2ws, model_rs_states.os2ws, sizeof(float) * 16);
+						model_ws_states.color[3] = 0.1;// 0.1;
 						
 						brain_ws_states = model_ws_states;
 						if (show_mks) {
@@ -552,8 +595,8 @@ int main()
 						else {
 							brain_ws_states.is_wireframe = false;
 						}
-						brain_ws_states.wire_color[0] = 0.5; brain_ws_states.wire_color[1] = 0.5; brain_ws_states.wire_color[2] = 0.5; brain_ws_states.wire_color[3] = 1.0;
-						brain_ws_states.color[0] = 0.5; brain_ws_states.color[1] = 0.5; brain_ws_states.color[2] = 0.5; brain_ws_states.color[3] = 1.0;
+						brain_ws_states.wire_color[0] = 0.5; brain_ws_states.wire_color[1] = 0.5; brain_ws_states.wire_color[2] = 0.5; brain_ws_states.wire_color[3] = 0.2;
+						brain_ws_states.color[0] = 0.5; brain_ws_states.color[1] = 0.5; brain_ws_states.color[2] = 0.5; brain_ws_states.color[3] = 0.3;
 
 						ventricle_ws_states = model_ws_states;
 						if (show_mks) {
@@ -562,31 +605,12 @@ int main()
 						else {
 							ventricle_ws_states.is_wireframe = false;
 						}
-						ventricle_ws_states.wire_color[0] = 0.9;	ventricle_ws_states.wire_color[1] = 0.5;	ventricle_ws_states.wire_color[2] = 0.5; ventricle_ws_states.wire_color[3] = 1.0;
+						ventricle_ws_states.wire_color[0] = 0.9;	ventricle_ws_states.wire_color[1] = 0.5;	ventricle_ws_states.wire_color[2] = 0.5; ventricle_ws_states.wire_color[3] = 0.2;
 						ventricle_ws_states.color[0] = 1.0; ventricle_ws_states.color[1] = 0; ventricle_ws_states.color[2] = 0; ventricle_ws_states.color[3] = 1.0;
 
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_states);
-
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, brain_ws_obj_id, brain_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, brain_ws_obj_id, brain_ws_states);
-						
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
-						
-
-						vzm::ObjStates model_stg_states, brain_stg_states, ventricle_stg_states;
-						model_stg_states = model_ws_states;
-						brain_stg_states = brain_ws_states;
-						ventricle_stg_states = ventricle_ws_states;
-
-						model_stg_states.color[3] = 0.5;
-						brain_stg_states.color[3] = 0.8;
-						ventricle_stg_states.color[3] = 1.0;
-
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, brain_ws_obj_id, brain_ws_states);
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 
 						// zoom scene
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, g_info.model_ws_obj_id, model_ws_states);
@@ -596,14 +620,11 @@ int main()
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
 
 						// zoom stg scene
-
 						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, g_info.model_ws_obj_id, model_ws_states);
 						brain_ws_states.is_wireframe = false;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, brain_ws_obj_id, brain_ws_states);
 						ventricle_ws_states.is_wireframe = false;
 						vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ventricle_ws_obj_id, ventricle_ws_states);
-
-
 
 						// model scene
 						vzm::ObjStates model_ms_states, ventricle_ms_states;
@@ -670,6 +691,7 @@ int main()
 				}
 
 				// ssu tool visualization
+				static int test = 0;
 				if (is_sstool_detected && ss_tool_info.pos_centers_tfrm.size() == 2)
 				{
 					glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
@@ -686,7 +708,7 @@ int main()
 
 					// sphere (ws, rs)
 					vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0045f), __FP glm::fvec3(1, 0, 0), 1, ssu_tool_end_id);
-
+					
 					// replace scene object
 					vzm::ObjStates model_ws_states;
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_line_id, model_ws_states);
@@ -696,6 +718,16 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_end_id, model_ws_states);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_end_id, model_ws_states);
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_end_id, model_ws_states);
+
+					// track effect test
+					//vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, test);
+					MakeTrackeffect(50, 0.005, sstool_p1_ws, test);
+					vzm::ObjStates track_objs_state;
+					track_objs_state.diffusion = 0;
+					track_objs_state.emission = 1.f;
+					track_objs_state.specular = 0;
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, test, track_objs_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, test, track_objs_state);
 
 					// (model) ssu tool transformation, model scene
 					if (g_info.is_modelaligned) {
@@ -715,7 +747,6 @@ int main()
 
 						s.rigidBodies[iToolIdx]->m_visFiducialPoint[0] = btVector3(sstool_p1_os.x, sstool_p1_os.y, sstool_p1_os.z);
 						s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(sstool_p2_os.x, sstool_p2_os.y, sstool_p2_os.z);
-
 
 						// model scene
 						glm::fvec3 cyl_p03[2] = { sstool_p1_os, sstool_p2_os };
@@ -822,7 +853,7 @@ int main()
 
 					if (ss_tool_guide_info.pos_centers_tfrm.size() && ss_tool_info.pos_centers_tfrm.size()) {
 
-						// sstool pos(ws) //
+						// sstool pos(ws)
 						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
 						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
 
@@ -837,7 +868,7 @@ int main()
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
 						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
 
-						// model scene //
+						// model scene
 						{
 							glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
 							glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
@@ -855,7 +886,7 @@ int main()
 							vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, ssu_tool_guide_line_ms_id, ssu_tool_line_ms_state);
 						}
 
-						// world scene, realsense scene //
+						// world scene, realsense scene
 						vzm::ObjStates ws_states;
 
 						glm::fvec3 tempP = ssguide_p1_ws + ssguide_dir * 1000.0f;
@@ -882,12 +913,9 @@ int main()
 							ws_distanceLine_states = ws_states;
 
 							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_distanceLine_id, ws_states);
-							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ssu_tool_guide_distanceLineText_id, ws_states);
+							SetDashEffectInRendering(g_info.ws_scene_id, 1, ssu_tool_guide_distanceLine_id, 0.01, true);
 
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distanceLine_id, ws_states);
-							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distanceLineText_id, ws_states);
-
-							SetDashEffectInRendering(g_info.ws_scene_id, 1, ssu_tool_guide_distanceLine_id, 0.01, true);
 							SetDashEffectInRendering(g_info.rs_scene_id, 1, ssu_tool_guide_distanceLine_id, 0.01, true);
 
 							// angle
@@ -988,8 +1016,6 @@ int main()
 
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
-							//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
-							//vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
 							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_id, distanceLineState);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_text_id, distanceLineState);
@@ -1012,8 +1038,6 @@ int main()
 							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleText_id, angleTextState);
-							//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id, angleTextState);
-							//vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_angleText_id, angleTextState);
 						}
 					}
 				}

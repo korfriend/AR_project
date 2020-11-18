@@ -385,7 +385,7 @@ void MakeDistanceLine(const int scene_id, const glm::fvec3& pos_tool_tip, const 
 	glm::fvec3 xyz_LT_view_up[3] = { (pos_closest_line[0] + pos_closest_line[1]) * 0.5f, __cv3__ cam_params.view, __cv3__ cam_params.up };
 	float dist = glm::length(pos_closest_line[0] - pos_closest_line[1]);
 	if (dist < 0.00001f) dist = 0;
-	vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(dist * 1000.f, 3) + "mm", font_size, true, false, dist_text_id);
+	//vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(dist * 1000.f, 3) + "mm", font_size, true, false, dist_text_id);
 	//vzm::ReplaceOrAddSceneObject(0, dist_text_id, obj_state_closest_point_line);
 }
 
@@ -429,12 +429,12 @@ void MakeAngle(const int scene_id, const glm::fvec3& tool_tip2end_dir, const glm
 	//vzm::ReplaceOrAddSceneObject(0, angle_text_id, obj_state_angle_text);
 }
 
-void MakeTrackeffect(const int track_fade_num, const glm::fvec3& pos_dst, int& track_spheres_id, std::vector<glm::fvec3>& track_points)
+void MakeTrackeffect(const int track_fade_num, const float min_move_dist, const glm::fvec3& pos_dst, int& track_spheres_id)
 {
 	//const int track_fade_num = 100;
 	//static int track_spheres_id = 0;
-	//static std::vector<glm::fvec3> track_points;
-	if (track_points.size() == 0)// || glm::length(track_points[0] - pos_dst) > 0.5)
+	static std::vector<glm::fvec3> track_points;
+	if (track_points.size() == 0 || glm::length(track_points[0] - pos_dst) > min_move_dist)
 	{
 		if (track_points.size() < track_fade_num)
 		{
@@ -448,7 +448,7 @@ void MakeTrackeffect(const int track_fade_num, const glm::fvec3& pos_dst, int& t
 		std::vector<glm::fvec4> trackspheres(track_points.size());
 		for (int i = 0; i < (int)track_points.size(); i++)
 		{
-			trackspheres[i] = glm::fvec4(track_points[i], 0.5f + i * 1.f / track_fade_num);
+			trackspheres[i] = glm::fvec4(track_points[i], 0.001f + i * 0.005f / track_fade_num);
 		}
 		vzm::GenerateSpheresObject(__FP trackspheres[0], NULL, track_points.size(), track_spheres_id);
 		//vzm::ObjStates obj_state_track_spheres;

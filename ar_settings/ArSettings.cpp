@@ -123,7 +123,7 @@ namespace rs_settings
 		//_pipe = &pipe;
 		//_eye_pipe = &eye_pipe;
 
-		cfg.enable_device(serials["RS_RBS"]);
+		//cfg.enable_device(serials["RS_RBS"]);
 		cfg.enable_stream(RS2_STREAM_DEPTH, 848, 480, RS2_FORMAT_Z16, 60); // Enable default depth
 
 		if (!use_depthsensor)
@@ -359,7 +359,7 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201110.cal";
+		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201117.cal";
 		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201110.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
@@ -1143,7 +1143,7 @@ namespace var_settings
 				
 				static glm::fmat4x4 prev_mat_clf2ws = mat_clf2ws;
 				glm::fvec3 diff = tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3());
-				bitset
+				//bitset
 				//auto get_quter = [](const glm::fmat4x4& tr)
 				//{
 				//	//glm::vec3 scale;
