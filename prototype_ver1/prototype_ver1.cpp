@@ -141,7 +141,7 @@ bool loadScrewTest(std::string screwfile)
 	return true;
 }
 
-int main()
+int main__()
 {
 
 #if defined(_DEBUG) | defined(DEBUG)

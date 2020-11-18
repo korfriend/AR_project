@@ -313,8 +313,30 @@ namespace var_settings
 	}
 
 	int scenario = 0;
+	
+	bool _show_sectional_views = false;
+	int ov_cam_id = 1; // arbitrary integer
+	int model_cam_id = 1; // arbitrary integer
+	int rs_cam_id = 1; // arbitrary integer
+	int stg_cam_id = 1; // arbitrary integer
+	int zoom_cam_id = 1; // arbitrary integer
+	vzm::ObjStates default_obj_state;
 
-	void InitializeVarSettings(int _scenario)
+	bool is_rsrb_detected = false;
+	glm::fmat4x4 mat_ws2clf, mat_clf2ws;
+
+	glm::fmat4x4 mat_rscs2clf;
+	glm::fmat4x4 mat_stgcs2clf;
+
+	// rs calib history
+	vector<track_info> record_trk_info;
+	vector<void*> record_rsimg;
+	map<string, int> action_info;
+	vector<int> record_key;
+
+	std::string operation_name;
+
+	void InitializeVarSettings(int _scenario, const std::string& manualset_tool_name)
 	{
 		scenario = _scenario;
 
@@ -329,6 +351,8 @@ namespace var_settings
 		g_info.window_name_ws_view = "World VIEW";
 		g_info.window_name_ms_view = "Model VIEW";
 		g_info.window_name_stg_view = "STG VIEW";
+
+		g_info.dst_tool_se_name = manualset_tool_name;
 
 		char ownPth[2048];
 		GetModuleFileNameA(NULL, ownPth, (sizeof(ownPth)));
@@ -366,6 +390,8 @@ namespace var_settings
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
 		g_info.stg_calib = preset_path + "..\\Preset\\stg_calib.txt";
 
+		g_info.file_paths[g_info.dst_tool_se_name] = preset_path + "..\\Preset\\" + g_info.dst_tool_se_name +".txt";
+
 		if (scenario == 0)
 		{
 			g_info.model_path = preset_path + "..\\Data\\skin.obj";
@@ -377,6 +403,13 @@ namespace var_settings
 			g_info.volume_model_path = preset_path + "..\\Data\\breast\\chest_x3d.x3d";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(breast).txt";
 		}
+		else if (scenario == 2)
+		{
+			g_info.model_path = preset_path + "..\\Data\\spine\\lev7.stl";
+			g_info.volume_model_path = preset_path + "..\\..\\LargeData\\den.x3d";
+			//g_info.volume_model_path = preset_path + "..\\Data\\spine\\chest_x3d.x3d";
+			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(spine).txt";
+		}
 
 		for (int i = 1; i <= __NUMMARKERS; i++)
 		{
@@ -385,28 +418,11 @@ namespace var_settings
 			//ar_marker.aruco_marker_file_out(i, "armk" + to_string(i) + ".bmp");
 		}
 	}
-	
-	bool _show_sectional_views = false;
-	int ov_cam_id = 1; // arbitrary integer
-	int model_cam_id = 1; // arbitrary integer
-	int rs_cam_id = 1; // arbitrary integer
-	int stg_cam_id = 1; // arbitrary integer
-	int zoom_cam_id = 1; // arbitrary integer
-	vzm::ObjStates default_obj_state;
 
-	bool is_rsrb_detected = false;
-	glm::fmat4x4 mat_ws2clf, mat_clf2ws;
-	bool is_probe_detected = false;
-	glm::fmat4x4 mat_probe2ws;
-
-	glm::fmat4x4 mat_rscs2clf;
-	glm::fmat4x4 mat_stgcs2clf;
-
-	// rs calib history
-	vector<track_info> record_trk_info;
-	vector<void*> record_rsimg;
-	map<string, int> action_info;
-	vector<int> record_key;
+	void SetOperationDesription(std::string& operation_name)
+	{
+		operation_name = operation_name;
+	}
 
 	void SetPreoperations(const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h)
 	{
@@ -707,6 +723,24 @@ namespace var_settings
 			infile.close();
 		}
 
+		// loading tool_se points
+		g_info.otrk_data.custom_pos_map.clear();
+		string preset_path = g_info.file_paths[g_info.dst_tool_se_name];
+		infile = std::ifstream(preset_path);
+		if (infile.is_open())
+		{
+			vector<Point3f>& custom_pos_list = g_info.otrk_data.custom_pos_map[g_info.dst_tool_se_name];
+			while (getline(infile, line))
+			{
+				std::istringstream iss(line);
+				float a, b, c;
+				if (!(iss >> a >> b >> c)) { break; } // error
+				custom_pos_list.push_back(Point3f(a, b, c));
+				// process pair (a,b)
+			}
+			infile.close();
+		}
+
 		// loading rs calib pairs and matrix
 		infile = std::ifstream(g_info.rs_calib);
 		if (infile.is_open())
@@ -898,19 +932,20 @@ namespace var_settings
 		clear_record_info();
 	}
 
-	void UpdateTrackInfo(const void* trk_info)
+	void UpdateTrackInfo(const void* trk_info, const std::string& probe_specifier_rb_name)
 	{
 		g_info.otrk_data.trk_info = *(track_info*)trk_info;
 		is_rsrb_detected = g_info.otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_clf2ws);
 		mat_ws2clf = glm::inverse(mat_clf2ws);
 
 		static int section_probe_line_id = 0, section_probe_end_id = 0;
-		is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo("probe", mat_probe2ws);
+		glm::fmat4x4 mat_opt_probe2ws;
+		bool is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo("probe", mat_opt_probe2ws);
 		if (is_probe_detected)
 		{
-			g_info.pos_probe_pin = tr_pt(mat_probe2ws, glm::fvec3(0));
-			glm::fvec3 probe_end = g_info.pos_probe_pin;
-			glm::fvec3 probe_dir = glm::normalize(tr_vec(mat_probe2ws, glm::fvec3(0, 0, -1)));
+			//g_info.pos_probe_pin = tr_pt(mat_opt_probe2ws, glm::fvec3(0));
+			glm::fvec3 probe_end = tr_pt(mat_opt_probe2ws, glm::fvec3(0));
+			glm::fvec3 probe_dir = glm::normalize(tr_vec(mat_opt_probe2ws, glm::fvec3(0, 0, -1)));
 
 			glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir * 0.2f };
 			float cyl_r = 0.002f;
@@ -937,6 +972,12 @@ namespace var_settings
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, cobj_state);
 		}
 
+		g_info.is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, g_info.mat_probe2ws);
+		if (g_info.is_probe_detected)
+		{
+			g_info.pos_probe_pin = tr_pt(mat_probe2ws, glm::fvec3(0));
+		}
+
 		auto set_rb_axis = [](const bool is_detected, const glm::fmat4x4& mat_frm2ws, int& obj_id)
 		{
 			if (is_detected)
@@ -952,7 +993,7 @@ namespace var_settings
 			}
 		};
 		set_rb_axis(is_rsrb_detected, mat_clf2ws, g_info.otrk_data.rs_lf_axis_id);
-		set_rb_axis(is_probe_detected, mat_probe2ws, g_info.otrk_data.probe_lf_axis_id);
+		set_rb_axis(g_info.is_probe_detected, g_info.mat_probe2ws, g_info.otrk_data.probe_lf_axis_id);
 	}
 
 	void RecordInfo(const int key_pressed, const void* color_data)
@@ -977,8 +1018,21 @@ namespace var_settings
 			for (int i = 0; i < g_info.otrk_data.calib_3d_pts.size(); i++)
 			{
 				Point3f pt = g_info.otrk_data.calib_3d_pts[i];
-				sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.007));
-				sphers_rgb.push_back(marker_color(i, (int)g_info.otrk_data.calib_3d_pts.size() / 2));
+				//sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.008));
+				//sphers_rgb.push_back(marker_color(i, (int)g_info.otrk_data.calib_3d_pts.size() / 2));
+				sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.01));
+				sphers_rgb.push_back(glm::fvec3(1));
+
+				int text_id = 0;
+				if (g_info.otrk_data.armk_text_ids.size() > i)
+					text_id = g_info.otrk_data.armk_text_ids[i];
+				std::vector<glm::fvec3> lt_v_u(3);
+				lt_v_u[0] = glm::fvec3(pt.x, pt.y, pt.z) + glm::fvec3(0, 1, 0) * 0.02f;
+				lt_v_u[1] = glm::fvec3(0, -1, 0);
+				lt_v_u[2] = glm::fvec3(1, 0, 0);
+				vzm::GenerateTextObject(__FP lt_v_u, to_string(1), 0.03, false, false, text_id, true);
+				if (g_info.otrk_data.armk_text_ids.size() <= i)
+					g_info.otrk_data.armk_text_ids.push_back(text_id);
 			}
 			if (sphers_xyzr.size() > 0)
 			{
@@ -986,6 +1040,13 @@ namespace var_settings
 					g_info.otrk_data.calib_3d_pts.size(), g_info.otrk_data.cb_spheres_id);
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.cb_spheres_id, default_obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, default_obj_state);
+
+				for (int i = 0; i < (int)g_info.otrk_data.calib_3d_pts.size(); i++)
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.armk_text_ids[i], default_obj_state);
+				vzm::ObjStates cstate = default_obj_state;
+				cstate.is_visible = false;
+				for (int i = g_info.otrk_data.calib_3d_pts.size(); i < (int)g_info.otrk_data.armk_text_ids.size(); i++)
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.armk_text_ids[i], cstate);
 			}
 			else
 			{
@@ -993,6 +1054,9 @@ namespace var_settings
 				cstate.is_visible = false;
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
+
+				for (int i = 0; i < (int)g_info.otrk_data.armk_text_ids.size(); i++)
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.armk_text_ids[i], cstate);
 			}
 		}
 		else
@@ -1001,6 +1065,9 @@ namespace var_settings
 			cstate.is_visible = false;
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
 			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
+
+			for (int i = 0; i < (int)g_info.otrk_data.armk_text_ids.size(); i++)
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.armk_text_ids[i], cstate);
 		}
 	}
 
@@ -1575,14 +1642,14 @@ namespace var_settings
 
 	void SetSectionalImageAssets(const bool show_sectional_views, const float* _pos_tip, const float* _pos_end)
 	{
-		// ws
-		glm::fvec3 pos_tip = __cv3__ _pos_tip;
-		glm::fvec3 pos_end = __cv3__ _pos_end;
-
 		// after calling SetTargetModelAssets
 		_show_sectional_views = show_sectional_views;
-		if (show_sectional_views)
+		if (show_sectional_views && _pos_tip && _pos_end)
 		{
+			// ws
+			glm::fvec3 pos_tip = __cv3__ _pos_tip;
+			glm::fvec3 pos_end = __cv3__ _pos_end;
+
 			vzm::ObjStates model_ws_obj_state;
 			vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			if (g_info.model_volume_id == 0)
@@ -1701,6 +1768,14 @@ namespace var_settings
 
 			if (g_info.is_calib_rs_cam && !is_rsrb_detected)
 				cv::putText(img_rs, "RS Cam is out of tracking volume !!", cv::Point(0, 150), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 3, LineTypes::LINE_AA);
+			else
+			{
+				if (operation_name == "Picking AR Markers"
+					|| operation_name == "Picking Tool Tip and End")
+				{
+					cv::putText(img_rs, operation_name, cv::Point(0, 150), cv::FONT_HERSHEY_DUPLEX, 2.0, CV_RGB(255, 0, 0), 2, LineTypes::LINE_AA);
+				}
+			}
 
 			if(!skip_show_rs_window)
 				imshow(g_info.window_name_rs_view, img_rs);

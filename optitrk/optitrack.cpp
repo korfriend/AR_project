@@ -243,6 +243,27 @@ bool optitrk::SetRigidBodyPropertyByName(const std::string& name, const float sm
 	return SetRigidBodyPropertyById(rb_idx, smooth_term, test_smooth_term);
 }
 
+bool optitrk::SetRigidBodyEnabledbyId(const int rb_idx, const bool enabled)
+{
+	if (!is_initialized) return false;
+	if (TT_RigidBodyName(rb_idx) == NULL) return false;
+
+	TT_SetRigidBodyEnabled(rb_idx, enabled);
+	return true;
+}
+
+bool optitrk::SetRigidBodyEnabledbyName(const std::string& name, const bool enabled)
+{
+	if (!is_initialized) return false;
+	auto it = rb_id_map.find(name);
+	if (it == rb_id_map.end())
+		return false;
+	int rb_idx = it->second;
+
+	TT_SetRigidBodyEnabled(rb_idx, enabled);
+	return true;
+}
+
 bool optitrk::GetRigidBodyLocationById(const int rb_idx, float* mat_rb2ws, std::vector<float>* rbmk_xyz_list, std::vector<float>* trmk_xyz_list, std::vector<bool>* tr_list, std::string* rb_name)
 {
 	if (!is_initialized) return false;

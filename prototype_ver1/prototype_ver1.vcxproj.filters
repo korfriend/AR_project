@@ -2,5 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="prototype_ver1.cpp" />
+    <ClCompile Include="spine_v1.cpp" />
   </ItemGroup>
 </Project>

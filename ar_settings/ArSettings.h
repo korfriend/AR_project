@@ -29,13 +29,13 @@ namespace rs_settings
 
 namespace var_settings
 {
-	__dojostatic void InitializeVarSettings(int scenario = 0);
+	__dojostatic void InitializeVarSettings(int scenario = 0, const std::string& manualset_tool_name = "ss_tool_v1");
 	__dojostatic void SetPreoperations(const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h);
 	__dojostatic void SetCvWindows();
 	__dojostatic void LoadPresets();
 	__dojostatic void ResetCalib();
 	__dojostatic void StoreRecordInfo();
-	__dojostatic void UpdateTrackInfo(const void* trk_info);
+	__dojostatic void UpdateTrackInfo(const void* trk_info, const std::string& probe_specifier_rb_name = "probe");
 	__dojostatic void RecordInfo(const int key_pressed, const void* color_data);
 	__dojostatic void SetTcCalibMkPoints(bool is_visible);
 	__dojostatic void SetMkSpheres(bool is_visible, bool is_pickable);
@@ -52,6 +52,9 @@ namespace var_settings
 
 	__dojostatic std::string GetDefaultFilePath();
 
+	// Spine Scenario
+	__dojostatic void SetOperationDesription(std::string& operation_name);
+	__dojostatic void SetProbeRigidBodyName(std::string& probe_rb_name);
 	// SSU (추후 prototype ver2에 정의할 예정 (외부에서 namespace 변수 접근이 어려워 임시로 작업)
 	__dojostatic int GetCameraID_SSU(int scene_id);
 }
