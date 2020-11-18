@@ -380,12 +380,12 @@ void MakeDistanceLine(const int scene_id, const glm::fvec3& pos_tool_tip, const 
 	//vzm::SetRenderTestParam("_bool_IsInvertColorDashLine", true, sizeof(bool), 0, 0, closest_point_line_id);
 	//vzm::SetRenderTestParam("_double_LineDashInterval", 2.0, sizeof(double), 0, 0, closest_point_line_id);
 
-	vzm::CameraParameters cam_params;
-	vzm::GetCameraParameters(scene_id, cam_params, 0);
-	glm::fvec3 xyz_LT_view_up[3] = { (pos_closest_line[0] + pos_closest_line[1]) * 0.5f, __cv3__ cam_params.view, __cv3__ cam_params.up };
+	//vzm::CameraParameters cam_params;
+	//vzm::GetCameraParameters(scene_id, cam_params, 0);
+	//glm::fvec3 xyz_LT_view_up[3] = { (pos_closest_line[0] + pos_closest_line[1]) * 0.5f, __cv3__ cam_params.view, __cv3__ cam_params.up };
 	float dist = glm::length(pos_closest_line[0] - pos_closest_line[1]);
 	if (dist < 0.001f) dist = 0;
-	vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(dist, 3) + "mm", font_size, true, false, dist_text_id);
+	//vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(dist, 3) + "mm", font_size, true, false, dist_text_id);
 	//vzm::ReplaceOrAddSceneObject(0, dist_text_id, obj_state_closest_point_line);
 }
 
@@ -421,11 +421,57 @@ void MakeAngle(const int scene_id, const glm::fvec3& tool_tip2end_dir, const glm
 	//vzm::ReplaceOrAddSceneObject(0, angle_tris_id, obj_state_angle_tris);
 
 	vzm::CameraParameters cam_params;
-	vzm::GetCameraParameters(scene_id, cam_params, 0);
+	vzm::GetCameraParameters(scene_id, cam_params, 1);
 	glm::fvec3 xyz_LT_view_up[3] = { anlge_polygon_pos[1], __cv3__ cam_params.view, __cv3__ cam_params.up };
 	if (angle * 180.f / glm::pi<float>() < 0.1) angle = 0;
 	vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(angle * 180.f / glm::pi<float>(), 3) + "˚", font_size, true, false, angle_text_id);
 	vzm::ObjStates obj_state_angle_text;
+	//vzm::ReplaceOrAddSceneObject(0, angle_text_id, obj_state_angle_text);
+}
+
+void MakeAngle2(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length, 
+	int& angle_tris_id,
+	const int scene0_id, int& angle_text0_id,
+	const int scene1_id, int& angle_text1_id)
+{
+	//const float font_size = 30.f;
+	const int num_angle_tris = 10;
+	//const float angle_tris_length = 50.f;
+	glm::fvec3 vec_ref = glm::normalize(glm::cross(guide_dst2end_dir, tool_tip2end_dir));
+	float angle = glm::orientedAngle(guide_dst2end_dir, tool_tip2end_dir, vec_ref);
+	//std::cout << angle << std::endl;
+	std::vector<glm::fvec3> anlge_polygon_pos(num_angle_tris + 2);
+	std::vector<glm::fvec3> anlge_polygon_clr(num_angle_tris + 2);
+	anlge_polygon_pos[0] = pos_dst_point;
+	anlge_polygon_clr[0] = glm::fvec3(1);
+	std::vector<unsigned int> idx_prims(num_angle_tris * 3);
+	for (int i = 0; i < num_angle_tris + 1; i++)
+	{
+		glm::fvec3 r_vec = glm::rotate(guide_dst2end_dir, angle / (float)num_angle_tris * (float)i, vec_ref);
+		anlge_polygon_pos[1 + i] = pos_dst_point + r_vec * angle_tris_length;
+		anlge_polygon_clr[1 + i] = glm::fvec3((float)i / (float)num_angle_tris, 0, 1.f - (float)i / (float)num_angle_tris);
+		if (i < num_angle_tris)
+		{
+			idx_prims[3 * i + 0] = 0;
+			idx_prims[3 * i + 1] = i + 1;
+			idx_prims[3 * i + 2] = i + 2;
+		}
+	}
+	//static int angle_tris_id = 0, angle_text_id = 0;
+	vzm::GeneratePrimitiveObject(__FP anlge_polygon_pos[0], NULL, __FP anlge_polygon_clr[0], NULL, num_angle_tris + 2, (unsigned int*)&idx_prims[0], num_angle_tris, 3, angle_tris_id);
+	//vzm::ObjStates obj_state_angle_tris;
+	//obj_state_angle_tris.color[3] = 0.5f;
+	//vzm::ReplaceOrAddSceneObject(0, angle_tris_id, obj_state_angle_tris);
+
+	for (int i = 0; i < 2; i++)
+	{
+		vzm::CameraParameters cam_params;
+		vzm::GetCameraParameters(i == 0 ? scene0_id : scene1_id, cam_params, 1);
+		glm::fvec3 xyz_LT_view_up[3] = { anlge_polygon_pos[1], __cv3__ cam_params.view, __cv3__ cam_params.up };
+		if (angle * 180.f / glm::pi<float>() < 0.1) angle = 0;
+		vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(angle * 180.f / glm::pi<float>(), 3) + "˚", font_size, true, false, i == 0 ? angle_text0_id : angle_text1_id);
+	}
+	//vzm::ObjStates obj_state_angle_text;
 	//vzm::ReplaceOrAddSceneObject(0, angle_text_id, obj_state_angle_text);
 }
 
@@ -991,14 +1037,17 @@ struct OpttrkData
 	track_info trk_info; // available when USE_OPTITRACK
 	vzm::ObjStates obj_state;
 	int cb_spheres_id;
+	vector<int> armk_text_ids;
 	int mks_spheres_id;
 	int rs_lf_axis_id, probe_lf_axis_id; // lf means local frame
-	vector<Point3f> calib_3d_pts;
 	vector<pair<Point2f, Point3f>> tc_calib_pt_pairs;
 	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
 	bitset<128> stg_calib_mk_cid;
 	vector<int> calib_trial_rs_cam_frame_ids;
 	vector<int> mk_pickable_sphere_ids;
+
+	map<string, vector<Point3f>> custom_pos_map;
+	vector<Point3f> calib_3d_pts;
 
 	OpttrkData()
 	{
@@ -1015,7 +1064,7 @@ struct OpttrkData
 	}
 };
 
-ENUM(RsTouchMode, None, Pick, Calib_TC, PIN_ORIENTATION, Calib_STG, Align, ICP, Capture, Pair_Clear, STG_Pair_Clear)
+ENUM(RsTouchMode, None, Pick, AR_Marker, Tool_S_E, Calib_TC, PIN_ORIENTATION, Calib_STG, Align, ICP, Capture, Pair_Clear, STG_Pair_Clear)
 
 // added by dojo at 200813
 struct SS_Tool_Guide_Pts
@@ -1064,7 +1113,11 @@ struct GlobalInfo
 	bool is_calib_rs_cam;
 	bool is_calib_stg_cam;
 
+	bool is_probe_detected;
 	glm::fvec3 pos_probe_pin;
+	glm::fmat4x4 mat_probe2ws;
+
+	string dst_tool_se_name;
 
 	// model related
 	bool is_modelaligned;
@@ -1118,7 +1171,9 @@ struct GlobalInfo
 	string model_path;
 	string volume_model_path;
 	string model_predefined_pts;
-	string guide_path;		// 20200818 숭실대 guide 경로때문에 변수하나 추가했어요
+	string guide_path;		// 20200818 add guide path name
+
+	map<string, string> file_paths;
 
 	// rs cam ui buttons
 	map<RsTouchMode, ButtonState> rs_buttons;
@@ -1135,6 +1190,7 @@ struct GlobalInfo
 		is_modelaligned = false;
 		rs_pc_id = 0;
 		model_volume_id = 0;
+		is_probe_detected = false;
 
 		// SSU
 		brain_ms_obj_id = 0;
@@ -1197,6 +1253,8 @@ void Make_Buttons(const int screen_w, const int screen_h, std::map<RsTouchMode, 
 		buttons[btns_mode[i]] = ButtonState(btns_mode[i], Rect(bw * i, 0, bw, bh), 0, true, EtoString(btns_mode[i]), false, Scalar(50, 50, 150));
 	}
 #define ADD_SUBBTNS(MODE, RECT_INFO) buttons[MODE] = ButtonState(MODE, RECT_INFO, 0, false, EtoString(MODE), true, Scalar(150, 250, 150))
+	ADD_SUBBTNS(RsTouchMode::AR_Marker, Rect(bw * 1, bh, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::Tool_S_E, Rect(bw * 1, bh * 2, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::ICP, Rect(bw * 4, bh, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::Capture, Rect(bw * 4, bh * 2, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::Pair_Clear, Rect(bw * 2, bh, bw, bh));

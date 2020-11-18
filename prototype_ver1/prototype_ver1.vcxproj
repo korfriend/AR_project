@@ -159,7 +159,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="prototype_ver1.cpp" />
+    <ClCompile Include="prototype_ver1.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="spine_v1.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\aruco_marker\aruco_marker.vcxproj">

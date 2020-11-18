@@ -179,6 +179,84 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		case RsTouchMode::Pick:
 		{
 			disable_subbuttons();
+			rs_buttons[RsTouchMode::AR_Marker].is_activated = true;
+			rs_buttons[RsTouchMode::Tool_S_E].is_activated = true;
+			break;
+		}
+		case RsTouchMode::AR_Marker:
+		{
+			if (eginfo->ginfo.is_probe_detected)
+			{
+				vector<Point3f>& point3ds = eginfo->ginfo.otrk_data.calib_3d_pts;
+				if (x < eginfo->ginfo.rs_w / 2)
+				{
+					glm::fvec3 ar_marker_pt = eginfo->ginfo.pos_probe_pin;
+					cout << "----> " << eginfo->ginfo.vzmobjid2pos.size() << endl;
+					TESTOUT("==> ", ar_marker_pt);
+
+					TESTOUT("armk position " + to_string(point3ds.size()), ar_marker_pt);
+					point3ds.push_back(Point3f(ar_marker_pt.x, ar_marker_pt.y, ar_marker_pt.z));
+
+					cout << "# of total 3d pick positions : " << point3ds.size() << endl;
+				}
+				else
+				{
+					if (point3ds.size() > 0)
+						point3ds.pop_back();
+				}
+
+				ofstream outfile(eginfo->ginfo.cb_positions);
+				if (outfile.is_open())
+				{
+					outfile.clear();
+					for (int i = 0; i < point3ds.size(); i++)
+					{
+						string line = to_string(point3ds[i].x) + " " +
+							to_string(point3ds[i].y) + " " +
+							to_string(point3ds[i].z);
+						outfile << line << endl;
+					}
+				}
+				outfile.close();
+			}
+		} break;
+		case RsTouchMode::Tool_S_E:
+		{
+			if (eginfo->ginfo.is_probe_detected)
+			{
+				vector<Point3f>& custom_pos_list = eginfo->ginfo.otrk_data.custom_pos_map[eginfo->ginfo.dst_tool_se_name];
+
+				if (x < eginfo->ginfo.rs_w / 2)
+				{
+					glm::fmat4x4 mat_ws2probe = glm::inverse(eginfo->ginfo.mat_probe2ws);
+					glm::fvec3 pos_point_probefrm = tr_pt(mat_ws2probe, eginfo->ginfo.pos_probe_pin);
+					TESTOUT("==> [" + to_string(custom_pos_list.size()) + "] ", eginfo->ginfo.pos_probe_pin);
+
+					custom_pos_list.push_back(Point3f(pos_point_probefrm.x, pos_point_probefrm.y, pos_point_probefrm.z));
+
+					cout << "# of total 3d pick positions : " << custom_pos_list.size() << endl;
+				}
+				else
+				{
+					if (custom_pos_list.size() > 0)
+						custom_pos_list.pop_back();
+				}
+
+				string preset_path = eginfo->ginfo.file_paths[eginfo->ginfo.dst_tool_se_name];
+				ofstream outfile(preset_path);
+				if (outfile.is_open())
+				{
+					outfile.clear();
+					for (int i = 0; i < custom_pos_list.size(); i++)
+					{
+						string line = to_string(custom_pos_list[i].x) + " " +
+							to_string(custom_pos_list[i].y) + " " +
+							to_string(custom_pos_list[i].z);
+						outfile << line << endl;
+					}
+				}
+				outfile.close();
+			}
 		} break;
 		case RsTouchMode::Calib_TC:
 		{
