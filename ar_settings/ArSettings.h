@@ -40,12 +40,13 @@ namespace var_settings
 	__dojostatic void SetTcCalibMkPoints(bool is_visible);
 	__dojostatic void SetMkSpheres(bool is_visible, bool is_pickable);
 	__dojostatic void GetVarInfo(void*);
+	__dojostatic void GetVarInfoPtr(void**);
 	__dojostatic void SetVarInfo(const void*);
 	__dojostatic void TryCalibrationTC(cv::Mat& imgColor);
 	__dojostatic void TryCalibrationSTG();
 	__dojostatic void SetCalibFrames(bool is_visible);
 	__dojostatic void SetDepthMapPC(const bool is_visible, rs2::depth_frame& depth_frame, rs2::video_frame& color_frame);
-	__dojostatic void SetTargetModelAssets(const std::string& name);
+	__dojostatic void SetTargetModelAssets(const std::string& name, const bool forced_visible_model = false);
 	__dojostatic void SetSectionalImageAssets(const bool show_sectional_views, const float* pos_tip, const float* pos_end);
 	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs, bool skip_show_rs_window = false);
 	__dojostatic void DeinitializeVarSettings();

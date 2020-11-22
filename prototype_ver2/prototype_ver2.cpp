@@ -119,6 +119,43 @@ void LoadPresets(GlobalInfo& g_info)
 	}
 	infile.close();
 	*/
+
+	// head registration file load //
+	float os2matchmodefrm[16], matchtr[16];
+	string path = "..\\Preset\\registration_matrix.txt";
+	infile = std::ifstream(path);
+
+	if (infile) {
+		line = "";
+		int lineIdx = 0;
+		while (getline(infile, line))
+		{
+			std::istringstream iss(line);
+			float a, b, c, d;
+			if (!(iss >> a >> b >> c >> d)) { break; } // error
+
+			if (lineIdx >= 0 && lineIdx <= 3) {
+				int idx = lineIdx;
+				os2matchmodefrm[4 * idx + 0] = a;
+				os2matchmodefrm[4 * idx + 1] = b;
+				os2matchmodefrm[4 * idx + 2] = c;
+				os2matchmodefrm[4 * idx + 3] = d;
+			}
+			else if (lineIdx >= 4) {
+				int idx = lineIdx - 4;
+				matchtr[4 * idx + 0] = a;
+				matchtr[4 * idx + 1] = b;
+				matchtr[4 * idx + 2] = c;
+				matchtr[4 * idx + 3] = d;
+			}
+			lineIdx++;
+		}
+		infile.close();
+
+		g_info.mat_os2matchmodefrm = glm::fmat4x4((const float&)os2matchmodefrm);
+		g_info.mat_matchtr = glm::fmat4x4((const float&)matchtr);
+		g_info.is_modelaligned = true;
+	}	
 }
 void InitializeVarSettings(GlobalInfo& g_info)
 {
@@ -160,8 +197,8 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 	var_settings::GetVarInfo(&g_info);
 
-	optitrk::SetCameraSettings(0, 2, 20, 100);
-	optitrk::SetCameraSettings(1, 2, 20, 100);
+	optitrk::SetCameraSettings(0, 2, 50, 100);
+	optitrk::SetCameraSettings(1, 2, 50, 100);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	int ov_cam_id = var_settings::GetCameraID_SSU(g_info.ws_scene_id);
@@ -264,6 +301,13 @@ int main()
 	SetPreoperations(g_info, rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 	LoadPresets(g_info);
 
+	optitrk::SetRigidBodyEnabledbyName("breastbody", false);
+	optitrk::SetRigidBodyEnabledbyName("spine", false);
+	optitrk::SetRigidBodyEnabledbyName("tool_1", false);
+	optitrk::SetRigidBodyEnabledbyName("tool_2", false);
+	optitrk::SetRigidBodyEnabledbyName("tool_3", false);
+	optitrk::SetRigidBodyEnabledbyName("probe", true);
+
 	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
@@ -299,7 +343,6 @@ int main()
 	cv::moveWindow(g_info.window_name_eye_view, 2560, 0);
 #endif
 
-	optitrk::__test();
 
 	// ssu ///////////////////////////////////////////////////////////////
 	bool bSaveGuideFile = false;
@@ -378,6 +421,8 @@ int main()
 #ifdef __RECORD_VER
 	// fill record_trk_info and record_rsimg
 #endif
+
+
 
 	vzm::DisplayConsoleMessages(false);
 
@@ -475,7 +520,7 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("ss_head"); // "breastbody"
+			var_settings::SetTargetModelAssets("ss_head", true); // "breastbody"
 
 			var_settings::GetVarInfo(&g_info);
 
@@ -483,9 +528,18 @@ int main()
 			{
 				glm::fmat4x4 mat_sstool2ws, mat_sshead2ws, mat_probe2ws;
 
-				bool is_sshead_detected = trk_info.GetLFrmInfo("ss_head", mat_sshead2ws);
+				bool is_sshead_detected = false;
 				bool is_probe_detected = trk_info.GetLFrmInfo("probe", mat_probe2ws);
-				bool is_sstool_detected = trk_info.GetLFrmInfo("ss_tool_v1", mat_sstool2ws);
+				//bool is_sstool_detected = trk_info.GetLFrmInfo("ss_tool_v1", mat_sstool2ws);
+				bool is_sstool_detected = trk_info.GetLFrmInfo("ss_tool_v2", mat_sstool2ws);
+
+				if (false) {
+					// head tracking mode
+					is_sshead_detected = trk_info.GetLFrmInfo("ss_head", mat_sshead2ws);
+				}
+				else {
+					is_sshead_detected = true;
+				}
 
 				// head, brain, ventricle ///////////////////////////////////////////////////////////////////
 				if (is_sshead_detected) {
@@ -542,7 +596,12 @@ int main()
 						// rendering ///////////////////
 						// realsense scene (20201111 - 현재 rs scene state에 ghost effect가 적용되어 있음)
 						vzm::ObjStates model_rs_states, brain_rs_states, ventricle_rs_states;
-						vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_rs_states);
+
+						if (true) {
+							vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_rs_states);
+						}
+						
+						model_rs_states.color[0] = 1.0; model_rs_states.color[1] = 1.0; model_rs_states.color[2] = 1.0;
 						model_rs_states.color[3] = 1;// 0.1;
 
 						brain_rs_states = model_rs_states;
@@ -568,20 +627,6 @@ int main()
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_rs_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, brain_ws_obj_id, brain_rs_states);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ventricle_ws_obj_id, ventricle_rs_states);
-
-						// smartglass scene
-						vzm::ObjStates model_stg_states, brain_stg_states, ventricle_stg_states;
-						model_stg_states = model_rs_states;
-						brain_stg_states = brain_rs_states;
-						ventricle_stg_states = ventricle_rs_states;
-
-						model_stg_states.color[3] = 0.5;
-						brain_stg_states.color[3] = 0.8;
-						ventricle_stg_states.color[3] = 1.0;
-
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_stg_states);
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, brain_ws_obj_id, brain_stg_states);
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ventricle_ws_obj_id, ventricle_stg_states);
 
 						// world scene
 						vzm::ObjStates model_ws_states, brain_ws_states, ventricle_ws_states;
@@ -611,6 +656,20 @@ int main()
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, brain_ws_obj_id, brain_ws_states);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, ventricle_ws_obj_id, ventricle_ws_states);
+
+						// smartglass scene
+						vzm::ObjStates model_stg_states, brain_stg_states, ventricle_stg_states;
+						model_stg_states = model_ws_states;
+						brain_stg_states = brain_ws_states;
+						ventricle_stg_states = ventricle_ws_states;
+
+						model_stg_states.color[3] = 0.5;
+						brain_stg_states.color[3] = 0.8;
+						ventricle_stg_states.color[3] = 1.0;
+
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_stg_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, brain_ws_obj_id, brain_stg_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ventricle_ws_obj_id, ventricle_stg_states);
 
 						// zoom scene
 						vzm::ReplaceOrAddSceneObject(zoom_scene_id, g_info.model_ws_obj_id, model_ws_states);
@@ -720,14 +779,15 @@ int main()
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_end_id, model_ws_states);
 
 					// track effect test
-					//vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, test);
-					MakeTrackeffect(50, 0.005, sstool_p1_ws, test);
-					vzm::ObjStates track_objs_state;
-					track_objs_state.diffusion = 0;
-					track_objs_state.emission = 1.f;
-					track_objs_state.specular = 0;
-					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, test, track_objs_state);
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, test, track_objs_state);
+					if (false) {
+						MakeTrackeffect(10, 0.005, sstool_p1_ws, test);
+						vzm::ObjStates track_objs_state;
+						track_objs_state.diffusion = 0;
+						track_objs_state.emission = 1.f;
+						track_objs_state.specular = 0;
+						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, test, track_objs_state);
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, test, track_objs_state);
+					}
 
 					// (model) ssu tool transformation, model scene
 					if (g_info.is_modelaligned) {
@@ -933,7 +993,7 @@ int main()
 						vzm::ObjStates stg_states;
 						stg_states = ws_states;
 						stg_states.color[3] = 1;
-						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_line_ws_id, ws_states);
+						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, ssu_tool_guide_line_ws_id, stg_states);
 
 						// zoom scene //
 						{

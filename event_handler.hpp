@@ -222,40 +222,77 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::Tool_S_E:
 		{
-			if (eginfo->ginfo.is_probe_detected)
+			glm::fmat4x4 mat_lfrm2ws;
+			bool is_tool_tracked = eginfo->ginfo.otrk_data.trk_info.GetLFrmInfo("tool_3", mat_lfrm2ws);
+			if (is_tool_tracked)
 			{
-				vector<Point3f>& custom_pos_list = eginfo->ginfo.otrk_data.custom_pos_map[eginfo->ginfo.dst_tool_se_name];
-
-				if (x < eginfo->ginfo.rs_w / 2)
+				vector<Point3f>& custom_pos_list = eginfo->ginfo.otrk_data.custom_pos_map["tool_3"];
+				static vector<int> inserted_implant_ids;
+				if (custom_pos_list.size() >= 2)
 				{
-					glm::fmat4x4 mat_ws2probe = glm::inverse(eginfo->ginfo.mat_probe2ws);
-					glm::fvec3 pos_point_probefrm = tr_pt(mat_ws2probe, eginfo->ginfo.pos_probe_pin);
-					TESTOUT("==> [" + to_string(custom_pos_list.size()) + "] ", eginfo->ginfo.pos_probe_pin);
-
-					custom_pos_list.push_back(Point3f(pos_point_probefrm.x, pos_point_probefrm.y, pos_point_probefrm.z));
-
-					cout << "# of total 3d pick positions : " << custom_pos_list.size() << endl;
-				}
-				else
-				{
-					if (custom_pos_list.size() > 0)
-						custom_pos_list.pop_back();
-				}
-
-				string preset_path = eginfo->ginfo.file_paths[eginfo->ginfo.dst_tool_se_name];
-				ofstream outfile(preset_path);
-				if (outfile.is_open())
-				{
-					outfile.clear();
-					for (int i = 0; i < custom_pos_list.size(); i++)
+					if (x < eginfo->ginfo.rs_w / 2)
 					{
-						string line = to_string(custom_pos_list[i].x) + " " +
-							to_string(custom_pos_list[i].y) + " " +
-							to_string(custom_pos_list[i].z);
-						outfile << line << endl;
+						glm::fvec3 pos_s = *(glm::fvec3*)&custom_pos_list[0];
+						glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[1];
+						glm::fvec3 pos_tool_tip = tr_pt(mat_lfrm2ws, pos_s);
+						glm::fvec3 tool_dir = glm::normalize(tr_pt(mat_lfrm2ws, pos_e) - pos_tool_tip);
+
+						const float screw_length = 0.04f;
+						glm::fvec3 cyl_p[2] = { pos_tool_tip, pos_tool_tip - tool_dir * screw_length };
+						glm::fvec3 cyl_rgb = glm::fvec3(1, 1, 0);
+						float cyl_r = 0.003f;
+						vzm::ObjStates tool_screw;
+						int inserted_implant_id = 0;
+						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, inserted_implant_id);
+						vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, inserted_implant_id, tool_screw);
+						vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, inserted_implant_id, tool_screw);
+						vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, inserted_implant_id, tool_screw);
+						inserted_implant_ids.push_back(inserted_implant_id);
+					}
+					else
+					{
+						if (inserted_implant_ids.size() > 0)
+						{
+							vzm::DeleteObject(inserted_implant_ids[inserted_implant_ids.size() - 1]);
+							inserted_implant_ids.pop_back();
+						}
 					}
 				}
-				outfile.close();
+			}
+			//if (eginfo->ginfo.is_probe_detected)
+			{
+				//vector<Point3f>& custom_pos_list = eginfo->ginfo.otrk_data.custom_pos_map[eginfo->ginfo.dst_tool_se_name];
+				//
+				//if (x < eginfo->ginfo.rs_w / 2)
+				//{
+				//	glm::fmat4x4 mat_ws2probe = glm::inverse(eginfo->ginfo.mat_probe2ws);
+				//	glm::fvec3 pos_point_probefrm = tr_pt(mat_ws2probe, eginfo->ginfo.pos_probe_pin);
+				//	TESTOUT("==> [" + to_string(custom_pos_list.size()) + "] ", eginfo->ginfo.pos_probe_pin);
+				//
+				//	custom_pos_list.push_back(Point3f(pos_point_probefrm.x, pos_point_probefrm.y, pos_point_probefrm.z));
+				//
+				//	cout << "# of total 3d pick positions : " << custom_pos_list.size() << endl;
+				//}
+				//else
+				//{
+				//	if (custom_pos_list.size() > 0)
+				//		custom_pos_list.pop_back();
+				//}
+
+				//string preset_path = eginfo->ginfo.file_paths[eginfo->ginfo.dst_tool_se_name];
+				//ofstream outfile(preset_path);
+				//if (outfile.is_open())
+				//{
+				//	outfile.clear();
+				//	for (int i = 0; i < custom_pos_list.size(); i++)
+				//	{
+				//		string line = to_string(custom_pos_list[i].x) + " " +
+				//			to_string(custom_pos_list[i].y) + " " +
+				//			to_string(custom_pos_list[i].z);
+				//		outfile << line << endl;
+				//	}
+				//}
+				//outfile.close();
 			}
 		} break;
 		case RsTouchMode::Calib_TC:
@@ -395,7 +432,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					}
 				}
 				*/
-
+				/*
 				int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), eginfo->ginfo.model_ws_pick_pts.size());
 				if (num_crrpts >= 3)
 				{
@@ -420,6 +457,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 						cout << "model matching done!" << endl;
 					}
 				}
+				/**/
 			}
 			else
 			{
@@ -427,6 +465,11 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				{
 					TESTOUT("world position : ", eginfo->ginfo.pos_probe_pin);
 					eginfo->ginfo.model_ws_pick_pts.push_back(eginfo->ginfo.pos_probe_pin);
+
+					//static int i = 0;
+					//glm::fvec3 p = eginfo->ginfo.pos_probe_pin + glm::fvec3(0.02 * (i + 2), 0.01 * i, 0.03) * (float)(i++);
+					//TESTOUT("world position : ", p);
+					//eginfo->ginfo.model_ws_pick_pts.push_back(p);
 				}
 				else // x >= eginfo->ginfo.rs_w / 2
 				{
@@ -454,6 +497,54 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					vzm::DeleteObject(eginfo->ginfo.model_ws_pick_spheres_id);
 					eginfo->ginfo.model_ws_pick_spheres_id = 0;
 				}
+
+				int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), eginfo->ginfo.model_ws_pick_pts.size());
+				if (num_crrpts >= 4)
+				{
+					glm::fmat4x4 mat_tr;
+					if (helpers::ComputeRigidTransform(__FP eginfo->ginfo.model_ms_pick_pts[0], __FP eginfo->ginfo.model_ws_pick_pts[0], num_crrpts, __FP mat_tr[0]))
+					{
+						vzm::ObjStates model_obj_state;
+						vzm::GetSceneObjectState(eginfo->ginfo.model_scene_id, eginfo->ginfo.model_ms_obj_id, model_obj_state);
+
+						vzm::ObjStates model_ws_obj_state;
+						vzm::GetSceneObjectState(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, model_ws_obj_state);
+						model_ws_obj_state.is_visible = true;
+						vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, model_ws_obj_state);
+
+						glm::fmat4x4 mat_match_model2ws = mat_tr * (__cm4__ model_obj_state.os2ws);
+						eginfo->ginfo.mat_os2matchmodefrm = eginfo->ginfo.mat_ws2matchmodelfrm * mat_match_model2ws;
+						eginfo->ginfo.mat_matchtr = mat_tr;
+						// current issue!
+						//SetTransformMatrixOS2WS 을 SCENE PARAM 으로 바꾸기!
+						eginfo->ginfo.is_modelaligned = true;
+
+						cout << "model matching done!" << endl;
+
+						// store matrix....
+						float* _os2matchmodefrm = glm::value_ptr(eginfo->ginfo.mat_os2matchmodefrm);
+						float* _matchtr = glm::value_ptr(eginfo->ginfo.mat_matchtr);
+
+						ofstream outfile("..\\Preset\\registration_matrix.txt");
+						if (outfile.is_open())
+						{
+							outfile.clear();
+							// os2matchmodelfrm
+							for (int i = 0; i < 4; i++)
+							{
+								string line = to_string(_os2matchmodefrm[4 * i + 0]) + " " + to_string(_os2matchmodefrm[4 * i + 1]) + " " + to_string(_os2matchmodefrm[4 * i + 2]) + " " + to_string(_os2matchmodefrm[4 * i + 3]);
+								outfile << line << endl;
+							}
+							// matchtr
+							for (int i = 0; i < 4; i++)
+							{
+								string line = to_string(_matchtr[4 * i + 0]) + " " + to_string(_matchtr[4 * i + 1]) + " " + to_string(_matchtr[4 * i + 2]) + " " + to_string(_matchtr[4 * i + 3]);
+								outfile << line << endl;
+							}
+						}
+						outfile.close();
+					}
+				}
 			}
 		} break;
 		case RsTouchMode::ICP:
@@ -478,6 +569,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::Pair_Clear:
 		{
+			for (int i = 0; i < eginfo->ginfo.otrk_data.calib_trial_rs_cam_frame_ids.size(); i++)
+				vzm::DeleteObject(eginfo->ginfo.otrk_data.calib_trial_rs_cam_frame_ids[i]);
 			eginfo->ginfo.otrk_data.calib_trial_rs_cam_frame_ids.clear();
 			eginfo->ginfo.otrk_data.tc_calib_pt_pairs.clear();
 			cout << "Clear point pairs!!" << endl;
@@ -510,7 +603,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				sobj_state.emission = 0.5f;
 				sobj_state.diffusion = 0.5f;
 				sobj_state.specular = 0.0f;
-				sobj_state.point_thickness = 10.f;
+				//sobj_state.point_thickness = 10.f;
+				sobj_state.surfel_size = 0.005f;
 				//*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
 				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.captured_model_ws_point_id, sobj_state);
 				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, eginfo->ginfo.captured_model_ws_point_id, sobj_state);
@@ -717,7 +811,8 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 			sobj_state.emission = 0.5f;
 			sobj_state.diffusion = 0.5f;
 			sobj_state.specular = 0.0f;
-			sobj_state.point_thickness = 10.f;
+			//sobj_state.point_thickness = 10.f;
+			sobj_state.surfel_size = 0.005f;
 			//*(glm::fmat4x4*)sobj_state.os2ws = *(glm::fmat4x4*)model_obj_state.os2ws;
 			vzm::ReplaceOrAddSceneObject(eginfo->scene_id, eginfo->ginfo.captured_model_ms_point_id, sobj_state);
 			

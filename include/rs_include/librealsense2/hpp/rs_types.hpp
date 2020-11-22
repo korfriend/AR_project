@@ -141,6 +141,7 @@ namespace rs2
             auto h = rs2_get_librealsense_exception_type(e);
             switch (h) {
             case RS2_EXCEPTION_TYPE_CAMERA_DISCONNECTED:
+				 
                 throw camera_disconnected_error(e);
             case RS2_EXCEPTION_TYPE_BACKEND:
                 throw backend_error(e);

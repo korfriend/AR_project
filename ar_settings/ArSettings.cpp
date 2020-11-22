@@ -383,8 +383,8 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201117.cal";
-		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201110.motive";
+		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201122.cal";
+		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201122.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
@@ -405,10 +405,13 @@ namespace var_settings
 		}
 		else if (scenario == 2)
 		{
-			g_info.model_path = preset_path + "..\\Data\\spine\\lev7.stl";
-			g_info.volume_model_path = preset_path + "..\\..\\LargeData\\den.x3d";
+			//g_info.model_path = preset_path + "..\\Data\\spine\\lev7.stl";
+			g_info.model_path = preset_path + "..\\..\\LargeData\\Lev7\\lev7.stl";
+			//g_info.volume_model_path = preset_path + "..\\..\\LargeData\\den.x3d";
+			g_info.volume_model_path = preset_path + "..\\..\\LargeData\\201120_den\\201120_den.x3d";
 			//g_info.volume_model_path = preset_path + "..\\Data\\spine\\chest_x3d.x3d";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(spine).txt";
+			//g_info.model_predefined_pts = preset_path + "..\\..\\LargeData\\";
 		}
 
 		for (int i = 1; i <= __NUMMARKERS; i++)
@@ -446,7 +449,7 @@ namespace var_settings
 			vzm::LoadModelFile(g_info.model_path, g_info.model_ms_obj_id);
 			vzm::GenerateCopiedObject(g_info.model_ms_obj_id, g_info.model_ws_obj_id);
 		}
-		else if (scenario == 1)
+		else if (scenario == 1 || scenario == 2)
 		{
 			vzm::LoadModelFile(g_info.model_path, g_info.model_ms_obj_id);
 			vzm::GenerateCopiedObject(g_info.model_ms_obj_id, g_info.model_ws_obj_id);
@@ -482,6 +485,12 @@ namespace var_settings
 		else if (scenario == 1)
 		{
 			__cv3__ cam_params_model.pos = glm::fvec3(0, -0.7f, 0);
+			__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
+			__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
+		}
+		else if (scenario == 2)
+		{
+			__cv3__ cam_params_model.pos = glm::fvec3(0, -0.4f, 0);
 			__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
 			__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
 		}
@@ -531,47 +540,72 @@ namespace var_settings
 		double scale_factor = 0.001;
 		glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
 		g_info.mat_os2matchmodefrm = __cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
-		model_state.point_thickness = 10;
+		model_state.surfel_size = 0.005;
 		vzm::ObjStates model_ws_state;
 		if (g_info.model_volume_id != 0)
 		{
 			int vr_tmap_id = 0, vr_tmap_id1 = 0, mpr_tmap_id = 0;
 			std::vector<glm::fvec2> alpha_ctrs;
-			alpha_ctrs.push_back(glm::fvec2(0, 17760));
-			alpha_ctrs.push_back(glm::fvec2(1, 21700));
-			alpha_ctrs.push_back(glm::fvec2(1, 65536));
-			alpha_ctrs.push_back(glm::fvec2(0, 65537));
 			std::vector<glm::fvec4> rgb_ctrs;
-			rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 0));
-			rgb_ctrs.push_back(glm::fvec4(0.31, 0.78, 1, 17760));
-			rgb_ctrs.push_back(glm::fvec4(1, 0.51, 0.49, 18900));
-			rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 21000));
-			rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 65536));
-			vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id);
-			alpha_ctrs[0] = glm::fvec2(0, 17760);
-			alpha_ctrs[1] = glm::fvec2(1, 21700);
-			vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id1);
-
-			alpha_ctrs[0] = glm::fvec2(0, 100);
-			alpha_ctrs[1] = glm::fvec2(1, 30000);
-			rgb_ctrs[1] = glm::fvec4(1);
-			rgb_ctrs[2] = glm::fvec4(1);
-			vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], mpr_tmap_id);
+			if (scenario == 1)
+			{
+				alpha_ctrs.push_back(glm::fvec2(0, 17760));
+				alpha_ctrs.push_back(glm::fvec2(1, 21700));
+				alpha_ctrs.push_back(glm::fvec2(1, 65536));
+				alpha_ctrs.push_back(glm::fvec2(0, 65537));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 0));
+				rgb_ctrs.push_back(glm::fvec4(0.31, 0.78, 1, 17760));
+				rgb_ctrs.push_back(glm::fvec4(1, 0.51, 0.49, 18900));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 21000));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 65536));
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id);
+				alpha_ctrs[0] = glm::fvec2(0, 17760);
+				alpha_ctrs[1] = glm::fvec2(1, 21700);
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id1);
+				alpha_ctrs[0] = glm::fvec2(0, 100);
+				alpha_ctrs[1] = glm::fvec2(1, 30000);
+				rgb_ctrs[1] = glm::fvec4(1);
+				rgb_ctrs[2] = glm::fvec4(1);
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], mpr_tmap_id);
+			}
+			else if (scenario == 2)
+			{
+				//ActualMinMaxValue = -1024.000000 1714.750000
+				//StoredMinMaxValue = 0.000000 43820.000000
+				alpha_ctrs.push_back(glm::fvec2(0, 17500));
+				alpha_ctrs.push_back(glm::fvec2(1, 21200));
+				alpha_ctrs.push_back(glm::fvec2(1, 65536));
+				alpha_ctrs.push_back(glm::fvec2(0, 65537));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 0));
+				rgb_ctrs.push_back(glm::fvec4(0.31, 0.78, 1, 15000));
+				rgb_ctrs.push_back(glm::fvec4(1, 0.51, 0.49, 19000));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 22000));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 65536));
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id);
+				alpha_ctrs[0] = glm::fvec2(0, 17500);
+				alpha_ctrs[1] = glm::fvec2(1, 21200);
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id1);
+				alpha_ctrs[0] = glm::fvec2(0, 10000);
+				alpha_ctrs[1] = glm::fvec2(1, 40000);
+				rgb_ctrs[1] = glm::fvec4(1);
+				rgb_ctrs[2] = glm::fvec4(1);
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], mpr_tmap_id);
+			}
 
 			vzm::ObjStates volume_ws_state = model_state;
 			volume_ws_state.associated_obj_ids[vzm::ObjStates::USAGE::VR_OTF] = vr_tmap_id;
 			volume_ws_state.associated_obj_ids[vzm::ObjStates::USAGE::MPR_WINDOWING] = mpr_tmap_id;
 
 			volume_ws_state.associated_obj_ids[vzm::ObjStates::USAGE::VR_OTF] = vr_tmap_id1;
-			volume_ws_state.is_visible = false;
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_state);
 
 			double sample_rate = 1. / scale_factor;
 			vzm::SetRenderTestParam("_double_UserSampleRate", sample_rate, sizeof(double), -1, -1);// g_info.model_scene_id, model_cam_id);
 			bool apply_samplerate2grad = true;
 			vzm::SetRenderTestParam("_bool_ApplySampleRateToGradient", apply_samplerate2grad, sizeof(bool), -1, -1);//g_info.model_scene_id, model_cam_id);
 
-			//vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_volume_id, volume_ws_state);
+			volume_ws_state.is_visible = false;
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_state);
+			vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_volume_id, volume_ws_state);
 		}
 		vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_obj_id, model_state);
 
@@ -658,7 +692,7 @@ namespace var_settings
 #endif
 
 #ifdef __DEMO_PC
-		const int display_w = 1680;
+		const int display_w = 2561;
 		// for demo PC
 		//Create a window
 		cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
@@ -667,24 +701,24 @@ namespace var_settings
 		cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL);
 #ifdef __MIRRORS
 		cv::namedWindow("rs mirror", WINDOW_NORMAL);
-		cv::namedWindow("stg mirror", WINDOW_NORMAL);
-		cv::moveWindow("rs mirror", 40, 470);
-		cv::moveWindow("stg mirror", 944, 470);
+		//cv::namedWindow("stg mirror", WINDOW_NORMAL);
+		cv::moveWindow(g_info.window_name_rs_view, 40, 470);
+		//cv::moveWindow("stg mirror", 944, 470);
 #endif
 
 		cv::moveWindow(g_info.window_name_ws_view, 550, 0);
 		cv::moveWindow(g_info.window_name_ms_view, 1180, 0);
-		cv::moveWindow(g_info.window_name_rs_view, display_w, 0);
+		cv::moveWindow("rs mirror", display_w + 2, 0);
 		//cv::moveWindow(g_info.window_name_rs_view, 0, 0);
-		cv::moveWindow(g_info.window_name_stg_view, display_w + 1024, 0);
+		cv::moveWindow(g_info.window_name_stg_view, 1300, 0);
 
 
 
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
-		cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
-		cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		cv::setWindowProperty("rs mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+		//cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 #endif
 
 		// for developers
@@ -939,13 +973,39 @@ namespace var_settings
 		mat_ws2clf = glm::inverse(mat_clf2ws);
 
 		static int section_probe_line_id = 0, section_probe_end_id = 0;
-		glm::fmat4x4 mat_opt_probe2ws;
-		bool is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo("probe", mat_opt_probe2ws);
+		glm::fmat4x4 mat_opti_probe2ws;
+		//bool is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo("probe", mat_opti_probe2ws);
+		bool is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, mat_opti_probe2ws);
 		if (is_probe_detected)
 		{
-			//g_info.pos_probe_pin = tr_pt(mat_opt_probe2ws, glm::fvec3(0));
-			glm::fvec3 probe_end = tr_pt(mat_opt_probe2ws, glm::fvec3(0));
-			glm::fvec3 probe_dir = glm::normalize(tr_vec(mat_opt_probe2ws, glm::fvec3(0, 0, -1)));
+			//g_info.pos_probe_pin = tr_pt(mat_opti_probe2ws, glm::fvec3(0));
+			glm::fvec3 probe_end = tr_pt(mat_opti_probe2ws, glm::fvec3(0));
+			glm::fvec3 probe_dir;
+			if (probe_specifier_rb_name == "tool_1" || probe_specifier_rb_name == "tool_2")
+			{
+				vector<Point3f>& custom_pos_list = g_info.otrk_data.custom_pos_map[probe_specifier_rb_name];
+				if (custom_pos_list.size() > 0)
+				{
+					glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[0];
+					probe_dir = -glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - probe_end);
+				}
+			}
+			else if (probe_specifier_rb_name == "tool_3")
+			{
+				vector<Point3f>& custom_pos_list = g_info.otrk_data.custom_pos_map[probe_specifier_rb_name];
+				if (custom_pos_list.size() >= 2)
+				{
+					glm::fvec3 pos_s = *(glm::fvec3*)&custom_pos_list[0];
+					probe_end = tr_pt(mat_opti_probe2ws, pos_s);
+					glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[1];
+					probe_dir = -glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - pos_e);
+				}
+			}
+			else
+			{
+				probe_dir = glm::normalize(tr_vec(mat_opti_probe2ws, glm::fvec3(0, 0, -1)));
+			}
+			g_info.pos_probe_pin = probe_end;
 
 			glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir * 0.2f };
 			float cyl_r = 0.002f;
@@ -972,11 +1032,13 @@ namespace var_settings
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, cobj_state);
 		}
 
-		g_info.is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, g_info.mat_probe2ws);
-		if (g_info.is_probe_detected)
-		{
-			g_info.pos_probe_pin = tr_pt(mat_probe2ws, glm::fvec3(0));
-		}
+		//g_info.is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, g_info.mat_probe2ws);
+		g_info.is_probe_detected = is_probe_detected;
+		g_info.mat_probe2ws = mat_opti_probe2ws;
+		//if (g_info.is_probe_detected)
+		//{
+		//	g_info.pos_probe_pin = tr_pt(g_info.mat_probe2ws, glm::fvec3(0));
+		//}
 
 		auto set_rb_axis = [](const bool is_detected, const glm::fmat4x4& mat_frm2ws, int& obj_id)
 		{
@@ -993,7 +1055,7 @@ namespace var_settings
 			}
 		};
 		set_rb_axis(is_rsrb_detected, mat_clf2ws, g_info.otrk_data.rs_lf_axis_id);
-		set_rb_axis(g_info.is_probe_detected, g_info.mat_probe2ws, g_info.otrk_data.probe_lf_axis_id);
+		//set_rb_axis(g_info.is_probe_detected, g_info.mat_probe2ws, g_info.otrk_data.probe_lf_axis_id);
 	}
 
 	void RecordInfo(const int key_pressed, const void* color_data)
@@ -1156,6 +1218,11 @@ namespace var_settings
 	void GetVarInfo(void* ginfo)
 	{
 		*(GlobalInfo*)ginfo = g_info;
+	}
+
+	void GetVarInfoPtr(void** ginfo_ptr)
+	{
+		*ginfo_ptr = &g_info;
 	}
 
 	void SetVarInfo(const void* ginfo)
@@ -1457,7 +1524,7 @@ namespace var_settings
 			obj_state_pts.color[3] = 1.f;
 			obj_state_pts.emission = 0.3f;
 			obj_state_pts.diffusion = 1.f;
-			obj_state_pts.point_thickness = 2.f;
+			obj_state_pts.surfel_size = 0.005f;
 			// Generate the pointcloud and texture mappings
 			rs_settings::pc.map_to(color_frame); // before pc.calculate, which generates texture_coordinates
 			rs_settings::points = rs_settings::pc.calculate(depth_frame);
@@ -1596,7 +1663,7 @@ namespace var_settings
 		}
 	}
 
-	void SetTargetModelAssets(const std::string& name)
+	void SetTargetModelAssets(const std::string& name, const bool forced_visible_model)
 	{
 		if (g_info.model_ws_pick_spheres_id != 0)
 		{
@@ -1612,7 +1679,7 @@ namespace var_settings
 		bool model_match_rb = g_info.otrk_data.trk_info.GetLFrmInfo(name, mat_matchmodelfrm2ws); 
 		g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	// 변경 위치
 
-		if (model_match_rb && g_info.is_modelaligned)
+		if ((model_match_rb || forced_visible_model) && g_info.is_modelaligned)
 		{
 			//g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	// 기존 위치
 
@@ -1620,21 +1687,24 @@ namespace var_settings
 			vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 
 			__cm4__ model_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
-			if (scenario == 1)
-			{
+			//if (scenario == 1 || scenario == 2)
+			//{
 				vzm::ObjStates volume_ws_obj_state;
 				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
 				__cm4__ volume_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
-				volume_ws_obj_state.is_visible = true;
-
+				volume_ws_obj_state.is_visible = false;
+			
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_volume_id, volume_ws_obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_volume_id, volume_ws_obj_state);
-
-				model_ws_obj_state.color[3] = 0.05f;
-				model_ws_obj_state.point_thickness = 15;
-			}
+			//
+			//	model_ws_obj_state.color[3] = 0.05f;
+			//	//model_ws_obj_state.point_thickness = 15;
+			//	model_ws_obj_state.surfel_size = 0.005f;
+			//}
+			__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 1.0);
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+			__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 0.1);
 			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 		}
@@ -1660,6 +1730,7 @@ namespace var_settings
 			{
 				vzm::ObjStates volume_ws_obj_state;
 				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+				volume_ws_obj_state.is_visible = true;
 				vzm::ReplaceOrAddSceneObject(g_info.csection_scene_id, g_info.model_volume_id, volume_ws_obj_state);
 			}
 
