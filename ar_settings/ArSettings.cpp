@@ -140,7 +140,7 @@ namespace rs_settings
 		if (sensor && sensor.is<rs2::depth_stereo_sensor>())
 		{
 			sensor.set_option(RS2_OPTION_VISUAL_PRESET, RS2_RS400_VISUAL_PRESET_HIGH_ACCURACY);
-			sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 1);
+			sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0);
 		}
 
 		// to get rgb sensor profile

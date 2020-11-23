@@ -197,8 +197,8 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 	//var_settings::GetVarInfo(&g_info);
 
-	optitrk::SetCameraSettings(0, 2, 50, 100);
-	optitrk::SetCameraSettings(1, 2, 50, 100);
+	optitrk::SetCameraSettings(0, 2, 30, 100);
+	optitrk::SetCameraSettings(1, 2, 30, 100);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	int ov_cam_id = var_settings::GetCameraID_SSU(g_info.ws_scene_id);
@@ -313,7 +313,7 @@ int main()
 	optitrk::SetRigidBodyEnabledbyName("tool_3", false);
 	optitrk::SetRigidBodyEnabledbyName("probe", true);
 
-	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
+	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.3f, 3);
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
 	int postpone = 3;
