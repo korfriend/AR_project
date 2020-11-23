@@ -383,8 +383,8 @@ namespace var_settings
 		g_info.model_predefined_pts = "E:\\project_srcs\\kar\\prototype_ver1\\mode_predefined_points.txt";
 		*/
 		
-		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201122.cal";
-		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201122.motive";
+		g_info.optrack_calib = preset_path + "..\\Preset\\Calibration_201123.cal";
+		g_info.optrack_env = preset_path + "..\\Preset\\Asset_201123.motive";
 		g_info.cb_positions = preset_path + "..\\Preset\\cb_points.txt";
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";

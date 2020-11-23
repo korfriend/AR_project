@@ -54,8 +54,6 @@ using namespace cv;
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include <librealsense2/rsutil.h>
 
-GlobalInfo g_info;
-
 string sst_positions;
 string guide_path;
 SS_Tool_Guide_Pts ss_tool_info;
@@ -81,7 +79,7 @@ int ventricle_ws_obj_id;
 void LoadPresets(GlobalInfo& g_info)
 {
 	var_settings::LoadPresets();
-	var_settings::GetVarInfo(&g_info);
+	//var_settings::GetVarInfo(&g_info);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	std::ifstream infile;
@@ -152,15 +150,17 @@ void LoadPresets(GlobalInfo& g_info)
 		}
 		infile.close();
 
-		g_info.mat_os2matchmodefrm = glm::fmat4x4((const float&)os2matchmodefrm);
-		g_info.mat_matchtr = glm::fmat4x4((const float&)matchtr);
+		g_info.mat_os2matchmodefrm = *(glm::fmat4x4*)os2matchmodefrm;
+		g_info.mat_matchtr = *(glm::fmat4x4*)matchtr;
+		//memcpy(glm::value_ptr(g_info.mat_os2matchmodefrm), os2matchmodefrm, sizeof());
+		//g_info.mat_matchtr = glm::fmat4x4(*matchtr);
 		g_info.is_modelaligned = true;
 	}	
 }
 void InitializeVarSettings(GlobalInfo& g_info)
 {
 	var_settings::InitializeVarSettings();
-	var_settings::GetVarInfo(&g_info);
+	//var_settings::GetVarInfo(&g_info);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	zoom_scene_id = 6;
@@ -179,7 +179,7 @@ void InitializeVarSettings(GlobalInfo& g_info)
 void SetCvWindows(GlobalInfo& g_info)
 {
 	var_settings::SetCvWindows();
-	var_settings::GetVarInfo(&g_info);
+	//var_settings::GetVarInfo(&g_info);
 
 	// SSU //////////////////////////////////////////////////////////////////
 	cv::namedWindow(window_name_zs_view, WINDOW_AUTOSIZE);
@@ -195,7 +195,7 @@ void SetCvWindows(GlobalInfo& g_info)
 void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h)
 {
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
-	var_settings::GetVarInfo(&g_info);
+	//var_settings::GetVarInfo(&g_info);
 
 	optitrk::SetCameraSettings(0, 2, 50, 100);
 	optitrk::SetCameraSettings(1, 2, 50, 100);
@@ -296,6 +296,11 @@ int main()
 	//rs_settings::GetRsCamParams(rgb_intrinsics, depth_intrinsics, rgb_extrinsics);
 
 	//////
+	GlobalInfo* _ginfo;
+	var_settings::GetVarInfoPtr((void**)&_ginfo);
+	GlobalInfo& g_info = *_ginfo;
+
+
 	InitializeVarSettings(g_info);
 	SetCvWindows(g_info);
 	SetPreoperations(g_info, rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
@@ -436,11 +441,19 @@ int main()
 
 	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), g_info.rs_scene_id, 1);
 	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
-	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 50, 0.5), sizeof(glm::dvec4), -1, -1);
+	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 0.1, 0.5), sizeof(glm::dvec4), -1, -1);
 	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(1, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
 	vzm::SetRenderTestParam("_double_InDepthVis", 0.01, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, g_info.model_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, g_info.brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.ventricle_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.ventricle_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
 
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
