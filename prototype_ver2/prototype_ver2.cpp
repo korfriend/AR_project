@@ -934,8 +934,28 @@ int main()
 
 						glm::fmat4 mat_os2ws = mat_sshead2ws * g_info.mat_os2matchmodefrm;	// !!!
 						//glm::fmat4x4 os2ws = glm::inverse(mat_ws2os);
+
+						/*
 						glm::fvec3 ssguide_p1_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[0]);	// tool guide end
 						glm::fvec3 ssguide_p2_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[1]);	// tool guide entry
+						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;
+						*/
+
+						glm::fvec3 ssguide_p1_ws, ssguide_p2_ws;
+						if (true) {
+							// 수술 기구로 하는거
+							ssguide_p1_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[0]);	// tool guide end
+							ssguide_p2_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[1]);	// tool guide entry
+						}
+						else {
+							// 좌표 박아서 (brainLab)
+							glm::fvec3 ssguide_p1 = ss_tool_guide_info.pos_centers_tfrm[0] - glm::fvec3(0.21875, -160.78125, -95);
+							glm::fvec3 ssguide_p2 = ss_tool_guide_info.pos_centers_tfrm[1] - glm::fvec3(0.21875, -160.78125, -95);
+
+							ssguide_p1_ws = tr_pt(mat_os2ws, ssguide_p1);	// tool guide target
+							ssguide_p2_ws = tr_pt(mat_os2ws, ssguide_p2);	// tool guide entry
+						}
+
 						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;
 
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
