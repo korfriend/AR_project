@@ -102,7 +102,7 @@ void LoadPresets(GlobalInfo& g_info)
 
 
 	// ss_tool_guide point file load //
-	/*
+	
 	ss_tool_guide_info.pos_centers_tfrm.clear();
 
 	infile = std::ifstream(guide_path);
@@ -116,7 +116,7 @@ void LoadPresets(GlobalInfo& g_info)
 		// process pair (a,b)
 	}
 	infile.close();
-	*/
+	
 
 	// head registration file load //
 	float os2matchmodefrm[16], matchtr[16];
@@ -197,8 +197,8 @@ void SetPreoperations(GlobalInfo& g_info, const int rs_w, const int rs_h, const 
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 	//var_settings::GetVarInfo(&g_info);
 
-	optitrk::SetCameraSettings(0, 2, 50, 100);
-	optitrk::SetCameraSettings(1, 2, 50, 100);
+	optitrk::SetCameraSettings(0, 2, 30, 100);
+	optitrk::SetCameraSettings(1, 2, 30, 100);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
 	int ov_cam_id = var_settings::GetCameraID_SSU(g_info.ws_scene_id);
@@ -313,7 +313,7 @@ int main()
 	optitrk::SetRigidBodyEnabledbyName("tool_3", false);
 	optitrk::SetRigidBodyEnabledbyName("probe", true);
 
-	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
+	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.3f, 3);
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
 	int postpone = 3;
@@ -326,7 +326,7 @@ int main()
 			optitrk::UpdateFrame();
 
 			track_info cur_trk_info;
-			static string _rb_names[5] = { "rs_cam" , "probe" , "ss_tool_v1" , "ss_head" , "breastbody" };
+			static string _rb_names[5] = { "rs_cam" , "probe" , "ss_tool_v1" , "ss_head" , "ss_tool_v2" };
 			for (int i = 0; i < 5; i++)
 			{
 				glm::fmat4x4 mat_lfrm2ws;
@@ -441,19 +441,19 @@ int main()
 
 	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), g_info.rs_scene_id, 1);
 	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
-	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 0.1, 0.5), sizeof(glm::dvec4), -1, -1);
+	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 0.05, 0.5), sizeof(glm::dvec4), -1, -1);
 	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(1, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
 	vzm::SetRenderTestParam("_double_InDepthVis", 0.01, sizeof(double), -1, -1);
 	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
 	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
 	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.ventricle_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.ventricle_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
+	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
+	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.ventricle_ws_obj_id);
+	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
+	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.ventricle_ws_obj_id);
+	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
 
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
@@ -544,7 +544,7 @@ int main()
 				bool is_sshead_detected = false;
 				bool is_probe_detected = trk_info.GetLFrmInfo("probe", mat_probe2ws);
 				//bool is_sstool_detected = trk_info.GetLFrmInfo("ss_tool_v1", mat_sstool2ws);
-				bool is_sstool_detected = trk_info.GetLFrmInfo("ss_tool_v2", mat_sstool2ws);
+				bool is_sstool_detected = trk_info.GetLFrmInfo("ss_tool_v1", mat_sstool2ws);
 
 				if (false) {
 					// head tracking mode
@@ -929,33 +929,30 @@ int main()
 						// sstool pos(ws)
 						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
 						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
+						vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
 
 						glm::fvec3 sstool_dir = sstool_p2_ws - sstool_p1_ws;
 
 						glm::fmat4 mat_os2ws = mat_sshead2ws * g_info.mat_os2matchmodefrm;	// !!!
 						//glm::fmat4x4 os2ws = glm::inverse(mat_ws2os);
 
-						/*
-						glm::fvec3 ssguide_p1_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[0]);	// tool guide end
-						glm::fvec3 ssguide_p2_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[1]);	// tool guide entry
-						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;
-						*/
-
 						glm::fvec3 ssguide_p1_ws, ssguide_p2_ws;
-						if (true) {
-							// 수술 기구로 하는거
+						if (false) {
+							// 수술기구로
 							ssguide_p1_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[0]);	// tool guide end
 							ssguide_p2_ws = tr_pt(mat_os2ws, ss_tool_guide_info.pos_centers_tfrm[1]);	// tool guide entry
 						}
 						else {
-							// 좌표 박아서 (brainLab)
-							glm::fvec3 ssguide_p1 = ss_tool_guide_info.pos_centers_tfrm[0] - glm::fvec3(0.21875, -160.78125, -95);
-							glm::fvec3 ssguide_p2 = ss_tool_guide_info.pos_centers_tfrm[1] - glm::fvec3(0.21875, -160.78125, -95);
+							vzm::ObjStates volume_ws_obj_state;
+							vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+							glm::fmat4x4 mat_vos2ws = *(glm::fmat4x4*)volume_ws_obj_state.os2ws;
 
-							ssguide_p1_ws = tr_pt(mat_os2ws, ssguide_p1);	// tool guide target
-							ssguide_p2_ws = tr_pt(mat_os2ws, ssguide_p2);	// tool guide entry
+							glm::fvec3 trans;
+							ssguide_p1_ws = tr_pt(mat_vos2ws, ss_tool_guide_info.pos_centers_tfrm[0] - glm::fvec3(0.21875, -160.78125, -203));
+							ssguide_p2_ws = tr_pt(mat_vos2ws, ss_tool_guide_info.pos_centers_tfrm[1] - glm::fvec3(0.21875, -160.78125, -203));
+							show_guide_view = true;
 						}
-
+					
 						glm::fvec3 ssguide_dir = ssguide_p2_ws - ssguide_p1_ws;
 
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
@@ -963,11 +960,16 @@ int main()
 
 						// model scene
 						{
-							glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
-							glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
+							glm::fmat4x4 mat_ws2mws = glm::inverse(mat_sshead2ws * g_info.mat_os2matchmodefrm);
+							
+
+
+							//glm::fvec3 ssguide_p1_os = ss_tool_guide_info.pos_centers_tfrm[0];
+							//glm::fvec3 ssguide_p2_os = ss_tool_guide_info.pos_centers_tfrm[1];
 
 							glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
-							glm::fvec3 cyl_p[2] = { ssguide_p1_os, ssguide_p2_os };
+							//glm::fvec3 cyl_p[2] = { ssguide_p1_os, ssguide_p2_os };
+							glm::fvec3 cyl_p[2] = { tr_pt(mat_ws2mws, ssguide_p1_ws), tr_pt(mat_ws2mws, ssguide_p2_ws) };
 							float cyl_r = 1.5f;
 
 							vzm::ObjStates ssu_tool_line_ms_state;
@@ -1018,8 +1020,6 @@ int main()
 
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angle_id, ws_states);
 							vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, ssu_tool_guide_angleText_id2, ws_states);
-
-							vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
 						}
 
 						// smartglass scene //
