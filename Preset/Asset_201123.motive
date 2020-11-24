@@ -69,12 +69,12 @@
             </property>
             <property>
                 <name>PCResidual</name>
-                <value>0.002521</value>
+                <value>0.002568</value>
                 <defaultValue>0.002546</defaultValue>
             </property>
             <property>
                 <name>PCMaxRayLength</name>
-                <value>2.519573</value>
+                <value>4.028795</value>
                 <defaultValue>2.522468</defaultValue>
             </property>
             <property>
@@ -243,7 +243,7 @@
                     </property>
                     <property>
                         <name>TimeManagementActionTakeName</name>
-                        <value>Take 2020-11-23 12.12.30 PM</value>
+                        <value>Take 2020-11-23 04.37.47 PM</value>
                         <defaultValue>Take 2019-10-18 01.40.27 PM</defaultValue>
                     </property>
                     <property>
@@ -980,28 +980,28 @@
                 <!--The "origin" and "end" tags in this section correspond with the "name" values in <MarkerNames>-->
             </MarkerSticks>
         </rigid_body>
-        <rigid_body version="1.1" id="e802f8c285704cba:99eed23f2d3911eb">
+        <rigid_body version="1.1" id="e802f8c285704eba:fb427a8b2d5d11eb">
             <markers>
-                <marker id="0:c351">
-                    <position>-0.0596754,0.00457953,0.0160953</position>
+                <marker id="0:c7c0">
+                    <position>-0.0609942,0.0106981,0.00231459</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>1</label_id>
                 </marker>
-                <marker id="0:c354">
-                    <position>-0.0238422,0.00713063,0.0101287</position>
+                <marker id="0:c7c3">
+                    <position>-0.0247552,0.0101523,0.0025803</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>2</label_id>
                 </marker>
-                <marker id="0:c355">
-                    <position>0.0538063,-0.022046,-0.0262579</position>
+                <marker id="0:c7cc">
+                    <position>0.0299476,0.00811068,0.00593125</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>3</label_id>
                 </marker>
-                <marker id="0:c359">
-                    <position>0.0297194,0.010171,7.70175e-05</position>
+                <marker id="0:c7d3">
+                    <position>0.0558798,-0.028612,-0.0114586</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>4</label_id>
@@ -1011,12 +1011,12 @@
                 <property>
                     <name>NodeName</name>
                     <value>rs_cam</value>
-                    <defaultValue>rs_</defaultValue>
+                    <defaultValue>rs_cam</defaultValue>
                 </property>
                 <property>
                     <name>Color</name>
-                    <value>16744686</value>
-                    <defaultValue>16744686</defaultValue>
+                    <value>16775334</value>
+                    <defaultValue>16775334</defaultValue>
                 </property>
                 <property>
                     <name>DisplayLabel</name>
@@ -1030,28 +1030,32 @@
                 </property>
                 <property>
                     <name>UserData</name>
-                    <value>1021</value>
-                    <defaultValue>1021</defaultValue>
+                    <value>1020</value>
+                    <defaultValue>1020</defaultValue>
+                </property>
+                <property>
+                    <name>AcquisitionFrames</name>
+                    <value>1</value>
                 </property>
                 <property>
                     <name>MarkerLocation0</name>
-                    <value>-0.0596754,0.00457953,0.0160953</value>
-                    <defaultValue>-0.0596754,0.00457953,0.0160953</defaultValue>
+                    <value>-0.0609942,0.0106981,0.00231459</value>
+                    <defaultValue>-0.0609942,0.0106981,0.00231459</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation1</name>
-                    <value>-0.0238422,0.00713063,0.0101287</value>
-                    <defaultValue>-0.0238422,0.00713063,0.0101287</defaultValue>
+                    <value>-0.0247552,0.0101523,0.0025803</value>
+                    <defaultValue>-0.0247552,0.0101523,0.0025803</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation2</name>
-                    <value>0.0538063,-0.022046,-0.0262579</value>
-                    <defaultValue>0.0538063,-0.022046,-0.0262579</defaultValue>
+                    <value>0.0299476,0.00811068,0.00593125</value>
+                    <defaultValue>0.0299476,0.00811068,0.00593125</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation3</name>
-                    <value>0.0297194,0.010171,7.70175e-05</value>
-                    <defaultValue>0.0297194,0.010171,7.70175e-05</defaultValue>
+                    <value>0.0558798,-0.028612,-0.0114586</value>
+                    <defaultValue>0.0558798,-0.028612,-0.0114586</defaultValue>
                 </property>
             </properties>
             <MarkerNames ReorderMarkers="true">
@@ -1066,10 +1070,10 @@
             </MarkerNames>
             <MarkerColors>
                 <!--The "name" tag in this section corresponds with the "name" values in <MarkerNames>.-->
-                <Marker name="Marker1" color="238 128 255" movable="false"/>
-                <Marker name="Marker2" color="238 128 255" movable="false"/>
-                <Marker name="Marker3" color="238 128 255" movable="false"/>
-                <Marker name="Marker4" color="238 128 255" movable="false"/>
+                <Marker name="Marker1" color="166 248 255" movable="false"/>
+                <Marker name="Marker2" color="166 248 255" movable="false"/>
+                <Marker name="Marker3" color="166 248 255" movable="false"/>
+                <Marker name="Marker4" color="166 248 255" movable="false"/>
                 <!--If nothing appears in this section it is because you need to update or generate colors. You can do this in the asset's context menu.-->
                 <!--The movable="false" tag currently is not functioning.-->
             </MarkerColors>
@@ -1079,7 +1083,7 @@
         </rigid_body>
     </NodeAssets>
     <DeviceAssets>
-        <sync_device version="1.0" id="e802f8c285704cba:83fbd33b2d3911eb">
+        <sync_device version="1.0" id="e802f8c285704eba:b494548e2d5e11eb">
             <properties>
                 <property>
                     <name>SyncDeviceConnected</name>
@@ -1148,8 +1152,8 @@
                 <properties>
                     <property>
                         <name>CameraNodeCameraSerialNumber</name>
-                        <value>81390</value>
-                        <defaultValue>81390</defaultValue>
+                        <value>81391</value>
+                        <defaultValue>81391</defaultValue>
                     </property>
                     <property>
                         <name>CameraNodeCameraFrameRateDivisor</name>
@@ -1175,8 +1179,8 @@
                 <properties>
                     <property>
                         <name>CameraNodeCameraSerialNumber</name>
-                        <value>81391</value>
-                        <defaultValue>81391</defaultValue>
+                        <value>81390</value>
+                        <defaultValue>81390</defaultValue>
                     </property>
                     <property>
                         <name>CameraNodeCameraFrameRateDivisor</name>

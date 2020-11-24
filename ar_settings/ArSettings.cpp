@@ -396,6 +396,7 @@ namespace var_settings
 		{
 			g_info.model_path = preset_path + "..\\Data\\skin.obj";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points.txt";
+			g_info.volume_model_path = "C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\head\\head.x3d";
 		}
 		else if (scenario == 1)
 		{
@@ -448,6 +449,7 @@ namespace var_settings
 		{
 			vzm::LoadModelFile(g_info.model_path, g_info.model_ms_obj_id);
 			vzm::GenerateCopiedObject(g_info.model_ms_obj_id, g_info.model_ws_obj_id);
+			vzm::LoadModelFile(g_info.volume_model_path, g_info.model_volume_id);
 		}
 		else if (scenario == 1 || scenario == 2)
 		{
@@ -547,7 +549,28 @@ namespace var_settings
 			int vr_tmap_id = 0, vr_tmap_id1 = 0, mpr_tmap_id = 0;
 			std::vector<glm::fvec2> alpha_ctrs;
 			std::vector<glm::fvec4> rgb_ctrs;
-			if (scenario == 1)
+			if (scenario == 0)
+			{
+				alpha_ctrs.push_back(glm::fvec2(0, 14000));
+				alpha_ctrs.push_back(glm::fvec2(1, 26000));
+				alpha_ctrs.push_back(glm::fvec2(1, 65536));
+				alpha_ctrs.push_back(glm::fvec2(0, 65537));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 0));
+				rgb_ctrs.push_back(glm::fvec4(0.31, 0.78, 1, 17760));
+				rgb_ctrs.push_back(glm::fvec4(1, 0.51, 0.49, 18900));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 21000));
+				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 65536));
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id);
+				alpha_ctrs[0] = glm::fvec2(0, 14000);
+				alpha_ctrs[1] = glm::fvec2(1, 26000);
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id1);
+				alpha_ctrs[0] = glm::fvec2(0, 14000);
+				alpha_ctrs[1] = glm::fvec2(1, 26000);
+				rgb_ctrs[1] = glm::fvec4(1);
+				rgb_ctrs[2] = glm::fvec4(1);
+				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], mpr_tmap_id);
+			}
+			else if (scenario == 1)
 			{
 				alpha_ctrs.push_back(glm::fvec2(0, 17760));
 				alpha_ctrs.push_back(glm::fvec2(1, 21700));
@@ -692,7 +715,7 @@ namespace var_settings
 #endif
 
 #ifdef __DEMO_PC
-		const int display_w = 2561;
+		const int display_w = 1921;
 		// for demo PC
 		//Create a window
 		cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
@@ -710,7 +733,7 @@ namespace var_settings
 		cv::moveWindow(g_info.window_name_ms_view, 1180, 0);
 		cv::moveWindow("rs mirror", display_w + 2, 0);
 		//cv::moveWindow(g_info.window_name_rs_view, 0, 0);
-		cv::moveWindow(g_info.window_name_stg_view, 1300, 0);
+		//cv::moveWindow(g_info.window_name_stg_view, display_w + 1025, 0);
 
 
 
@@ -1691,7 +1714,19 @@ namespace var_settings
 			//{
 				vzm::ObjStates volume_ws_obj_state;
 				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
-				__cm4__ volume_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
+
+				// TEMP
+				if (scenario == 0)
+				{
+					glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+					glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.128, 112.128, 108.5));
+					__cm4__ volume_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm * mat_t * mat_s;
+				}
+				else
+				{
+					__cm4__ volume_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
+				}
+
 				volume_ws_obj_state.is_visible = false;
 			
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
