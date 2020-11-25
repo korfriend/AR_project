@@ -1099,8 +1099,23 @@ namespace var_settings
 		//	return glm::fvec3((idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1), 1);
 		//};
 		glm::fmat4x4 mat_armklf2ws;
-		is_visible &= g_info.otrk_data.trk_info.GetLFrmInfo(g_info.otrk_data.marker_rb_name, mat_armklf2ws);
-		if (is_visible)
+		bool is_armk_detected = g_info.otrk_data.trk_info.GetLFrmInfo(g_info.otrk_data.marker_rb_name, mat_armklf2ws);
+
+		static int armk_frame_id = 0;
+		if (is_armk_detected)
+		{
+			Axis_Gen(mat_armklf2ws, 0.05f, armk_frame_id);
+			vzm::ObjStates cstate = default_obj_state;
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, armk_frame_id, cstate);
+		}
+		else
+		{
+			vzm::ObjStates cstate = default_obj_state;
+			cstate.is_visible = false;
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, armk_frame_id, cstate);
+		}
+
+		if (is_visible && is_armk_detected)
 		{
 			vector<glm::fvec4> sphers_xyzr;
 			vector<glm::fvec3> sphers_rgb;
