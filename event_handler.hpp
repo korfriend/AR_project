@@ -195,8 +195,12 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					TESTOUT("==> ", ar_marker_pt);
 
 					TESTOUT("armk position " + to_string(point3ds.size()), ar_marker_pt);
-					point3ds.push_back(Point3f(ar_marker_pt.x, ar_marker_pt.y, ar_marker_pt.z));
 
+					glm::fmat4x4 mat_armklf2ws;
+					eginfo->ginfo.otrk_data.trk_info.GetLFrmInfo(eginfo->ginfo.otrk_data.marker_rb_name, mat_armklf2ws);
+					glm::fmat4x4 mat_ws2armklf = glm::inverse(mat_armklf2ws);
+					ar_marker_pt = tr_pt(mat_ws2armklf, ar_marker_pt);
+					point3ds.push_back(Point3f(ar_marker_pt.x, ar_marker_pt.y, ar_marker_pt.z));
 					cout << "# of total 3d pick positions : " << point3ds.size() << endl;
 				}
 				else

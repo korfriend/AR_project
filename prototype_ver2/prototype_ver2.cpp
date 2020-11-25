@@ -159,7 +159,7 @@ void LoadPresets(GlobalInfo& g_info)
 }
 void InitializeVarSettings(GlobalInfo& g_info)
 {
-	var_settings::InitializeVarSettings();
+	var_settings::InitializeVarSettings(0, "ss_tool_v2", "marker");
 	//var_settings::GetVarInfo(&g_info);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
@@ -311,12 +311,16 @@ int main()
 	optitrk::SetRigidBodyEnabledbyName("tool_1", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_2", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_3", false);
+	optitrk::SetRigidBodyEnabledbyName("marker", true);
+	optitrk::SetRigidBodyEnabledbyName("rs_cam", true);
 	optitrk::SetRigidBodyEnabledbyName("probe", true);
 
 	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.3f, 3);
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
+	optitrk::SetRigidBodyPropertyByName("ss_tool_v2", 0.1f, 1);
 	int postpone = 3;
+#define NUM_RBS 6
 	concurrent_queue<track_info> track_que(10);
 	std::atomic_bool tracker_alive{ true };
 	std::thread tracker_processing_thread([&]() {
@@ -326,8 +330,8 @@ int main()
 			optitrk::UpdateFrame();
 
 			track_info cur_trk_info;
-			static string _rb_names[5] = { "rs_cam" , "probe" , "ss_tool_v1" , "ss_head" , "ss_tool_v2" };
-			for (int i = 0; i < 5; i++)
+			static string _rb_names[NUM_RBS] = { "rs_cam" , "probe" , "ss_tool_v1" , "ss_head" , "ss_tool_v2", "marker" };
+			for (int i = 0; i < NUM_RBS; i++)
 			{
 				glm::fmat4x4 mat_lfrm2ws;
 				bool is_detected = optitrk::GetRigidBodyLocationByName(_rb_names[i], (float*)&mat_lfrm2ws);

@@ -1048,10 +1048,12 @@ struct OpttrkData
 	vector<int> mk_pickable_sphere_ids;
 
 	map<string, vector<Point3f>> custom_pos_map;
+	string marker_rb_name;
 	vector<Point3f> calib_3d_pts;
 
 	OpttrkData()
 	{
+		marker_rb_name = "";
 		stg_calib_mk_cid = 0;
 		cb_spheres_id = 0;
 		mks_spheres_id = 0;

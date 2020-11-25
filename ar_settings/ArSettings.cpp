@@ -336,9 +336,11 @@ namespace var_settings
 
 	std::string operation_name;
 
-	void InitializeVarSettings(int _scenario, const std::string& manualset_tool_name)
+	void InitializeVarSettings(int _scenario, const std::string& manualset_tool_name, const std::string& marker_rb_name)
 	{
 		scenario = _scenario;
+
+		g_info.otrk_data.marker_rb_name = marker_rb_name;
 
 		// set global information
 		g_info.ws_scene_id = 1;
@@ -1092,21 +1094,23 @@ namespace var_settings
 
 	void SetTcCalibMkPoints(bool is_visible)
 	{
-		auto marker_color = [](int idx, int w)
-		{
-			return glm::fvec3((idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1), 1);
-		};
+		//auto marker_color = [](int idx, int w)
+		//{
+		//	return glm::fvec3((idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1), 1);
+		//};
+		glm::fmat4x4 mat_armklf2ws;
+		is_visible &= g_info.otrk_data.trk_info.GetLFrmInfo(g_info.otrk_data.marker_rb_name, mat_armklf2ws);
 		if (is_visible)
 		{
 			vector<glm::fvec4> sphers_xyzr;
 			vector<glm::fvec3> sphers_rgb;
 			for (int i = 0; i < g_info.otrk_data.calib_3d_pts.size(); i++)
 			{
-				Point3f pt = g_info.otrk_data.calib_3d_pts[i];
+				glm::fvec3 pt = tr_pt(mat_armklf2ws, *(glm::fvec3*)&g_info.otrk_data.calib_3d_pts[i]);
 				//sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.008));
 				//sphers_rgb.push_back(marker_color(i, (int)g_info.otrk_data.calib_3d_pts.size() / 2));
-				sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, 0.01));
-				sphers_rgb.push_back(glm::fvec3(1));
+				sphers_xyzr.push_back(glm::fvec4(pt, 0.01));
+				sphers_rgb.push_back(glm::fvec3(0, 1, 1));
 
 				int text_id = 0;
 				if (g_info.otrk_data.armk_text_ids.size() > i)
@@ -1284,6 +1288,9 @@ namespace var_settings
 				vector<Point2f> point2d;
 				vector<Point3f> point3d;
 
+				glm::fmat4x4 mat_armklf2ws;
+				g_info.otrk_data.trk_info.GetLFrmInfo(g_info.otrk_data.marker_rb_name, mat_armklf2ws);
+
 				for (int i = 0; i < (int)list_det_armks.size(); i++)
 				{
 					__MarkerDetInfo& armk = list_det_armks[i];
@@ -1295,11 +1302,17 @@ namespace var_settings
 						pt2d += Point2f(cpts[k * 2 + 0], cpts[k * 2 + 1]);
 
 					point2d.push_back(pt2d / 4.f);
-					point3d.push_back(g_info.otrk_data.calib_3d_pts[armk.id - 1]);
+					const glm::fvec3& pos_3d = *(glm::fvec3*)&g_info.otrk_data.calib_3d_pts[armk.id - 1];
+					const Point3f& pos_3dws = *(Point3f*)&tr_pt(mat_armklf2ws, pos_3d);
+					point3d.push_back(pos_3dws);
 				}
-				
+
+
 				static glm::fmat4x4 prev_mat_clf2ws = mat_clf2ws;
-				glm::fvec3 diff = tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3());
+				static glm::fmat4x4 prev_mat_armklf2ws = mat_armklf2ws;
+				float diff_len = glm::length(tr_pt(mat_clf2ws, glm::fvec3()) - tr_pt(prev_mat_clf2ws, glm::fvec3()))
+					+ glm::length(tr_pt(mat_armklf2ws, glm::fvec3()) - tr_pt(prev_mat_armklf2ws, glm::fvec3()));
+
 				//bitset
 				//auto get_quter = [](const glm::fmat4x4& tr)
 				//{
@@ -1316,7 +1329,7 @@ namespace var_settings
 				//glm::fvec3 rx
 				/**/
 
-				if (glm::length(diff) > 0.05 && point2d.size() > 0)
+				if (diff_len > 0.05 && point2d.size() > 0)
 				{
 					prev_mat_clf2ws = mat_clf2ws;
 					float pnp_err = -1.f;

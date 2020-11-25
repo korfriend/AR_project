@@ -29,7 +29,7 @@ namespace rs_settings
 
 namespace var_settings
 {
-	__dojostatic void InitializeVarSettings(int scenario = 0, const std::string& manualset_tool_name = "ss_tool_v1");
+	__dojostatic void InitializeVarSettings(int scenario = 0, const std::string& manualset_tool_name = "ss_tool_v1", const std::string& marker_rb_name = "");
 	__dojostatic void SetPreoperations(const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h);
 	__dojostatic void SetCvWindows();
 	__dojostatic void LoadPresets();
