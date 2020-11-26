@@ -284,8 +284,8 @@ int main()
 	const int eye_h = 480;
 	const int ws_w = 640;
 	const int ws_h = 480;
-	const int stg_w = 640;
-	const int stg_h = 480;
+	const int stg_w = 960;
+	const int stg_h = 540;
 	const int rs_w = 960;
 	const int rs_h = 540;
 
@@ -1144,6 +1144,9 @@ int main()
 				else if (g_info.is_modelaligned)
 				{
 					vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(g_info.pos_probe_pin), sizeof(glm::dvec3), -1, -1);
+
+					glm::fvec3 dir_probe = glm::normalize(tr_vec(g_info.mat_probe2ws, glm::fvec3(0, 0, 1)));
+					var_settings::SetSectionalImageAssets(true, __FP g_info.pos_probe_pin, __FP (g_info.pos_probe_pin + dir_probe * 0.2f));
 				}
 			}
 

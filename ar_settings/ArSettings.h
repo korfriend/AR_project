@@ -43,7 +43,7 @@ namespace var_settings
 	__dojostatic void GetVarInfoPtr(void**);
 	__dojostatic void SetVarInfo(const void*);
 	__dojostatic void TryCalibrationTC(cv::Mat& imgColor);
-	__dojostatic void TryCalibrationSTG();
+	__dojostatic void TryCalibrationSTG(bool use_stereo = false);
 	__dojostatic void SetCalibFrames(bool is_visible);
 	__dojostatic void SetDepthMapPC(const bool is_visible, rs2::depth_frame& depth_frame, rs2::video_frame& color_frame);
 	__dojostatic void SetTargetModelAssets(const std::string& name, const bool forced_visible_model = false);

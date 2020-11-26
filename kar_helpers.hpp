@@ -1043,6 +1043,7 @@ struct OpttrkData
 	int rs_lf_axis_id, probe_lf_axis_id; // lf means local frame
 	vector<pair<Point2f, Point3f>> tc_calib_pt_pairs;
 	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
+	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs_2;
 	bitset<128> stg_calib_mk_cid;
 	vector<int> calib_trial_rs_cam_frame_ids;
 	vector<int> mk_pickable_sphere_ids;
@@ -1067,7 +1068,7 @@ struct OpttrkData
 	}
 };
 
-ENUM(RsTouchMode, None, Pick, AR_Marker, Tool_S_E, Calib_TC, PIN_ORIENTATION, Calib_STG, Align, ICP, Capture, Pair_Clear, STG_Pair_Clear)
+ENUM(RsTouchMode, None, Pick, AR_Marker, Tool_S_E, Calib_TC, PIN_ORIENTATION, Calib_STG, Calib_STG2, Align, ICP, Capture, Pair_Clear, STG_Pair_Clear)
 
 // added by dojo at 200813
 struct SS_Tool_Guide_Pts
@@ -1115,6 +1116,8 @@ struct GlobalInfo
 	OpttrkData otrk_data;
 	bool is_calib_rs_cam;
 	bool is_calib_stg_cam;
+	bool is_calib_stg_cam_2;
+	int stg_display_num;
 
 	bool is_probe_detected;
 	glm::fvec3 pos_probe_pin;
@@ -1187,6 +1190,7 @@ struct GlobalInfo
 		skip_call_render = false;
 		is_calib_rs_cam = false;
 		is_calib_stg_cam = false;
+		is_calib_stg_cam_2 = false;
 		model_ms_obj_id = 0;
 		model_ws_obj_id = 0;
 		captured_model_ms_point_id = 0;
@@ -1194,6 +1198,7 @@ struct GlobalInfo
 		rs_pc_id = 0;
 		model_volume_id = 0;
 		is_probe_detected = false;
+		stg_display_num = 1;
 
 		// SSU
 		brain_ms_obj_id = 0;
@@ -1261,7 +1266,8 @@ void Make_Buttons(const int screen_w, const int screen_h, std::map<RsTouchMode, 
 	ADD_SUBBTNS(RsTouchMode::ICP, Rect(bw * 4, bh, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::Capture, Rect(bw * 4, bh * 2, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::Pair_Clear, Rect(bw * 2, bh, bw, bh));
-	ADD_SUBBTNS(RsTouchMode::STG_Pair_Clear, Rect(bw * 3, bh, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::Calib_STG2, Rect(bw * 3, bh, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::STG_Pair_Clear, Rect(bw * 3, bh * 2, bw, bh));
 }
 
 void Draw_TouchButtons(cv::Mat img, const std::map<RsTouchMode, ButtonState>& buttons, const RsTouchMode touch_mode)

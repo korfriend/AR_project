@@ -283,12 +283,6 @@ int main()
 		case 'w': write_recoded_info = true; break;
 		case 'f': show_workload = !show_workload; break;
 		case 'c': is_ws_pick = !is_ws_pick; break;
-			// RsMouseMode
-		//case '1': g_info.touch_mode = RsTouchMode::None; break; 
-		//case '2': g_info.touch_mode = RsTouchMode::Pick; break; 
-		//case '3': g_info.touch_mode = RsTouchMode::Calib_TC; break; 
-		//case '4': g_info.touch_mode = RsTouchMode::PIN_ORIENTATION; break; 
-		//case '5': g_info.touch_mode = RsTouchMode::Calib_STG; break; 
 		}
 		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", show_apis_console, sizeof(bool), -1, -1);

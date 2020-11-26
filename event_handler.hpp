@@ -311,9 +311,11 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			// processing during the main thread
 		} break;
 		case RsTouchMode::Calib_STG:
+		case RsTouchMode::Calib_STG2:
 		{
 			disable_subbuttons();
 			rs_buttons[RsTouchMode::STG_Pair_Clear].is_activated = true;
+			rs_buttons[RsTouchMode::Calib_STG2].is_activated = true;
 			glm::fmat4x4 mat_rbcam2ws;
 			if (!otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_rbcam2ws)) return;
 
@@ -354,35 +356,41 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					return;
 				}
 
-				const int w = eginfo->ginfo.stg_w;
+				const int w = eginfo->ginfo.stg_w / eginfo->ginfo.stg_display_num;
 				const int h = eginfo->ginfo.stg_h;
-				static Point2f pos_2d_rs[15] = {
+				static Point2f pos_2d_rs[30] = {
 					Point2f(w / 5.f, h / 4.f) , Point2f(w / 5.f * 2.f, h / 4.f) , Point2f(w / 5.f * 3.f, h / 4.f) , Point2f(w / 5.f * 4.f, h / 4.f),
 					Point2f(w / 8.f, h / 4.f * 2.f) , Point2f(w / 8.f * 2.f, h / 4.f * 2.f) , Point2f(w / 8.f * 3.f, h / 4.f * 2.f) , Point2f(w / 8.f * 4.f, h / 4.f * 2.f),
 					Point2f(w / 8.f * 5.f, h / 4.f * 2.f) , Point2f(w / 8.f * 6.f, h / 4.f * 2.f) , Point2f(w / 8.f * 7.f, h / 4.f * 2.f),
-					Point2f(w / 5.f, h / 4.f * 3.f) , Point2f(w / 5.f * 2.f, h / 4.f * 3.f) , Point2f(w / 5.f * 3.f, h / 4.f * 3.f) , Point2f(w / 5.f * 4.f, h / 4.f * 3.f) };
+					Point2f(w / 5.f, h / 4.f * 3.f) , Point2f(w / 5.f * 2.f, h / 4.f * 3.f) , Point2f(w / 5.f * 3.f, h / 4.f * 3.f) , Point2f(w / 5.f * 4.f, h / 4.f * 3.f),
 
+					Point2f(w / 5.f + w, h / 4.f) , Point2f(w / 5.f * 2.f + w, h / 4.f) , Point2f(w / 5.f * 3.f + w, h / 4.f) , Point2f(w / 5.f * 4.f + w, h / 4.f),
+					Point2f(w / 8.f + w, h / 4.f * 2.f) , Point2f(w / 8.f * 2.f + w, h / 4.f * 2.f) , Point2f(w / 8.f * 3.f + w, h / 4.f * 2.f) , Point2f(w / 8.f * 4.f + w, h / 4.f * 2.f),
+					Point2f(w / 8.f * 5.f + w, h / 4.f * 2.f) , Point2f(w / 8.f * 6.f + w, h / 4.f * 2.f) , Point2f(w / 8.f * 7.f + w, h / 4.f * 2.f),
+					Point2f(w / 5.f + w, h / 4.f * 3.f) , Point2f(w / 5.f * 2.f + w, h / 4.f * 3.f) , Point2f(w / 5.f * 3.f + w, h / 4.f * 3.f) , Point2f(w / 5.f * 4.f + w, h / 4.f * 3.f) };
+
+				vector<pair<Point2f, Point3f>>& stg_calib_pt_pairs = eginfo->ginfo.touch_mode == RsTouchMode::Calib_STG ? eginfo->ginfo.otrk_data.stg_calib_pt_pairs : eginfo->ginfo.otrk_data.stg_calib_pt_pairs_2;
 				if (x < eginfo->ginfo.rs_w / 2)
 				{
-					if (otrk_data.stg_calib_pt_pairs.size() < 15)
+					if (stg_calib_pt_pairs.size() < 15)
 					{
 						glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
 						glm::fmat4x4 mat_ws2clf = glm::inverse(mat_rbcam2ws);
 						glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
 
-						cout << "Add a STG calib marker!!" << endl;
-						otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(pos_2d_rs[otrk_data.stg_calib_pt_pairs.size()], Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
+						cout << "Add a STG calib marker!! ==> " << (eginfo->ginfo.touch_mode == RsTouchMode::Calib_STG ? "Display 1"  : "Display 2") << endl;
+						stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(pos_2d_rs[stg_calib_pt_pairs.size() + (eginfo->ginfo.touch_mode == RsTouchMode::Calib_STG? 0 : 15)], Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
 					}
 				}
 				else
 				{
-					if (otrk_data.stg_calib_pt_pairs.size() > 0)
+					if (stg_calib_pt_pairs.size() > 0)
 					{
-						cout << "Remove the latest STG calib marker!!" << endl;
-						otrk_data.stg_calib_pt_pairs.pop_back();
+						cout << "Remove the latest STG calib marker!! ==> " << (eginfo->ginfo.touch_mode == RsTouchMode::Calib_STG ? "Display 1" : "Display 2") << endl;
+						stg_calib_pt_pairs.pop_back();
 					}
 				}
-				cout << "# of STG calib point pairs : " << otrk_data.stg_calib_pt_pairs.size() << endl;
+				cout << "# of STG calib point pairs : " << stg_calib_pt_pairs.size() << (eginfo->ginfo.touch_mode == RsTouchMode::Calib_STG ? "(Display 1)" : "(Display 2)") << endl;
 
 				ofstream outfile(eginfo->ginfo.stg_calib);
 				if (outfile.is_open())
@@ -392,6 +400,18 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					for (int i = 0; i < eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size(); i++)
 					{
 						pair<Point2f, Point3f>& pr = eginfo->ginfo.otrk_data.stg_calib_pt_pairs[i];
+						Point2f p2d = get<0>(pr);
+						Point3f p3d = get<1>(pr);
+
+						string line = to_string(p2d.x) + " " + to_string(p2d.y) + " " + to_string(p3d.x) + " " + to_string(p3d.y) + " " + to_string(p3d.z);
+						outfile << line << endl;
+					}
+
+					outfile << "*** SECOND STG DISPLAY ***" << endl;
+					outfile << to_string(eginfo->ginfo.otrk_data.stg_calib_pt_pairs_2.size()) << endl;
+					for (int i = 0; i < eginfo->ginfo.otrk_data.stg_calib_pt_pairs_2.size(); i++)
+					{
+						pair<Point2f, Point3f>& pr = eginfo->ginfo.otrk_data.stg_calib_pt_pairs_2[i];
 						Point2f p2d = get<0>(pr);
 						Point3f p3d = get<1>(pr);
 
@@ -661,60 +681,60 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 	//}
 }
 
-void CallBackFunc_StgMouse(int event, int x, int y, int flags, void* userdata)
-{
-	EventGlobalInfo* eginfo = (EventGlobalInfo*)userdata;
-	OpttrkData& otrk_data = eginfo->ginfo.otrk_data;// *(opttrk_data*)userdata;
-
-	//vector<Point3f>& point3ds = otrk_data.stg_calib_pt_pairs;
-
-	if (!otrk_data.trk_info.is_updated) return;
-
-	if (eginfo->ginfo.touch_mode == Calib_STG)
-	{
-		int stg_calib_mk_idx;
-		if (!eginfo->ginfo.otrk_data.trk_info.CheckExistCID(eginfo->ginfo.otrk_data.stg_calib_mk_cid, &stg_calib_mk_idx)) return;
-
-		glm::fmat4x4 mat_rbcam2ws;
-		if (otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_rbcam2ws))
-		{
-			if (event == EVENT_LBUTTONDOWN)
-			{
-				glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
-				glm::fmat4x4 mat_ws2clf = glm::inverse(mat_rbcam2ws);
-				glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
-
-				otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(Point2f(x, y), Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
-				cout << "# of STG calib point pairs : " << otrk_data.stg_calib_pt_pairs.size() << endl;
-			}
-			else if(event == EVENT_RBUTTONDOWN)
-			{
-				if (otrk_data.stg_calib_pt_pairs.size() > 0)
-				{
-					cout << "Remove the latest STG calib marker!!" << endl;
-					otrk_data.stg_calib_pt_pairs.pop_back();
-				}
-			}
-
-			ofstream outfile(eginfo->ginfo.stg_calib);
-			if (outfile.is_open())
-			{
-				outfile.clear();
-				outfile << to_string(eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size()) << endl;
-				for (int i = 0; i < eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size(); i++)
-				{
-					pair<Point2f, Point3f>& pr = eginfo->ginfo.otrk_data.stg_calib_pt_pairs[i];
-					Point2f p2d = get<0>(pr);
-					Point3f p3d = get<1>(pr);
-
-					string line = to_string(p2d.x) + " " + to_string(p2d.y) + " " + to_string(p3d.x) + " " + to_string(p3d.y) + " " + to_string(p3d.z);
-					outfile << line << endl;
-				}
-			}
-			outfile.close();
-		}
-	}
-}
+//void CallBackFunc_StgMouse(int event, int x, int y, int flags, void* userdata)
+//{
+//	EventGlobalInfo* eginfo = (EventGlobalInfo*)userdata;
+//	OpttrkData& otrk_data = eginfo->ginfo.otrk_data;// *(opttrk_data*)userdata;
+//
+//	//vector<Point3f>& point3ds = otrk_data.stg_calib_pt_pairs;
+//
+//	if (!otrk_data.trk_info.is_updated) return;
+//
+//	if (eginfo->ginfo.touch_mode == Calib_STG)
+//	{
+//		int stg_calib_mk_idx;
+//		if (!eginfo->ginfo.otrk_data.trk_info.CheckExistCID(eginfo->ginfo.otrk_data.stg_calib_mk_cid, &stg_calib_mk_idx)) return;
+//
+//		glm::fmat4x4 mat_rbcam2ws;
+//		if (otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_rbcam2ws))
+//		{
+//			if (event == EVENT_LBUTTONDOWN)
+//			{
+//				glm::fvec3 mk_pt = eginfo->ginfo.otrk_data.trk_info.GetMkPos(stg_calib_mk_idx);
+//				glm::fmat4x4 mat_ws2clf = glm::inverse(mat_rbcam2ws);
+//				glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
+//
+//				otrk_data.stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(Point2f(x, y), Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
+//				cout << "# of STG calib point pairs : " << otrk_data.stg_calib_pt_pairs.size() << endl;
+//			}
+//			else if(event == EVENT_RBUTTONDOWN)
+//			{
+//				if (otrk_data.stg_calib_pt_pairs.size() > 0)
+//				{
+//					cout << "Remove the latest STG calib marker!!" << endl;
+//					otrk_data.stg_calib_pt_pairs.pop_back();
+//				}
+//			}
+//
+//			ofstream outfile(eginfo->ginfo.stg_calib);
+//			if (outfile.is_open())
+//			{
+//				outfile.clear();
+//				outfile << to_string(eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size()) << endl;
+//				for (int i = 0; i < eginfo->ginfo.otrk_data.stg_calib_pt_pairs.size(); i++)
+//				{
+//					pair<Point2f, Point3f>& pr = eginfo->ginfo.otrk_data.stg_calib_pt_pairs[i];
+//					Point2f p2d = get<0>(pr);
+//					Point3f p3d = get<1>(pr);
+//
+//					string line = to_string(p2d.x) + " " + to_string(p2d.y) + " " + to_string(p3d.x) + " " + to_string(p3d.y) + " " + to_string(p3d.z);
+//					outfile << line << endl;
+//				}
+//			}
+//			outfile.close();
+//		}
+//	}
+//}
 
 void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 {
