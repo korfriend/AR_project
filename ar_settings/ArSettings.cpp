@@ -531,10 +531,16 @@ namespace var_settings
 		__cm4__ obj_state.os2ws = glm::fmat4x4();
 		default_obj_state = obj_state;
 
-		double vz = 0.0;
-		vzm::SetRenderTestParam("_double_VZThickness", vz, sizeof(double), -1, -1);
-		double cvz = 0.00001;
-		vzm::SetRenderTestParam("_double_CopVZThickness", cvz, sizeof(double), -1, -1);
+		vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1);
+		vzm::SetRenderTestParam("_double_MergingBeta", 0.5, sizeof(double), -1, -1);
+		vzm::SetRenderTestParam("_double_RobustRatio", 0.5, sizeof(double), -1, -1);
+		vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
+		vzm::SetRenderTestParam("_double_AbsVZThickness", 0.002, sizeof(double), -1, -1);
+		vzm::SetRenderTestParam("_double_AbsCopVZThickness", 0.001, sizeof(double), -1, -1);
+		//double vz = 0.0;
+		//vzm::SetRenderTestParam("_double_VZThickness", vz, sizeof(double), -1, -1);
+		//double cvz = 0.00001;
+		//vzm::SetRenderTestParam("_double_CopVZThickness", cvz, sizeof(double), -1, -1);
 
 		vzm::ObjStates model_state = obj_state;
 		model_state.emission = 0.3f;
@@ -664,7 +670,7 @@ namespace var_settings
 		// make 3d ui widgets
 		GenWorldGrid(g_info.ws_scene_id, ov_cam_id);
 
-		vzm::SetRenderTestParam("_double_AbsCopVZThickness", 0.001, sizeof(double), -1, -1);
+		//vzm::SetRenderTestParam("_double_AbsCopVZThickness", 0.001, sizeof(double), -1, -1);
 
 		//{
 		//	int coord_grid_obj_id = 0, axis_lines_obj_id = 0, axis_texX_obj_id = 0, axis_texZ_obj_id = 0;
@@ -1347,13 +1353,24 @@ namespace var_settings
 				if (diff_len > 0.05 && point2d.size() > 0)
 				{
 					prev_mat_clf2ws = mat_clf2ws;
+					prev_mat_armklf2ws = mat_armklf2ws;
 					float pnp_err = -1.f;
 					int calib_samples = 0;
+					glm::fmat4x4 __mat_rscs2clf = mat_rscs2clf;
 					bool is_success = CalibrteCamLocalFrame(*(vector<glm::fvec2>*)&point2d, *(vector<glm::fvec3>*)&point3d, mat_ws2clf,
 						rs_settings::rgb_intrinsics.fx, rs_settings::rgb_intrinsics.fy, rs_settings::rgb_intrinsics.ppx, rs_settings::rgb_intrinsics.ppy,
-						mat_rscs2clf, &pnp_err, &calib_samples, g_info.otrk_data.tc_calib_pt_pairs);
-					if (is_success)
+						__mat_rscs2clf, &pnp_err, &calib_samples, g_info.otrk_data.tc_calib_pt_pairs);
+#define ERR_MAX 3
+					if (pnp_err >= ERR_MAX && calib_samples >= 12)
 					{
+						//calib_samples == 12 ? g_info.otrk_data.tc_calib_pt_pairs.clear() : 
+							g_info.otrk_data.tc_calib_pt_pairs.pop_back();
+					}
+
+					if (is_success && pnp_err < ERR_MAX)
+					{
+						mat_rscs2clf = __mat_rscs2clf;
+
 						g_info.is_calib_rs_cam = true;
 						// 
 						ofstream outfile(g_info.rs_calib);
@@ -1380,20 +1397,41 @@ namespace var_settings
 						outfile.close();
 					}
 
-					for (int i = 0; i < g_info.otrk_data.calib_trial_rs_cam_frame_ids.size(); i++)
+					if (g_info.otrk_data.marker_rb_name == "")
 					{
-						vzm::ObjStates cstate;
-						vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
-						cstate.is_visible = true;
-						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
-					}
+						for (int i = 0; i < g_info.otrk_data.calib_trial_rs_cam_frame_ids.size(); i++)
+						{
+							vzm::ObjStates cstate;
+							vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
+							cstate.is_visible = true;
+							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
+						}
 
-					int calib_frame_id = 0;
-					Axis_Gen(mat_clf2ws, 0.05f, calib_frame_id);
-					vzm::ObjStates cstate = default_obj_state;
-					cstate.color[3] = 0.3f;
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_frame_id, cstate);
-					g_info.otrk_data.calib_trial_rs_cam_frame_ids.push_back(calib_frame_id);
+						static int calib_frame_id = 0;
+						Axis_Gen(mat_clf2ws, 0.05f, calib_frame_id);
+						vzm::ObjStates cstate = default_obj_state;
+						cstate.color[3] = 0.3f;
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_frame_id, cstate);
+						g_info.otrk_data.calib_trial_rs_cam_frame_ids.push_back(calib_frame_id);
+					}
+					else
+					{
+						vector<glm::fvec4> ws_armk_spheres_xyzr;
+						vector<glm::fvec3> ws_armk_spheres_rgb;
+						for (int i = 0; i < (int)g_info.otrk_data.tc_calib_pt_pairs.size(); i++)
+						{
+							const glm::fvec3 pos_3d = *(glm::fvec3*)&g_info.otrk_data.tc_calib_pt_pairs[i].second;
+
+							ws_armk_spheres_xyzr.push_back(glm::fvec4(pos_3d, 0.007));
+							ws_armk_spheres_rgb.push_back(glm::fvec3(1));
+						}
+
+						static int calib_armks_id = 0;
+						vzm::GenerateSpheresObject(__FP ws_armk_spheres_xyzr[0], __FP ws_armk_spheres_rgb[0], g_info.otrk_data.tc_calib_pt_pairs.size(), calib_armks_id);
+						vzm::ObjStates cstate = default_obj_state;
+						cstate.color[3] = 0.3f;
+						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_armks_id, cstate);
+					}
 				}
 			}
 		}

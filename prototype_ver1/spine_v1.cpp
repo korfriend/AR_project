@@ -103,12 +103,6 @@ int main()
 		return 1;
 	}
 
-	vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1);
-	vzm::SetRenderTestParam("_double_AbsCopVZThickness", 0.001, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_double_VZThickness", 0.0, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_double_MergingBeta", 0.5, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_double_RobustRatio", 0.5, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
 
 	GlobalInfo* _ginfo;

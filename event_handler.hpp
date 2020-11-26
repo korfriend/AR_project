@@ -152,6 +152,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 
 	if (event == EVENT_LBUTTONDOWN | event == EVENT_RBUTTONDOWN)
 	{
+		optitrk::SetRigidBodyEnabledbyName("probe", true);
+
 		map<RsTouchMode, ButtonState>& rs_buttons = eginfo->ginfo.rs_buttons;
 		auto disable_subbuttons = [&rs_buttons]()
 		{
@@ -301,6 +303,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::Calib_TC:
 		{
+			optitrk::SetRigidBodyEnabledbyName("probe", false);
+			
 			disable_subbuttons();
 			rs_buttons[RsTouchMode::Pair_Clear].is_activated = true;
 			//otrk_data.tc_calib_pt_pairs.clear();

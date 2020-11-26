@@ -70,10 +70,10 @@ int zoom_cam_stg_id;
 int zoom_stg_w;
 int zoom_stg_h;
 
-int brain_ms_obj_id;
-int brain_ws_obj_id;
-int ventricle_ms_obj_id;
-int ventricle_ws_obj_id;
+int brain_ms_obj_id = 0;
+int brain_ws_obj_id = 0;
+int ventricle_ms_obj_id = 0;
+int ventricle_ws_obj_id = 0;
 
 
 void LoadPresets(GlobalInfo& g_info)
@@ -311,11 +311,12 @@ int main()
 	optitrk::SetRigidBodyEnabledbyName("tool_1", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_2", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_3", false);
+	optitrk::SetRigidBodyEnabledbyName("ss_tool_v1", false);
 	optitrk::SetRigidBodyEnabledbyName("marker", true);
 	optitrk::SetRigidBodyEnabledbyName("rs_cam", true);
 	optitrk::SetRigidBodyEnabledbyName("probe", true);
 
-	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.3f, 3);
+	//optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
 	optitrk::SetRigidBodyPropertyByName("ss_tool_v2", 0.1f, 1);
@@ -435,23 +436,16 @@ int main()
 
 	vzm::DisplayConsoleMessages(false);
 
-	vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1);
-	vzm::SetRenderTestParam("_double_AbsCopVZThickness", 0.001, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_double_VZThickness", 0.0, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_double_MergingBeta", 0.5, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_double_RobustRatio", 0.5, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
 
 	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), g_info.rs_scene_id, 1);
 	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
 	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 0.05, 0.5), sizeof(glm::dvec4), -1, -1);
-	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(1, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
+	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(0.0002, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
 	vzm::SetRenderTestParam("_double_InDepthVis", 0.01, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
+	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
+	//vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
+	//vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.ventricle_ws_obj_id);
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
@@ -462,6 +456,15 @@ int main()
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
+
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.ventricle_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, ventricle_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 
 		bool load_calib_info = false;
 		bool load_stg_calib_info = false;
@@ -933,7 +936,7 @@ int main()
 						// sstool pos(ws)
 						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
 						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
-						vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
+						vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(glm::dvec3(sstool_p1_ws)), sizeof(glm::dvec3), -1, -1);
 
 						glm::fvec3 sstool_dir = sstool_p2_ws - sstool_p1_ws;
 
@@ -1137,6 +1140,10 @@ int main()
 							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleText_id, angleTextState);
 						}
 					}
+				}
+				else if (g_info.is_modelaligned)
+				{
+					vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(g_info.pos_probe_pin), sizeof(glm::dvec3), -1, -1);
 				}
 			}
 
