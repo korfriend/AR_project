@@ -182,7 +182,10 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		{
 			disable_subbuttons();
 			rs_buttons[RsTouchMode::AR_Marker].is_activated = true;
-			rs_buttons[RsTouchMode::Tool_S_E].is_activated = true;
+			rs_buttons[RsTouchMode::DST_TOOL_E0].is_activated = true;
+			rs_buttons[RsTouchMode::DST_TOOL_SE0].is_activated = true;
+			rs_buttons[RsTouchMode::DST_TOOL_SE1].is_activated = true;
+			rs_buttons[RsTouchMode::FIX_SCREW].is_activated = true;
 			break;
 		}
 		case RsTouchMode::AR_Marker:
@@ -226,79 +229,48 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				outfile.close();
 			}
 		} break;
-		case RsTouchMode::Tool_S_E:
+		case RsTouchMode::DST_TOOL_E0:
 		{
-			glm::fmat4x4 mat_lfrm2ws;
-			bool is_tool_tracked = eginfo->ginfo.otrk_data.trk_info.GetLFrmInfo("tool_3", mat_lfrm2ws);
-			if (is_tool_tracked)
+			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_PIN_POS, 0 , eginfo->ginfo);
+		} break;
+		case RsTouchMode::DST_TOOL_SE0:
+		{
+			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_RBFRAME, 0, eginfo->ginfo);
+		} break;
+		case RsTouchMode::DST_TOOL_SE1:
+		{
+			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_RBFRAME, 1, eginfo->ginfo);
+		} break;
+		case RsTouchMode::FIX_SCREW:
+		{
+			if (eginfo->ginfo.is_probe_detected)
 			{
-				vector<Point3f>& custom_pos_list = eginfo->ginfo.otrk_data.custom_pos_map["tool_3"];
 				static vector<int> inserted_implant_ids;
-				if (custom_pos_list.size() >= 2)
+				if (x < eginfo->ginfo.rs_w / 2)
 				{
-					if (x < eginfo->ginfo.rs_w / 2)
-					{
-						glm::fvec3 pos_s = *(glm::fvec3*)&custom_pos_list[0];
-						glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[1];
-						glm::fvec3 pos_tool_tip = tr_pt(mat_lfrm2ws, pos_s);
-						glm::fvec3 tool_dir = glm::normalize(tr_pt(mat_lfrm2ws, pos_e) - pos_tool_tip);
+					glm::fvec3 pos_s = *(glm::fvec3*)&eginfo->ginfo.pos_probe_pin;
+					glm::fvec3 tool_dir = eginfo->ginfo.dir_probe_se;
 
-						const float screw_length = 0.04f;
-						glm::fvec3 cyl_p[2] = { pos_tool_tip, pos_tool_tip - tool_dir * screw_length };
-						glm::fvec3 cyl_rgb = glm::fvec3(1, 1, 0);
-						float cyl_r = 0.003f;
-						vzm::ObjStates tool_screw;
-						int inserted_implant_id = 0;
-						vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, inserted_implant_id);
-						vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, inserted_implant_id, tool_screw);
-						vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, inserted_implant_id, tool_screw);
-						vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, inserted_implant_id, tool_screw);
-						inserted_implant_ids.push_back(inserted_implant_id);
-					}
-					else
+					const float screw_length = 0.04f;
+					glm::fvec3 cyl_p[2] = { pos_s, pos_s - tool_dir * screw_length };
+					glm::fvec3 cyl_rgb = glm::fvec3(1, 1, 0);
+					float cyl_r = 0.003f;
+					vzm::ObjStates tool_screw;
+					int inserted_implant_id = 0;
+					vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, inserted_implant_id);
+					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, inserted_implant_id, tool_screw);
+					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, inserted_implant_id, tool_screw);
+					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, inserted_implant_id, tool_screw);
+					inserted_implant_ids.push_back(inserted_implant_id);
+				}
+				else
+				{
+					if (inserted_implant_ids.size() > 0)
 					{
-						if (inserted_implant_ids.size() > 0)
-						{
-							vzm::DeleteObject(inserted_implant_ids[inserted_implant_ids.size() - 1]);
-							inserted_implant_ids.pop_back();
-						}
+						vzm::DeleteObject(inserted_implant_ids[inserted_implant_ids.size() - 1]);
+						inserted_implant_ids.pop_back();
 					}
 				}
-			}
-			//if (eginfo->ginfo.is_probe_detected)
-			{
-				//vector<Point3f>& custom_pos_list = eginfo->ginfo.otrk_data.custom_pos_map[eginfo->ginfo.dst_tool_se_name];
-				//
-				//if (x < eginfo->ginfo.rs_w / 2)
-				//{
-				//	glm::fmat4x4 mat_ws2probe = glm::inverse(eginfo->ginfo.mat_probe2ws);
-				//	glm::fvec3 pos_point_probefrm = tr_pt(mat_ws2probe, eginfo->ginfo.pos_probe_pin);
-				//	TESTOUT("==> [" + to_string(custom_pos_list.size()) + "] ", eginfo->ginfo.pos_probe_pin);
-				//
-				//	custom_pos_list.push_back(Point3f(pos_point_probefrm.x, pos_point_probefrm.y, pos_point_probefrm.z));
-				//
-				//	cout << "# of total 3d pick positions : " << custom_pos_list.size() << endl;
-				//}
-				//else
-				//{
-				//	if (custom_pos_list.size() > 0)
-				//		custom_pos_list.pop_back();
-				//}
-
-				//string preset_path = eginfo->ginfo.file_paths[eginfo->ginfo.dst_tool_se_name];
-				//ofstream outfile(preset_path);
-				//if (outfile.is_open())
-				//{
-				//	outfile.clear();
-				//	for (int i = 0; i < custom_pos_list.size(); i++)
-				//	{
-				//		string line = to_string(custom_pos_list[i].x) + " " +
-				//			to_string(custom_pos_list[i].y) + " " +
-				//			to_string(custom_pos_list[i].z);
-				//		outfile << line << endl;
-				//	}
-				//}
-				//outfile.close();
 			}
 		} break;
 		case RsTouchMode::Calib_TC:

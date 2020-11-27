@@ -338,7 +338,7 @@ namespace var_settings
 
 	std::string operation_name;
 
-	void InitializeVarSettings(int _scenario, bool is_stereo_stg, const std::string& manualset_tool_name, const std::string& marker_rb_name)
+	void InitializeVarSettings(int _scenario, bool is_stereo_stg, const std::string& marker_rb_name)
 	{
 		scenario = _scenario;
 		g_info.stg_display_num = is_stereo_stg ? 2 : 1;
@@ -357,8 +357,6 @@ namespace var_settings
 		g_info.window_name_ms_view = "Model VIEW";
 		g_info.window_name_stg_view = "STG VIEW";
 
-		g_info.dst_tool_se_name = manualset_tool_name;
-
 		char ownPth[2048];
 		GetModuleFileNameA(NULL, ownPth, (sizeof(ownPth)));
 		string exe_path = ownPth;
@@ -374,6 +372,8 @@ namespace var_settings
 		}
 		preset_path += "..\\";
 		//cout << hlslobj_path << endl;
+
+		g_info.custom_pos_file_paths["preset_path"] = preset_path;
 
 
 		// load file
@@ -394,8 +394,6 @@ namespace var_settings
 		g_info.sst_positions = preset_path + "..\\Preset\\ss_pin_pts.txt";
 		g_info.rs_calib = preset_path + "..\\Preset\\rs_calib.txt";
 		g_info.stg_calib = preset_path + "..\\Preset\\stg_calib.txt";
-
-		g_info.file_paths[g_info.dst_tool_se_name] = preset_path + "..\\Preset\\" + g_info.dst_tool_se_name +".txt";
 
 		if (scenario == 0)
 		{
@@ -799,20 +797,23 @@ namespace var_settings
 
 		// loading tool_se points
 		g_info.otrk_data.custom_pos_map.clear();
-		string preset_path = g_info.file_paths[g_info.dst_tool_se_name];
-		infile = std::ifstream(preset_path);
-		if (infile.is_open())
+		for (auto it : g_info.custom_pos_file_paths)
 		{
-			vector<Point3f>& custom_pos_list = g_info.otrk_data.custom_pos_map[g_info.dst_tool_se_name];
-			while (getline(infile, line))
+			string file_path = it.second;
+			infile = std::ifstream(preset_path);
+			if (infile.is_open())
 			{
-				std::istringstream iss(line);
-				float a, b, c;
-				if (!(iss >> a >> b >> c)) { break; } // error
-				custom_pos_list.push_back(Point3f(a, b, c));
-				// process pair (a,b)
+				vector<Point3f>& custom_pos_list = g_info.otrk_data.custom_pos_map[it.first];
+				while (getline(infile, line))
+				{
+					std::istringstream iss(line);
+					float a, b, c;
+					if (!(iss >> a >> b >> c)) { break; } // error
+					custom_pos_list.push_back(Point3f(a, b, c));
+					// process pair (a,b)
+				}
+				infile.close();
 			}
-			infile.close();
 		}
 
 		// loading rs calib pairs and matrix
@@ -1017,8 +1018,9 @@ namespace var_settings
 		clear_record_info();
 	}
 
-	void UpdateTrackInfo(const void* trk_info, const std::string& probe_specifier_rb_name)
+	void UpdateTrackInfo(const void* trk_info, const std::string& probe_specifier_rb_name, int _probe_mode)
 	{
+		PROBE_MODE probe_mode = (PROBE_MODE)_probe_mode;
 		g_info.otrk_data.trk_info = *(track_info*)trk_info;
 		is_rsrb_detected = g_info.otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_clf2ws);
 		mat_ws2clf = glm::inverse(mat_clf2ws);
@@ -1031,17 +1033,17 @@ namespace var_settings
 		{
 			//g_info.pos_probe_pin = tr_pt(mat_opti_probe2ws, glm::fvec3(0));
 			glm::fvec3 probe_end = tr_pt(mat_opti_probe2ws, glm::fvec3(0));
-			glm::fvec3 probe_dir;
-			if (probe_specifier_rb_name == "tool_1" || probe_specifier_rb_name == "tool_2")
+			glm::fvec3 probe_dir_se;
+			if (probe_mode == ONLY_PIN_POS)
 			{
 				vector<Point3f>& custom_pos_list = g_info.otrk_data.custom_pos_map[probe_specifier_rb_name];
 				if (custom_pos_list.size() > 0)
 				{
 					glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[0];
-					probe_dir = -glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - probe_end);
+					probe_dir_se = -glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - probe_end);
 				}
 			}
-			else if (probe_specifier_rb_name == "tool_3")
+			else if (probe_mode == ONLY_RBFRAME)
 			{
 				vector<Point3f>& custom_pos_list = g_info.otrk_data.custom_pos_map[probe_specifier_rb_name];
 				if (custom_pos_list.size() >= 2)
@@ -1049,16 +1051,17 @@ namespace var_settings
 					glm::fvec3 pos_s = *(glm::fvec3*)&custom_pos_list[0];
 					probe_end = tr_pt(mat_opti_probe2ws, pos_s);
 					glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[1];
-					probe_dir = -glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - pos_e);
+					probe_dir_se = -glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - pos_s);
 				}
 			}
 			else
 			{
-				probe_dir = glm::normalize(tr_vec(mat_opti_probe2ws, glm::fvec3(0, 0, -1)));
+				probe_dir_se = glm::normalize(tr_vec(mat_opti_probe2ws, glm::fvec3(0, 0, -1)));
 			}
 			g_info.pos_probe_pin = probe_end;
+			g_info.dir_probe_se = probe_dir_se;
 
-			glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir * 0.2f };
+			glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir_se * 0.2f };
 			float cyl_r = 0.002f;
 			glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
 			vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
@@ -1780,7 +1783,7 @@ namespace var_settings
 		}
 	}
 
-	void SetTargetModelAssets(const std::string& name, const bool forced_visible_model)
+	void SetTargetModelAssets(const std::string& name, const float* guide_posdir_lines_ptr, const int num_guide_lines, const int guide_line_idx)
 	{
 		if (g_info.model_ws_pick_spheres_id != 0)
 		{
@@ -1794,18 +1797,18 @@ namespace var_settings
 
 		glm::fmat4x4 mat_matchmodelfrm2ws;
 		bool model_match_rb = g_info.otrk_data.trk_info.GetLFrmInfo(name, mat_matchmodelfrm2ws); 
-		g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	// 변경 위치
+		g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	
 
-		if ((model_match_rb || forced_visible_model) && g_info.is_modelaligned)
+		if (model_match_rb && g_info.is_modelaligned)
 		{
-			//g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	// 기존 위치
-
+			// model
 			vzm::ObjStates model_ws_obj_state;
-			vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+			{
+				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 
-			__cm4__ model_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
-			//if (scenario == 1 || scenario == 2)
-			//{
+				__cm4__ model_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
+				//if (scenario == 1 || scenario == 2)
+				//{
 				vzm::ObjStates volume_ws_obj_state;
 				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
 
@@ -1822,20 +1825,102 @@ namespace var_settings
 				}
 
 				volume_ws_obj_state.is_visible = false;
-			
+
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_volume_id, volume_ws_obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_volume_id, volume_ws_obj_state);
-			//
-			//	model_ws_obj_state.color[3] = 0.05f;
-			//	//model_ws_obj_state.point_thickness = 15;
-			//	model_ws_obj_state.surfel_size = 0.005f;
-			//}
-			__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 1.0);
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
-			__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 0.1);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+				//
+				//	model_ws_obj_state.color[3] = 0.05f;
+				//	//model_ws_obj_state.point_thickness = 15;
+				//	model_ws_obj_state.surfel_size = 0.005f;
+				//}
+				__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 1.0);
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+				__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 0.1);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+			}
+			// guide lines
+			if(guide_posdir_lines_ptr != NULL && guide_line_idx >= 0)
+			{
+				glm::fvec3* guide_posdir_lines = (glm::fvec3*)guide_posdir_lines_ptr;
+				vzm::ObjStates line_state;
+				line_state.line_thickness = 5;
+				line_state.is_visible = false;
+				static int closest_dist_line_id = 0, closest_dist_text_id = 0;
+				static int angle_id = 0, angle_text_id = 0, angle_text_id_stg = 0;
+				int guide_objs[] = { closest_dist_line_id , closest_dist_text_id , 
+					angle_id , angle_text_id , angle_text_id_stg };
+				vzm::ObjStates guide_obj_state;
+				guide_obj_state.is_visible = false;
+				for (int i = 0; i < (int)(sizeof(guide_objs) / sizeof(int)); i++)
+				{
+					int obj_id = guide_objs[i];
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, obj_id, guide_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, obj_id, guide_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, obj_id, guide_obj_state);
+				}
+				static vector<int> guide_line_obj_ids;
+				for (int i = 0; i < (int)guide_line_obj_ids.size() / 2; i++)
+				{
+					int line_obj_id = guide_line_obj_ids[i];
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, line_obj_id, line_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, line_obj_id, line_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, line_obj_id, line_state);
+				}
+
+				if (guide_line_idx < num_guide_lines)
+				{
+					glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
+					glm::fvec3 pos_guide_line = tr_pt(tr, guide_posdir_lines[2 * guide_line_idx + 0]);
+					glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, guide_posdir_lines[2 * guide_line_idx + 1]));
+
+					glm::fvec3 closetPoint;
+					ComputeClosestPointBetweenLineAndPoint(pos_guide_line, dir_guide_line, g_info.pos_probe_pin, closetPoint);
+
+					// guide line
+					for (int i = guide_line_obj_ids.size(); i < num_guide_lines; i++) guide_line_obj_ids.push_back(0);
+
+					glm::fvec3 line_pos[2] = { pos_guide_line, pos_guide_line + dir_guide_line * 10.f };
+					int& guide_line_id = guide_line_obj_ids[guide_line_idx];
+					vzm::GenerateLinesObject(__FP line_pos[0], NULL, 1, guide_line_id);
+
+					line_state.is_visible = true;
+
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, guide_line_id, line_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, guide_line_id, line_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, guide_line_id, line_state);
+
+					SetDashEffectInRendering(g_info.stg_scene_id, 1, guide_line_id, 0.01, false);
+					SetDashEffectInRendering(g_info.stg_scene_id, 2, guide_line_id, 0.01, false);
+					SetDashEffectInRendering(g_info.rs_scene_id, 1, guide_line_id, 0.01, false);
+					SetDashEffectInRendering(g_info.ws_scene_id, 1, guide_line_id, 0.01, false);
+
+					// show dist line
+					MakeDistanceLine(-1, g_info.pos_probe_pin, closetPoint, 0.05, closest_dist_line_id, closest_dist_text_id);
+					vzm::ObjStates closest_dist_line_state;
+					closest_dist_line_state.line_thickness = 5;
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, closest_dist_line_id, closest_dist_line_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, closest_dist_line_id, closest_dist_line_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, closest_dist_line_id, closest_dist_line_state);
+
+					SetDashEffectInRendering(g_info.stg_scene_id, 1, closest_dist_line_id, 0.01, true);
+					SetDashEffectInRendering(g_info.stg_scene_id, 2, closest_dist_line_id, 0.01, true);
+					SetDashEffectInRendering(g_info.rs_scene_id, 1, closest_dist_line_id, 0.01, true);
+					SetDashEffectInRendering(g_info.ws_scene_id, 1, closest_dist_line_id, 0.01, true);
+
+					// show angle
+					MakeAngle2(g_info.dir_probe_se, dir_guide_line, closetPoint, 0.05, 0.1, angle_id, g_info.rs_scene_id, angle_text_id, g_info.stg_scene_id, angle_text_id_stg);
+					vzm::ObjStates angle_state;
+					angle_state.color[3] = 0.7;
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, angle_id, angle_state);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, angle_text_id_stg, angle_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_id, angle_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_text_id, angle_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_id, angle_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_text_id, angle_state);
+				}
+			}
 		}
 	}
 

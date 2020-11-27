@@ -65,6 +65,425 @@ std::vector<std::string> name##Map = split(#__VA_ARGS__, ',');\
     std::string EtoString(const name v) { return name##Map.at(v);}
 
 
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+// https://www.justsoftwaresolutions.co.uk/threading/implementing-a-thread-safe-queue-using-condition-variables.html
+template<typename Data>
+class concurrent_queue // single consumer
+{
+private:
+	std::queue<Data> the_queue;
+	mutable boost::mutex the_mutex;
+
+	boost::condition_variable the_condition_variable;
+	int MAX_QUEUE;
+
+public:
+	concurrent_queue(int cap = 10)
+	{
+		MAX_QUEUE = cap;
+	}
+
+	void wait_for_data()
+	{
+		boost::mutex::scoped_lock lock(the_mutex);
+		while (the_queue.empty())
+		{
+			the_condition_variable.wait(lock);
+		}
+	}
+
+	void wait_and_pop(Data& popped_value)
+	{
+		boost::mutex::scoped_lock lock(the_mutex);
+		while (the_queue.empty())
+		{
+			the_condition_variable.wait(lock);
+		}
+
+		popped_value = the_queue.front();
+		the_queue.pop();
+	}
+
+	//void postphone_back_and_clear(Data& popped_value)
+	//{
+	//	boost::mutex::scoped_lock lock(the_mutex);
+	//	while (the_queue.size() < MAX_QUEUE)
+	//	{
+	//		the_condition_variable.wait(lock);
+	//	}
+	//
+	//	popped_value = the_queue.back();
+	//	std::queue<Data> empty_queue;
+	//	std::swap(the_queue, empty_queue);
+	//}
+
+	void push(const Data& data) //enque
+	{
+		//boost::mutex::scoped_lock lock(the_mutex);
+		//the_queue.push(data);
+
+		boost::mutex::scoped_lock lock(the_mutex);
+		bool const was_empty = the_queue.empty();
+		the_queue.push(data);
+		if (the_queue.size() > MAX_QUEUE)
+		{
+			the_queue.pop();
+		}
+
+		lock.unlock(); // unlock the mutex
+
+		if (was_empty)
+		{
+			the_condition_variable.notify_one();
+		}
+	}
+
+	bool empty() const
+	{
+		boost::mutex::scoped_lock lock(the_mutex);
+		return the_queue.empty();
+	}
+
+	Data& front()
+	{
+		boost::mutex::scoped_lock lock(the_mutex);
+		return the_queue.front();
+	}
+
+	Data const& front() const
+	{
+		boost::mutex::scoped_lock lock(the_mutex);
+		return the_queue.front();
+	}
+
+	void pop() // deque
+	{
+		boost::mutex::scoped_lock lock(the_mutex);
+		the_queue.pop();
+	}
+};
+
+struct track_info
+{
+	//  "rs_cam" , "probe" , "ss_tool_v1" , "ss_head" , "breastbody" 
+	map<string, pair<bool, glm::fmat4x4>> map_lfrm2ws;
+
+	bool GetLFrmInfo(const string& name, glm::fmat4x4& mat_lfrm2ws) const
+	{
+		bool is_detected = false;
+		auto it = map_lfrm2ws.find(name);
+		if (it != map_lfrm2ws.end())
+		{
+			is_detected = get<0>(it->second);
+			mat_lfrm2ws = get<1>(it->second);
+		}
+		return is_detected;
+	}
+
+	void SetLFrmInfo(const string& name, const bool is_detected, const glm::fmat4x4& mat_lfrm2ws)
+	{
+		map_lfrm2ws[name] = pair<bool, glm::fmat4x4>(is_detected, mat_lfrm2ws);
+	}
+	// when changing this, please consider the serialization
+	//"rs_cam"
+	//glm::fmat4x4 mat_rbcam2ws;
+	//bool is_detected_rscam;
+	//
+	////"probe"
+	//glm::fmat4x4 mat_probe2ws;
+	//bool is_detected_probe;
+	//
+	////"ss_tool_v1"
+	//glm::fmat4x4 mat_tfrm2ws;
+	//bool is_detected_sstool;
+	//
+	////"ss_head"
+	//glm::fmat4x4 mat_headfrm2ws;
+	//bool is_detected_sshead;
+	//
+	////"breastbody"
+	//glm::fmat4x4 mat_bodyfrm2ws;
+	//bool is_detected_brbody;
+
+	std::vector<float> mk_xyz_list;
+	std::vector<float> mk_residue_list;
+	std::vector<std::bitset<128>> mk_cid_list;
+
+	bool is_updated;
+	track_info() { is_updated = false; }
+
+	bool GetProbePinPoint(glm::fvec3& pos)
+	{
+		glm::fmat4x4 mat_lfrm2ws;
+		if (GetLFrmInfo("probe", mat_lfrm2ws))
+		{
+			pos = tr_pt(mat_lfrm2ws, glm::fvec3(0));
+			return true;
+		}
+		return false;
+	}
+
+	glm::fvec3 GetMkPos(int idx)
+	{
+		if (idx < 0 || idx >= mk_xyz_list.size() / 3) return glm::fvec3(0);
+		return ((glm::fvec3*)&mk_xyz_list[0])[idx];
+	}
+
+	char* GetSerialBuffer(size_t& bytes_size)
+	{
+		int num_mks = (int)mk_xyz_list.size();
+		int num_lfrms = (int)map_lfrm2ws.size();
+		bytes_size = (sizeof(glm::fmat4x4) + sizeof(bool) + sizeof(char) * 100) * num_lfrms + (sizeof(float) * 2 + (128 / 8)) * num_mks + 4 * 2; // last 4 * 2 means num_mks, num_lfrms
+		char* buf = new char[bytes_size];
+		memset(buf, 0, bytes_size);
+		*(int*)&buf[0] = num_mks;
+		*(int*)&buf[4] = num_lfrms;
+
+		memcpy(&buf[8], &mk_xyz_list[0], sizeof(float) * num_mks);
+		memcpy(&buf[8 + sizeof(float) * num_mks], &mk_residue_list[0], sizeof(float) * num_mks);
+		memcpy(&buf[8 + sizeof(float) * num_mks * 2], &mk_cid_list[0], (128 / 8) * num_mks);
+
+		int offset = 8 + sizeof(float) * num_mks * 2 + (128 / 8) * num_mks;
+		int unit_size = sizeof(bool) + sizeof(glm::fmat4x4) + sizeof(char) * 100;
+		int i = 0;
+		for (auto it = map_lfrm2ws.begin(); it != map_lfrm2ws.end(); it++, i++)
+		{
+			memcpy(&buf[offset + unit_size * i], it->first.c_str(), sizeof(char) * it->first.length());
+			*(bool*)&buf[offset + unit_size * i + 100] = get<0>(it->second);
+			*(glm::fmat4x4*)&buf[offset + unit_size * i + 100 + sizeof(bool)] = get<1>(it->second);
+		}
+
+		return buf;
+	}
+
+	void SetFromSerialBuffer(const char* buf)
+	{
+		int num_mks = *(int*)buf[0];
+		int num_lfrms = *(int*)buf[4];
+		mk_xyz_list.assign(num_mks, 0);
+		mk_residue_list.assign(num_mks, 0);
+		mk_cid_list.assign(num_mks, 0);
+
+		memcpy(&mk_xyz_list[0], &buf[8], sizeof(float) * num_mks);
+		memcpy(&mk_residue_list[0], &buf[8 + sizeof(float) * num_mks], sizeof(float) * num_mks);
+		memcpy(&mk_cid_list[0], &buf[8 + sizeof(float) * num_mks * 2], (128 / 8) * num_mks);
+
+		int offset = 8 + sizeof(float) * num_mks * 2 + (128 / 8) * num_mks;
+		int unit_size = sizeof(bool) + sizeof(glm::fmat4x4) + sizeof(char) * 100;
+		for (int i = 0; i < num_lfrms; i++)
+		{
+			char arry[100];
+			memcpy(arry, &buf[offset + unit_size * i], sizeof(char) * 100);
+			string name = arry;
+			bool is_detected = *(bool*)&buf[offset + unit_size * i + 100];
+			glm::fmat4x4 mat_lfrm2ws = *(glm::fmat4x4*)&buf[offset + unit_size * i + 100 + sizeof(bool)];
+			SetLFrmInfo(name, is_detected, mat_lfrm2ws);
+		}
+	}
+
+	bool CheckExistCID(const std::bitset<128>& cid, int* mk_idx = NULL)
+	{
+		bool exist_mk_cid = false;
+		if (mk_idx) *mk_idx = -1;
+		for (int i = 0; i < (int)mk_cid_list.size(); i++)
+		{
+			if (mk_cid_list[i] == cid)
+			{
+				exist_mk_cid = true;
+				if (mk_idx) *mk_idx = i;
+				break;
+			}
+		}
+
+		return exist_mk_cid;
+	}
+};
+
+struct OpttrkData
+{
+	track_info trk_info; // available when USE_OPTITRACK
+	vzm::ObjStates obj_state;
+	int cb_spheres_id;
+	vector<int> armk_text_ids;
+	int mks_spheres_id;
+	int rs_lf_axis_id, probe_lf_axis_id; // lf means local frame
+	vector<pair<Point2f, Point3f>> tc_calib_pt_pairs;
+	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
+	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs_2;
+	bitset<128> stg_calib_mk_cid;
+	vector<int> calib_trial_rs_cam_frame_ids;
+	vector<int> mk_pickable_sphere_ids;
+
+	map<string, vector<Point3f>> custom_pos_map;
+	string marker_rb_name;
+	vector<Point3f> calib_3d_pts;
+
+	OpttrkData()
+	{
+		marker_rb_name = "";
+		stg_calib_mk_cid = 0;
+		cb_spheres_id = 0;
+		mks_spheres_id = 0;
+		rs_lf_axis_id = probe_lf_axis_id = 0;
+		obj_state.emission = 0.4f;
+		obj_state.diffusion = 0.6f;
+		obj_state.specular = 0.2f;
+		obj_state.sp_pow = 30.f;
+		__cv4__ obj_state.color = glm::fvec4(1.f, 1.f, 1.f, 1.f);
+		__cm4__ obj_state.os2ws = glm::fmat4x4();
+	}
+};
+
+ENUM(RsTouchMode, None, Pick, AR_Marker, DST_TOOL_E0, DST_TOOL_SE0, DST_TOOL_SE1, FIX_SCREW, Calib_TC, PIN_ORIENTATION, Calib_STG, Calib_STG2, Align, ICP, Capture, Pair_Clear, STG_Pair_Clear)
+
+// added by dojo at 200813
+struct SS_Tool_Guide_Pts
+{
+	int ss_tool_guide_points_id;
+	vector<glm::fvec3> pos_centers_tfrm;
+	SS_Tool_Guide_Pts() { ss_tool_guide_points_id = 0; }
+};
+
+struct ButtonState
+{
+	RsTouchMode mode;
+	Rect rect;
+	int touch_count;
+	bool is_activated;
+	bool is_subbutton;
+	std::string name;
+	cv::Scalar activated_bg;
+
+	ButtonState()
+	{
+		touch_count = 0;
+		is_activated = false;
+		is_subbutton = false;
+	}
+
+	ButtonState(const RsTouchMode _mode, const Rect& _rect, const int _count, const bool _is_activated, const std::string& _name, const bool _is_subbutton, const cv::Scalar& _activated_bg)
+	{
+		mode = _mode;
+		rect = _rect;
+		touch_count = 0;
+		is_activated = _is_activated;
+		name = _name;
+		activated_bg = _activated_bg;
+		is_subbutton = _is_subbutton;
+	}
+};
+
+struct GlobalInfo
+{
+	map<int, glm::fvec3> vzmobjid2pos;
+
+	RsTouchMode touch_mode;
+	bool skip_call_render;
+	OpttrkData otrk_data;
+	bool is_calib_rs_cam;
+	bool is_calib_stg_cam;
+	bool is_calib_stg_cam_2;
+	int stg_display_num;
+
+	bool is_probe_detected;
+	glm::fvec3 pos_probe_pin;
+	glm::fvec3 dir_probe_se;
+	glm::fmat4x4 mat_probe2ws;
+	string src_tool_name;
+	string dst_tool_name;
+
+	// model related
+	bool is_modelaligned;
+	int model_ms_obj_id;
+	int model_ws_obj_id;
+	int model_volume_id; // only for ws
+	glm::fmat4x4 mat_ws2matchmodelfrm;
+	glm::fmat4x4 mat_os2matchmodefrm;
+	glm::fmat4x4 mat_matchtr;
+	int captured_model_ms_point_id;
+	int captured_model_ws_point_id;
+	int rs_pc_id;
+
+	vector<glm::fvec3> model_ms_pick_pts;
+	vector<glm::fvec3> model_ws_pick_pts;
+	int model_ws_pick_spheres_id;
+	int model_ms_pick_spheres_id;
+
+	SS_Tool_Guide_Pts ss_tool_info;
+	vector<glm::fvec3> tool_guide_pos_os;
+	int brain_ms_obj_id, ventricle_ms_obj_id;
+	int brain_ws_obj_id, ventricle_ws_obj_id;
+
+	int rs_w, rs_h;
+	int stg_w, stg_h;
+	int eye_w, eye_h;
+	int ws_w, ws_h;
+
+	// scene definition
+	int ws_scene_id; // arbitrary integer
+	int rs_scene_id; // arbitrary integer
+	int model_scene_id; // arbitrary integer
+	int csection_scene_id; // arbitrary integer
+	int stg_scene_id; // arbitrary integer
+	int zoom_scene_id;
+
+	// cv window name
+	string window_name_rs_view;
+	string window_name_ws_view;
+	string window_name_ms_view;
+	string window_name_stg_view;
+	string window_name_zs_view;
+
+	// file path
+	string optrack_calib;
+	string optrack_env;
+	string cb_positions;
+	string rs_calib;
+	string stg_calib;
+	string sst_positions;
+	string model_path;
+	string volume_model_path;
+	string model_predefined_pts;
+	string guide_path;		// 20200818 add guide path name
+
+	map<string, string> custom_pos_file_paths;
+
+	// rs cam ui buttons
+	map<RsTouchMode, ButtonState> rs_buttons;
+
+	GlobalInfo()
+	{
+		touch_mode = RsTouchMode::None;
+		skip_call_render = false;
+		is_calib_rs_cam = false;
+		is_calib_stg_cam = false;
+		is_calib_stg_cam_2 = false;
+		model_ms_obj_id = 0;
+		model_ws_obj_id = 0;
+		captured_model_ms_point_id = 0;
+		is_modelaligned = false;
+		rs_pc_id = 0;
+		model_volume_id = 0;
+		is_probe_detected = false;
+		stg_display_num = 1;
+
+		// SSU
+		brain_ms_obj_id = 0;
+		brain_ws_obj_id = 0;
+		ventricle_ms_obj_id = 0;
+		ventricle_ws_obj_id = 0;
+	}
+};
+
+enum PROBE_MODE
+{
+	DEFAULT = 0, // PIN_POS AND DIR
+	ONLY_PIN_POS,
+	ONLY_RBFRAME,
+};
+
+#define TESTOUT(NAME, P) {cout << NAME << P.x << ", " << P.y << ", " << P.z << endl;}
 void ComputeDXProjectionMatrix(float* mat_cs2ps, float* mat_ps2ss, const float* mat_int3x3,
 	const float x0, const float y0, const float width, const float height, const float znear, const float zfar)
 {
@@ -503,6 +922,133 @@ void MakeTrackeffect(const int track_fade_num, const float min_move_dist, const 
 	}
 }
 
+void SetManualProbe(const std::string& dst_tool_name, const std::string& src_tool_name, const PROBE_MODE prob_mode, const int pos_idx, GlobalInfo& ginfo)
+{
+	if (pos_idx < 0 || pos_idx > 1 || prob_mode == PROBE_MODE::DEFAULT) return;
+
+	bool is_tool_src_tracked = false, is_tool_dst_tracked = false;
+	glm::fmat4x4 mat_srcfrm2ws, mat_dstfrm2ws;
+	is_tool_src_tracked = ginfo.otrk_data.trk_info.GetLFrmInfo(src_tool_name, mat_srcfrm2ws);
+	is_tool_dst_tracked = ginfo.otrk_data.trk_info.GetLFrmInfo(dst_tool_name, mat_dstfrm2ws);
+	if (is_tool_src_tracked && is_tool_dst_tracked)
+	{
+		glm::fvec3 pos_pt_ws = tr_pt(mat_srcfrm2ws, glm::fvec3(0));
+		glm::fmat4x4 mat_ws2dstfrm = glm::inverse(mat_srcfrm2ws);
+		glm::fvec3 pos_pt_dstfrm = tr_pt(mat_ws2dstfrm, pos_pt_ws);
+
+		std::string file_path = ginfo.custom_pos_file_paths["preset_path"];
+
+		vector<Point3f>& custom_pos_list = ginfo.otrk_data.custom_pos_map[dst_tool_name];
+		bool store_preset = false;
+		if (prob_mode == PROBE_MODE::ONLY_PIN_POS)
+		{
+			custom_pos_list.clear();
+			custom_pos_list.push_back(*(Point3f*)&pos_pt_dstfrm);
+
+			file_path += "..\\Preset\\" + dst_tool_name + "_end.txt";
+			store_preset = true;
+		}
+		else if (prob_mode == PROBE_MODE::ONLY_RBFRAME)
+		{
+			if (pos_idx == 0) custom_pos_list.clear();
+			else if (pos_idx == 1 && custom_pos_list.size() == 2) custom_pos_list.pop_back();
+			else if (pos_idx == 1 && custom_pos_list.size() == 0)
+			{
+				cout << "NO S POINT!!" << endl;
+				return;
+			}
+
+			custom_pos_list.push_back(*(Point3f*)&pos_pt_dstfrm);
+
+			if (pos_idx == 1)
+			{
+				file_path += "..\\Preset\\" + dst_tool_name + "_se.txt";
+				store_preset = true;
+			}
+		}
+
+		if (store_preset)
+		{
+			ofstream outfile(file_path);
+			if (outfile.is_open())
+			{
+				outfile.clear();
+				for (int i = 0; i < custom_pos_list.size(); i++)
+				{
+					string line = to_string(custom_pos_list[i].x) + " " +
+						to_string(custom_pos_list[i].y) + " " +
+						to_string(custom_pos_list[i].z);
+					outfile << line << endl;
+				}
+			}
+			outfile.close();
+		}
+	}
+}
+
+void SetCustomTools(const std::string& tool_name, const PROBE_MODE probe_mode, const GlobalInfo& ginfo, const glm::fvec3& tool_color)
+{
+	static map<std::string, int> tool_names;
+	for (auto it : tool_names)
+	{
+		vzm::ObjStates tool_state;
+		tool_state.is_visible = false;
+		vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, it.second, tool_state);
+		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, it.second, tool_state);
+		vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, it.second, tool_state);
+	}
+	int& tool_id = tool_names[tool_name];
+	int& tool_tip_id = tool_names[tool_name + "_tip"];
+
+	auto register_tool_obj = [&ginfo](const glm::fvec3& pos_tool_tip, const glm::fvec3& tool_dir,
+		const float tool_length, const float tool_r,
+		const glm::fvec3& cyl_rgb, int& tool_id, int& tool_tip_id)
+	{
+		glm::fvec3 cyl_p[2] = { pos_tool_tip, pos_tool_tip + tool_dir * tool_length };
+		float cyl_r = tool_r;
+
+		vzm::ObjStates tool_line, tool_tip;
+		vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, tool_id);
+		glm::fvec4 tip_sphere_xyzr = glm::fvec4(pos_tool_tip, cyl_r);
+		vzm::GenerateSpheresObject(__FP tip_sphere_xyzr, NULL, 1, tool_tip_id);
+		vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, tool_id, tool_line);
+		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, tool_id, tool_line);
+		vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, tool_id, tool_line);
+		__cv4__ tool_tip.color = glm::fvec4(1, 0, 0, 1);
+		vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, tool_tip_id, tool_tip);
+		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, tool_tip_id, tool_tip);
+		vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, tool_tip_id, tool_tip);
+	};
+
+	glm::fmat4x4 mat_lfrm2ws;
+	if (ginfo.otrk_data.trk_info.GetLFrmInfo(tool_name, mat_lfrm2ws))
+	{
+		glm::fvec3 pos_tool_tip = tr_pt(mat_lfrm2ws, glm::fvec3(0));
+		glm::fvec3 tool_dir = glm::normalize(tr_vec(mat_lfrm2ws, glm::fvec3(0, 0, 1)));
+		auto it = ginfo.otrk_data.custom_pos_map.find(tool_name);
+		if (it != ginfo.otrk_data.custom_pos_map.end())
+		{
+			const vector<Point3f>& custom_pos_list = it->second;
+			if (custom_pos_list.size() > 0)
+			{
+				if (probe_mode == ONLY_RBFRAME && custom_pos_list.size() == 2)
+				{
+					glm::fvec3 pos_s = *(glm::fvec3*)&custom_pos_list[0];
+					pos_tool_tip = tr_pt(mat_lfrm2ws, pos_s);
+					glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[1];
+					tool_dir = glm::normalize(tr_pt(mat_lfrm2ws, pos_e) - pos_tool_tip);
+				}
+				else if (probe_mode == ONLY_PIN_POS && custom_pos_list.size() == 1)
+				{
+					glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[0];
+					tool_dir = glm::normalize(tr_pt(mat_lfrm2ws, pos_e) - pos_tool_tip);
+				}
+			}
+		}
+		register_tool_obj(pos_tool_tip, tool_dir, 0.2f, 0.002f, tool_color, tool_id, tool_tip_id);
+	}
+}
+
 glm::fmat4x4 MatrixWS2CS(const glm::fvec3& pos_eye, const glm::fvec3& vec_view, const glm::fvec3& vec_up)
 {
 	using namespace glm;
@@ -797,419 +1343,6 @@ void ComputeCameraStates(const glm::fmat4x4& mat_rscs2clf, // computed through c
 	__cv3__ cam_state.view = vec_view_rscs;
 };
 
-
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-// https://www.justsoftwaresolutions.co.uk/threading/implementing-a-thread-safe-queue-using-condition-variables.html
-template<typename Data>
-class concurrent_queue // single consumer
-{
-private:
-	std::queue<Data> the_queue;
-	mutable boost::mutex the_mutex;
-
-	boost::condition_variable the_condition_variable;
-	int MAX_QUEUE;
-
-public:
-	concurrent_queue(int cap = 10)
-	{
-		MAX_QUEUE = cap;
-	}
-
-	void wait_for_data()
-	{
-		boost::mutex::scoped_lock lock(the_mutex);
-		while (the_queue.empty())
-		{
-			the_condition_variable.wait(lock);
-		}
-	}
-
-	void wait_and_pop(Data& popped_value)
-	{
-		boost::mutex::scoped_lock lock(the_mutex);
-		while (the_queue.empty())
-		{
-			the_condition_variable.wait(lock);
-		}
-
-		popped_value = the_queue.front();
-		the_queue.pop();
-	}
-
-	//void postphone_back_and_clear(Data& popped_value)
-	//{
-	//	boost::mutex::scoped_lock lock(the_mutex);
-	//	while (the_queue.size() < MAX_QUEUE)
-	//	{
-	//		the_condition_variable.wait(lock);
-	//	}
-	//
-	//	popped_value = the_queue.back();
-	//	std::queue<Data> empty_queue;
-	//	std::swap(the_queue, empty_queue);
-	//}
-
-	void push(const Data& data) //enque
-	{
-		//boost::mutex::scoped_lock lock(the_mutex);
-		//the_queue.push(data);
-
-		boost::mutex::scoped_lock lock(the_mutex);
-		bool const was_empty = the_queue.empty();
-		the_queue.push(data);
-		if (the_queue.size() > MAX_QUEUE)
-		{
-			the_queue.pop();
-		}
-		
-		lock.unlock(); // unlock the mutex
-
-		if (was_empty)
-		{
-			the_condition_variable.notify_one();
-		}
-	}
-
-	bool empty() const
-	{
-		boost::mutex::scoped_lock lock(the_mutex);
-		return the_queue.empty();
-	}
-
-	Data& front()
-	{
-		boost::mutex::scoped_lock lock(the_mutex);
-		return the_queue.front();
-	}
-
-	Data const& front() const
-	{
-		boost::mutex::scoped_lock lock(the_mutex);
-		return the_queue.front();
-	}
-
-	void pop() // deque
-	{
-		boost::mutex::scoped_lock lock(the_mutex);
-		the_queue.pop();
-	}
-};
-
-struct track_info
-{
-	//  "rs_cam" , "probe" , "ss_tool_v1" , "ss_head" , "breastbody" 
-	map<string, pair<bool, glm::fmat4x4>> map_lfrm2ws;
-
-	bool GetLFrmInfo(const string& name, glm::fmat4x4& mat_lfrm2ws) const
-	{
-		bool is_detected = false;
-		auto it = map_lfrm2ws.find(name);
-		if (it != map_lfrm2ws.end())
-		{
-			is_detected = get<0>(it->second);
-			mat_lfrm2ws = get<1>(it->second);
-		}
-		return is_detected;
-	}
-
-	void SetLFrmInfo(const string& name, const bool is_detected, const glm::fmat4x4& mat_lfrm2ws)
-	{
-		map_lfrm2ws[name] = pair<bool, glm::fmat4x4>(is_detected, mat_lfrm2ws);
-	}
-	// when changing this, please consider the serialization
-	//"rs_cam"
-	//glm::fmat4x4 mat_rbcam2ws;
-	//bool is_detected_rscam;
-	//
-	////"probe"
-	//glm::fmat4x4 mat_probe2ws;
-	//bool is_detected_probe;
-	//
-	////"ss_tool_v1"
-	//glm::fmat4x4 mat_tfrm2ws;
-	//bool is_detected_sstool;
-	//
-	////"ss_head"
-	//glm::fmat4x4 mat_headfrm2ws;
-	//bool is_detected_sshead;
-	//
-	////"breastbody"
-	//glm::fmat4x4 mat_bodyfrm2ws;
-	//bool is_detected_brbody;
-
-	std::vector<float> mk_xyz_list;
-	std::vector<float> mk_residue_list;
-	std::vector<std::bitset<128>> mk_cid_list;
-
-	bool is_updated;
-	track_info() { is_updated = false; }
-
-	bool GetProbePinPoint(glm::fvec3& pos)
-	{
-		glm::fmat4x4 mat_lfrm2ws;
-		if (GetLFrmInfo("probe", mat_lfrm2ws))
-		{
-			pos = tr_pt(mat_lfrm2ws, glm::fvec3(0));
-			return true;
-		}
-		return false;
-	}
-
-	glm::fvec3 GetMkPos(int idx)
-	{
-		if (idx < 0 || idx >= mk_xyz_list.size() / 3) return glm::fvec3(0);
-		return ((glm::fvec3*)&mk_xyz_list[0])[idx];
-	}
-
-	char* GetSerialBuffer(size_t& bytes_size)
-	{
-		int num_mks = (int)mk_xyz_list.size();
-		int num_lfrms = (int)map_lfrm2ws.size();
-		bytes_size = (sizeof(glm::fmat4x4) + sizeof(bool) + sizeof(char) * 100) * num_lfrms + (sizeof(float) * 2 + (128/8)) * num_mks + 4 * 2; // last 4 * 2 means num_mks, num_lfrms
-		char* buf = new char[bytes_size];
-		memset(buf, 0, bytes_size);
-		*(int*)&buf[0] = num_mks;
-		*(int*)&buf[4] = num_lfrms;
-
-		memcpy(&buf[8], &mk_xyz_list[0], sizeof(float) * num_mks);
-		memcpy(&buf[8 + sizeof(float) * num_mks], &mk_residue_list[0], sizeof(float) * num_mks);
-		memcpy(&buf[8 + sizeof(float) * num_mks * 2], &mk_cid_list[0], (128 / 8) * num_mks);
-
-		int offset = 8 + sizeof(float) * num_mks * 2 + (128 / 8) * num_mks;
-		int unit_size = sizeof(bool) + sizeof(glm::fmat4x4) + sizeof(char) * 100;
-		int i = 0;
-		for (auto it = map_lfrm2ws.begin(); it != map_lfrm2ws.end(); it++, i++)
-		{
-			memcpy(&buf[offset + unit_size * i], it->first.c_str(), sizeof(char) * it->first.length());
-			*(bool*)&buf[offset + unit_size * i + 100] = get<0>(it->second);
-			*(glm::fmat4x4*)&buf[offset + unit_size * i + 100 + sizeof(bool)] = get<1>(it->second);
-		}
-
-		return buf;
-	}
-
-	void SetFromSerialBuffer(const char* buf)
-	{
-		int num_mks = *(int*)buf[0];
-		int num_lfrms = *(int*)buf[4];
-		mk_xyz_list.assign(num_mks, 0);
-		mk_residue_list.assign(num_mks, 0);
-		mk_cid_list.assign(num_mks, 0);
-
-		memcpy(&mk_xyz_list[0], &buf[8], sizeof(float) * num_mks);
-		memcpy(&mk_residue_list[0], &buf[8 + sizeof(float) * num_mks], sizeof(float) * num_mks);
-		memcpy(&mk_cid_list[0], &buf[8 + sizeof(float) * num_mks * 2], (128 / 8) * num_mks);
-
-		int offset = 8 + sizeof(float) * num_mks * 2 + (128 / 8) * num_mks;
-		int unit_size = sizeof(bool) + sizeof(glm::fmat4x4) + sizeof(char) * 100;
-		for (int i = 0; i < num_lfrms; i++)
-		{
-			char arry[100];
-			memcpy(arry, &buf[offset + unit_size * i], sizeof(char) * 100);
-			string name = arry;
-			bool is_detected = *(bool*)&buf[offset + unit_size * i + 100];
-			glm::fmat4x4 mat_lfrm2ws = *(glm::fmat4x4*)&buf[offset + unit_size * i + 100 + sizeof(bool)];
-			SetLFrmInfo(name, is_detected, mat_lfrm2ws);
-		}
-	}
-
-	bool CheckExistCID(const std::bitset<128>& cid, int* mk_idx = NULL)
-	{
-		bool exist_mk_cid = false;
-		if (mk_idx) *mk_idx = -1;
-		for (int i = 0; i < (int)mk_cid_list.size(); i++)
-		{
-			if (mk_cid_list[i] == cid)
-			{
-				exist_mk_cid = true;
-				if (mk_idx) *mk_idx = i;
-				break;
-			}
-		}
-		
-		return exist_mk_cid;
-	}
-};
-
-struct OpttrkData
-{
-	track_info trk_info; // available when USE_OPTITRACK
-	vzm::ObjStates obj_state;
-	int cb_spheres_id;
-	vector<int> armk_text_ids;
-	int mks_spheres_id;
-	int rs_lf_axis_id, probe_lf_axis_id; // lf means local frame
-	vector<pair<Point2f, Point3f>> tc_calib_pt_pairs;
-	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
-	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs_2;
-	bitset<128> stg_calib_mk_cid;
-	vector<int> calib_trial_rs_cam_frame_ids;
-	vector<int> mk_pickable_sphere_ids;
-
-	map<string, vector<Point3f>> custom_pos_map;
-	string marker_rb_name;
-	vector<Point3f> calib_3d_pts;
-
-	OpttrkData()
-	{
-		marker_rb_name = "";
-		stg_calib_mk_cid = 0;
-		cb_spheres_id = 0;
-		mks_spheres_id = 0;
-		rs_lf_axis_id = probe_lf_axis_id = 0;
-		obj_state.emission = 0.4f;
-		obj_state.diffusion = 0.6f;
-		obj_state.specular = 0.2f;
-		obj_state.sp_pow = 30.f;
-		__cv4__ obj_state.color = glm::fvec4(1.f, 1.f, 1.f, 1.f);
-		__cm4__ obj_state.os2ws = glm::fmat4x4();
-	}
-};
-
-ENUM(RsTouchMode, None, Pick, AR_Marker, Tool_S_E, Calib_TC, PIN_ORIENTATION, Calib_STG, Calib_STG2, Align, ICP, Capture, Pair_Clear, STG_Pair_Clear)
-
-// added by dojo at 200813
-struct SS_Tool_Guide_Pts
-{
-	int ss_tool_guide_points_id;
-	vector<glm::fvec3> pos_centers_tfrm;
-	SS_Tool_Guide_Pts() { ss_tool_guide_points_id = 0; }
-};
-
-struct ButtonState
-{
-	RsTouchMode mode;
-	Rect rect;
-	int touch_count;
-	bool is_activated;
-	bool is_subbutton;
-	std::string name;
-	cv::Scalar activated_bg;
-
-	ButtonState()
-	{
-		touch_count = 0;
-		is_activated = false;
-		is_subbutton = false;
-	}
-
-	ButtonState(const RsTouchMode _mode, const Rect& _rect, const int _count, const bool _is_activated, const std::string& _name, const bool _is_subbutton, const cv::Scalar& _activated_bg)
-	{
-		mode = _mode;
-		rect = _rect;
-		touch_count = 0;
-		is_activated = _is_activated;
-		name = _name;
-		activated_bg = _activated_bg;
-		is_subbutton = _is_subbutton;
-	}
-};
-
-struct GlobalInfo
-{
-	map<int, glm::fvec3> vzmobjid2pos;
-
-	RsTouchMode touch_mode;
-	bool skip_call_render;
-	OpttrkData otrk_data;
-	bool is_calib_rs_cam;
-	bool is_calib_stg_cam;
-	bool is_calib_stg_cam_2;
-	int stg_display_num;
-
-	bool is_probe_detected;
-	glm::fvec3 pos_probe_pin;
-	glm::fmat4x4 mat_probe2ws;
-
-	string dst_tool_se_name;
-
-	// model related
-	bool is_modelaligned;
-	int model_ms_obj_id;
-	int model_ws_obj_id;
-	int model_volume_id; // only for ws
-	glm::fmat4x4 mat_ws2matchmodelfrm;
-	glm::fmat4x4 mat_os2matchmodefrm;
-	glm::fmat4x4 mat_matchtr;
-	int captured_model_ms_point_id;
-	int captured_model_ws_point_id;
-	int rs_pc_id;
-
-	vector<glm::fvec3> model_ms_pick_pts;
-	vector<glm::fvec3> model_ws_pick_pts;
-	int model_ws_pick_spheres_id;
-	int model_ms_pick_spheres_id;
-
-	SS_Tool_Guide_Pts ss_tool_info;
-	vector<glm::fvec3> tool_guide_pos_os;
-	int brain_ms_obj_id, ventricle_ms_obj_id;
-	int brain_ws_obj_id, ventricle_ws_obj_id;
-
-	int rs_w, rs_h;
-	int stg_w, stg_h;
-	int eye_w, eye_h;
-	int ws_w, ws_h;
-
-	// scene definition
-	int ws_scene_id; // arbitrary integer
-	int rs_scene_id; // arbitrary integer
-	int model_scene_id; // arbitrary integer
-	int csection_scene_id; // arbitrary integer
-	int stg_scene_id; // arbitrary integer
-	int zoom_scene_id;
-
-	// cv window name
-	string window_name_rs_view;
-	string window_name_ws_view;
-	string window_name_ms_view;
-	string window_name_stg_view;
-	string window_name_zs_view;
-
-	// file path
-	string optrack_calib;
-	string optrack_env;
-	string cb_positions;
-	string rs_calib;
-	string stg_calib;
-	string sst_positions;
-	string model_path;
-	string volume_model_path;
-	string model_predefined_pts;
-	string guide_path;		// 20200818 add guide path name
-
-	map<string, string> file_paths;
-
-	// rs cam ui buttons
-	map<RsTouchMode, ButtonState> rs_buttons;
-
-	GlobalInfo()
-	{
-		touch_mode = RsTouchMode::None;
-		skip_call_render = false;
-		is_calib_rs_cam = false;
-		is_calib_stg_cam = false;
-		is_calib_stg_cam_2 = false;
-		model_ms_obj_id = 0;
-		model_ws_obj_id = 0;
-		captured_model_ms_point_id = 0;
-		is_modelaligned = false;
-		rs_pc_id = 0;
-		model_volume_id = 0;
-		is_probe_detected = false;
-		stg_display_num = 1;
-
-		// SSU
-		brain_ms_obj_id = 0;
-		brain_ws_obj_id = 0;
-		ventricle_ms_obj_id = 0;
-		ventricle_ws_obj_id = 0;
-	}
-};
-
-#define TESTOUT(NAME, P) {cout << NAME << P.x << ", " << P.y << ", " << P.z << endl;}
-
 bool IsMeshModel(const int obj_id)
 {
 	return ((obj_id >> 24) & 0xFF) == 2;
@@ -1262,7 +1395,10 @@ void Make_Buttons(const int screen_w, const int screen_h, std::map<RsTouchMode, 
 	}
 #define ADD_SUBBTNS(MODE, RECT_INFO) buttons[MODE] = ButtonState(MODE, RECT_INFO, 0, false, EtoString(MODE), true, Scalar(150, 250, 150))
 	ADD_SUBBTNS(RsTouchMode::AR_Marker, Rect(bw * 1, bh, bw, bh));
-	ADD_SUBBTNS(RsTouchMode::Tool_S_E, Rect(bw * 1, bh * 2, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::DST_TOOL_E0, Rect(bw * 1, bh * 2, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::DST_TOOL_SE0, Rect(bw * 1, bh * 3, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::DST_TOOL_SE1, Rect(bw * 1, bh * 4, bw, bh));
+	ADD_SUBBTNS(RsTouchMode::FIX_SCREW, Rect(bw * 1, bh * 5, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::ICP, Rect(bw * 4, bh, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::Capture, Rect(bw * 4, bh * 2, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::Pair_Clear, Rect(bw * 2, bh, bw, bh));

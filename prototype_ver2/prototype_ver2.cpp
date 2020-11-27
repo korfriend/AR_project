@@ -159,7 +159,7 @@ void LoadPresets(GlobalInfo& g_info)
 }
 void InitializeVarSettings(GlobalInfo& g_info)
 {
-	var_settings::InitializeVarSettings(0, true, "ss_tool_v2", "marker");
+	var_settings::InitializeVarSettings(0, true, "marker");
 	//var_settings::GetVarInfo(&g_info);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
@@ -542,7 +542,7 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("ss_head", true); // "breastbody"
+			var_settings::SetTargetModelAssets("ss_head"); // "breastbody"
 
 			var_settings::GetVarInfo(&g_info);
 

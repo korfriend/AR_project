@@ -141,8 +141,7 @@ int main()
 	//rs2_extrinsics rgb_extrinsics;
 	//rs_settings::GetRsCamParams(rgb_intrinsics, depth_intrinsics, rgb_extrinsics);
 
-	// TODO <================================
-	var_settings::InitializeVarSettings(1);
+	var_settings::InitializeVarSettings(1, true, "marker");
 	var_settings::SetCvWindows();
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 
@@ -193,7 +192,11 @@ int main()
 			cur_trk_info.is_updated = true;
 			track_que.push(cur_trk_info);
 		}
-	});
+		});
+
+	GlobalInfo* _ginfo;
+	var_settings::GetVarInfoPtr((void**)&_ginfo);
+	GlobalInfo& ginfo = *_ginfo;
 
 	// params for the main thread
 	int key_pressed = -1;
@@ -205,7 +208,7 @@ int main()
 	bool show_pc = false;
 	bool show_workload = false;
 	bool is_ws_pick = false;
-	
+
 	auto DisplayTimes = [&show_workload](const LARGE_INTEGER lIntCntStart, const string& _test)
 	{
 		if (!show_workload) return;
@@ -226,6 +229,8 @@ int main()
 #ifdef __RECORD_VER
 	// fill record_trk_info and record_rsimg
 #endif
+	int line_guide_idx = 0;
+	int operation_step = 0;
 	var_settings::LoadPresets();
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
@@ -233,21 +238,39 @@ int main()
 		bool reset_calib = false;
 		bool write_recoded_info = false;
 		bool recompile_hlsl = false;
+		std::string probe_name = "probe";
+		PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
 		switch (key_pressed) // http://www.asciitable.com/
 		{
 		case '[': postpone = max(postpone - 1, 0); cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
 		case ']': postpone += 1; cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
-		case 'r': recompile_hlsl = true; cout << "Recompile Shader!" << endl; break; 
-		case 'v': show_calib_frames = !show_calib_frames; break; 
-		case 'p': show_pc = !show_pc; break; 
+		case 'r': recompile_hlsl = true; cout << "Recompile Shader!" << endl; break;
+		case 'v': show_calib_frames = !show_calib_frames; break;
+		case 'p': show_pc = !show_pc; break;
 		case 'e': show_apis_console = !show_apis_console; break;
-		case 'm': show_mks = !show_mks; break; 
-		case 's': show_csection = !show_csection; break; 
-		case 'x': reset_calib = true; break; 
+		case 'm': show_mks = !show_mks; break;
+		case 's': show_csection = !show_csection; break;
+		case 'x': reset_calib = true; break;
 		case 'd': record_info = !record_info; break;
 		case 'w': write_recoded_info = true; break;
 		case 'f': show_workload = !show_workload; break;
 		case 'c': is_ws_pick = !is_ws_pick; break;
+		case '1': operation_step = 1; probe_name = "probe"; probe_mode = PROBE_MODE::DEFAULT;
+			optitrk::SetRigidBodyEnabledbyName("probe", true);
+			optitrk::SetRigidBodyEnabledbyName(pin_tool_name, false);
+			break;
+		case '2': operation_step = 2; probe_name = pin_tool_name; probe_mode = PROBE_MODE::ONLY_RBFRAME;
+			optitrk::SetRigidBodyEnabledbyName("probe", false);
+			optitrk::SetRigidBodyEnabledbyName(pin_tool_name, true); 
+			break;
+		case '7': operation_step = 7; probe_name = "probe"; probe_mode = PROBE_MODE::DEFAULT;
+			optitrk::SetRigidBodyEnabledbyName("probe", true);
+			optitrk::SetRigidBodyEnabledbyName(pin_tool_name, true);
+			ginfo.dst_tool_name = pin_tool_name;
+			ginfo.src_tool_name = "probe";
+			break;
+		case ',': line_guide_idx = max(line_guide_idx - 1, 0); break;
+		case '.': line_guide_idx = min(line_guide_idx + 1, (int)guide_line_ids.size() - 1); break;
 		}
 		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", show_apis_console, sizeof(bool), -1, -1);
@@ -271,7 +294,7 @@ int main()
 		{
 			DisplayTimes(frq_begin, "device_stream_load");
 
-			var_settings::UpdateTrackInfo(&trk_info);
+			var_settings::UpdateTrackInfo(&trk_info, probe_name, probe_mode);
 
 			auto current_color_frame = current_frameset.get_color_frame();
 			//auto colorized_depth = current_frameset.first(RS2_STREAM_DEPTH, RS2_FORMAT_RGB8);
@@ -295,12 +318,15 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("breastbody"); // "breastbody" "ss_head"
+			var_settings::SetTargetModelAssets("breastbody", __FP guide_lines[0], guide_lines.size() / 2, line_guide_idx);
 
-			// breast custom vis.
+			if (operation_step >= 7)
 			{
-				GlobalInfo ginfo;
-				var_settings::GetVarInfo(&ginfo);
+				SetCustomTools(ginfo.dst_tool_name, operation_step == 9 ? ONLY_RBFRAME : ONLY_PIN_POS, ginfo, glm::fvec3(1, 1, 0));
+			}
+
+			// tumor vis.
+			{
 				if (ginfo.is_modelaligned)
 				{
 					glm::fmat4x4 mat_matchmodelfrm2ws;
@@ -310,58 +336,11 @@ int main()
 						vzm::GetSceneObjectState(ginfo.ws_scene_id, ginfo.model_ws_obj_id, model_ws_obj_state);
 						__cm4__ model_ws_obj_state.os2ws = mat_matchmodelfrm2ws * ginfo.mat_os2matchmodefrm;
 
-						model_ws_obj_state.color[3] = 1.f;
-						vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, needles_guide_id, model_ws_obj_state);
-						vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, needles_guide_id, model_ws_obj_state);
-						vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, needles_guide_id, model_ws_obj_state);
-
 						__cv4__ model_ws_obj_state.color = glm::fvec4(1, 0, 0, 1);
 						vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, tumor_id, model_ws_obj_state);
 						vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, tumor_id, model_ws_obj_state);
 						vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, tumor_id, model_ws_obj_state);
 						vzm::ReplaceOrAddSceneObject(ginfo.csection_scene_id, tumor_id, model_ws_obj_state);
-					}
-				}
-			}
-
-			// using SS tool custom vis.
-			{
-				GlobalInfo ginfo;
-				var_settings::GetVarInfo(&ginfo);
-
-				glm::fmat4x4 mat_sstool2ws;
-				bool is_sstool_detected = trk_info.GetLFrmInfo(pin_tool_name, mat_sstool2ws);
-				if (is_sstool_detected)
-				{
-					if (ss_tool_info.pos_centers_tfrm.size() > 0)
-					{
-						glm::fvec3 sstool_p1_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[0]);
-						glm::fvec3 sstool_p2_ws = tr_pt(mat_sstool2ws, ss_tool_info.pos_centers_tfrm[1]);
-
-						glm::fvec3 sstool_dir = glm::normalize(sstool_p2_ws - sstool_p1_ws);
-						sstool_p2_ws = sstool_p1_ws + sstool_dir * 0.2f;
-
-						// tool line (ws, rs)
-						glm::fvec3 cyl_p01[2] = { sstool_p1_ws, sstool_p1_ws + sstool_dir * 0.2f };
-						float cyl_r = 0.0015f;
-						glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
-						static int ssu_tool_line_id = 0, ssu_tool_end_id = 0;
-						vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, ssu_tool_line_id);
-
-						// sphere (ws, rs)
-						vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0045f), __FP glm::fvec3(1, 0, 1), 1, ssu_tool_end_id);
-
-						// replace scene object
-						vzm::ObjStates model_ws_states;
-						vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, ssu_tool_line_id, model_ws_states);
-						vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ssu_tool_line_id, model_ws_states);
-						vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, ssu_tool_line_id, model_ws_states);
-
-						vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, ssu_tool_end_id, model_ws_states);
-						vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ssu_tool_end_id, model_ws_states);
-						vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, ssu_tool_end_id, model_ws_states);
-
-						var_settings::SetSectionalImageAssets(true, __FP sstool_p1_ws, __FP sstool_p2_ws);
 					}
 				}
 			}
