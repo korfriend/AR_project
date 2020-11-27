@@ -29,7 +29,7 @@ namespace rs_settings
 
 namespace var_settings
 {
-	__dojostatic void InitializeVarSettings(int scenario = 0, const std::string& manualset_tool_name = "ss_tool_v1", const std::string& marker_rb_name = "");
+	__dojostatic void InitializeVarSettings(int scenario = 0, bool is_stereo_stg = false, const std::string& manualset_tool_name = "ss_tool_v1", const std::string& marker_rb_name = "");
 	__dojostatic void SetPreoperations(const int rs_w, const int rs_h, const int ws_w, const int ws_h, const int stg_w, const int stg_h, const int eye_w, const int eye_h);
 	__dojostatic void SetCvWindows();
 	__dojostatic void LoadPresets();
@@ -43,7 +43,7 @@ namespace var_settings
 	__dojostatic void GetVarInfoPtr(void**);
 	__dojostatic void SetVarInfo(const void*);
 	__dojostatic void TryCalibrationTC(cv::Mat& imgColor);
-	__dojostatic void TryCalibrationSTG(bool use_stereo = false);
+	__dojostatic void TryCalibrationSTG();
 	__dojostatic void SetCalibFrames(bool is_visible);
 	__dojostatic void SetDepthMapPC(const bool is_visible, rs2::depth_frame& depth_frame, rs2::video_frame& color_frame);
 	__dojostatic void SetTargetModelAssets(const std::string& name, const bool forced_visible_model = false);

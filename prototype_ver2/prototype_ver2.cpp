@@ -159,7 +159,7 @@ void LoadPresets(GlobalInfo& g_info)
 }
 void InitializeVarSettings(GlobalInfo& g_info)
 {
-	var_settings::InitializeVarSettings(0, "ss_tool_v2", "marker");
+	var_settings::InitializeVarSettings(0, true, "ss_tool_v2", "marker");
 	//var_settings::GetVarInfo(&g_info);
 
 	// SSU ////////////////////////////////////////////////////////////////////////////////////
@@ -306,20 +306,22 @@ int main()
 	SetPreoperations(g_info, rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 	LoadPresets(g_info);
 
+	optitrk::SetRigidBodyEnabledbyName("ss_head", true);
+	optitrk::SetRigidBodyEnabledbyName("marker", false);
+	optitrk::SetRigidBodyEnabledbyName("rs_cam", true);
+	optitrk::SetRigidBodyEnabledbyName("probe", true);
 	optitrk::SetRigidBodyEnabledbyName("breastbody", false);
 	optitrk::SetRigidBodyEnabledbyName("spine", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_1", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_2", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_3", false);
 	optitrk::SetRigidBodyEnabledbyName("ss_tool_v1", false);
-	optitrk::SetRigidBodyEnabledbyName("marker", true);
-	optitrk::SetRigidBodyEnabledbyName("rs_cam", true);
-	optitrk::SetRigidBodyEnabledbyName("probe", true);
+	optitrk::SetRigidBodyEnabledbyName("ss_tool_v2", true);
 
 	//optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("ss_tool_v2", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("ss_tool_v2", 0.1f, 1);
 	int postpone = 3;
 #define NUM_RBS 6
 	concurrent_queue<track_info> track_que(10);

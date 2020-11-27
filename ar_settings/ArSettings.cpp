@@ -338,9 +338,10 @@ namespace var_settings
 
 	std::string operation_name;
 
-	void InitializeVarSettings(int _scenario, const std::string& manualset_tool_name, const std::string& marker_rb_name)
+	void InitializeVarSettings(int _scenario, bool is_stereo_stg, const std::string& manualset_tool_name, const std::string& marker_rb_name)
 	{
 		scenario = _scenario;
+		g_info.stg_display_num = is_stereo_stg ? 2 : 1;
 
 		g_info.otrk_data.marker_rb_name = marker_rb_name;
 
@@ -725,32 +726,38 @@ namespace var_settings
 #endif
 
 #ifdef __DEMO_PC
-		const int display_w = 1921;
+		const int display1_w = 1680 + 2;// 1920;
+		const int display2_w = 2000 + 2;
 		// for demo PC
 		//Create a window
 		cv::namedWindow(g_info.window_name_rs_view, WINDOW_NORMAL);
 		cv::namedWindow(g_info.window_name_ws_view, WINDOW_NORMAL);
 		cv::namedWindow(g_info.window_name_ms_view, WINDOW_NORMAL);
 		cv::namedWindow(g_info.window_name_stg_view, WINDOW_NORMAL);
+
+		//cv::moveWindow(g_info.window_name_rs_view, 0, 0);
+		//cv::moveWindow(g_info.window_name_stg_view, 0, 500);
+		//cv::moveWindow(g_info.window_name_ws_view, 900, 0);
+		//cv::moveWindow(g_info.window_name_ms_view, 900, 500);
+		//cv::setWindowProperty(g_info.window_name_rs_view, WND_PROP_AUTOSIZE, WINDOW_NORMAL);
+		//cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_AUTOSIZE, WINDOW_NORMAL);
+		//cv::setWindowProperty(g_info.window_name_ws_view, WND_PROP_AUTOSIZE, WINDOW_NORMAL);
+		//cv::setWindowProperty(g_info.window_name_ms_view, WND_PROP_AUTOSIZE, WINDOW_NORMAL);
+
 #ifdef __MIRRORS
 		cv::namedWindow("rs mirror", WINDOW_NORMAL);
-		//cv::namedWindow("stg mirror", WINDOW_NORMAL);
-		cv::moveWindow(g_info.window_name_rs_view, 40, 470);
-		//cv::moveWindow("stg mirror", 944, 470);
+		cv::namedWindow("stg mirror", WINDOW_NORMAL);
+		//cv::moveWindow("rs mirror", display1_w, 30);
+		//cv::moveWindow("stg mirror", display1_w + display2_w, 30);
+		//cv::setWindowProperty("rs mirror", WND_PROP_FULLSCREEN, WINDOW_NORMAL | WINDOW_FULLSCREEN);
+		//cv::setWindowProperty("stg mirror", WND_PROP_FULLSCREEN, WINDOW_NORMAL | WINDOW_FULLSCREEN);
 #endif
-
-		cv::moveWindow(g_info.window_name_ws_view, 550, 0);
-		cv::moveWindow(g_info.window_name_ms_view, 1180, 0);
-		cv::moveWindow("rs mirror", display_w + 2, 0);
 		//cv::moveWindow(g_info.window_name_rs_view, 0, 0);
 		//cv::moveWindow(g_info.window_name_stg_view, display_w + 1025, 0);
-
-
 
 		////cv::moveWindow(g_info.window_name_rs_view, 0 * 3, 0);
 		////cv::moveWindow(g_info.window_name_stg_view, 0 * 3 + 1024, 0);
 
-		cv::setWindowProperty("rs mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 		//cv::setWindowProperty(g_info.window_name_stg_view, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 #endif
 
@@ -1471,7 +1478,7 @@ namespace var_settings
 		}
 	}
 
-	void TryCalibrationSTG(bool use_stereo)
+	void TryCalibrationSTG()
 	{
 		static int mk_stg_calib_sphere_id = 0;
 		static int clf_mk_stg_calib_spheres_id = 0;
@@ -1481,7 +1488,6 @@ namespace var_settings
 #ifdef STG_LINE_CALIB
 		static Point2d pos_calib_lines[4] = { Point2d(100, 100), Point2d(400, 400), Point2d(400, 100), Point2d(100, 400) };
 #endif
-		g_info.stg_display_num = use_stereo ? 2 : 1;
 		if (g_info.touch_mode == RsTouchMode::Calib_STG || g_info.touch_mode == RsTouchMode::Calib_STG2)
 		{
 			int stg_calib_mk_idx;
@@ -2067,7 +2073,7 @@ namespace var_settings
 						cv::drawMarker(image_stg, Point(_stg_w[0] + _stg_w[1] / 2, g_info.stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
 
 						cv::rectangle(image_stg, Point(2, 2), Point(_stg_w[0] - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);
-						cv::rectangle(image_stg, Point(_stg_w[0], 2), Point(_stg_w[0] + _stg_w[1] - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);
+						cv::rectangle(image_stg, Point(_stg_w[0] + 2, 2), Point(_stg_w[0] + _stg_w[1] - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);
 						Draw_STG_Calib_Point(image_stg);
 
 						imshow(g_info.window_name_stg_view, image_stg);
@@ -2085,8 +2091,20 @@ namespace var_settings
 			{
 				static Mat image_stg(Size(g_info.stg_w, g_info.stg_h), CV_8UC4, Mat::AUTO_STEP);
 				image_stg = cv::Mat::zeros(image_stg.size(), image_stg.type());
-				cv::drawMarker(image_stg, Point(g_info.stg_w / 2, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
-				cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 5), Scalar(255, 255, 255), 3);
+				if (g_info.stg_display_num == 1)
+				{
+					cv::drawMarker(image_stg, Point(g_info.stg_w / 2, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
+					cv::rectangle(image_stg, Point(0, 0), Point(g_info.stg_w - 10, g_info.stg_h - 5), Scalar(255, 255, 255), 3);
+				}
+				else
+				{
+					int w = g_info.stg_w / 2;
+					cv::drawMarker(image_stg, Point(w / 2, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
+					cv::drawMarker(image_stg, Point(w + w / 2, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
+
+					cv::rectangle(image_stg, Point(2, 2), Point(w - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);
+					cv::rectangle(image_stg, Point(w + 2, 2), Point(w + w - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);
+				}
 				Draw_STG_Calib_Point(image_stg);
 				imshow(g_info.window_name_stg_view, image_stg);
 
@@ -2096,6 +2114,29 @@ namespace var_settings
 #endif
 			}
 #endif
+		}
+
+		static bool once_prob_set = true;
+		if (once_prob_set)
+		{
+			once_prob_set = false;
+			cv::moveWindow(g_info.window_name_rs_view, 0, 0);
+			cv::moveWindow(g_info.window_name_stg_view, 0, 500);
+			cv::moveWindow(g_info.window_name_ws_view, 900, 0);
+			cv::moveWindow(g_info.window_name_ms_view, 900, 500);
+
+			const int display1_w = 1680 + 2;// 1920;
+			const int display2_w = 2000 + 2;
+#ifdef __MIRRORS
+			cv::moveWindow("rs mirror", display1_w, 30);
+			cv::moveWindow("stg mirror", display1_w + display2_w, 30);
+			cv::setWindowProperty("rs mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+			cv::setWindowProperty("stg mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
+#endif
+			cv::resizeWindow(g_info.window_name_rs_view, cv::Size(900, 500));
+			cv::resizeWindow(g_info.window_name_stg_view, cv::Size(900, 500));
+			cv::resizeWindow(g_info.window_name_ws_view, cv::Size(500, 500));
+			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(500, 500));
 		}
 	}
 

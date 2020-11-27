@@ -145,23 +145,26 @@ int main()
 	std::vector<glm::fvec3> guide_lines;
 	loadScrewGuideLines("C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\spine_pins.txt", guide_line_ids, guide_lines);
 
-	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("tool_1", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("tool_2", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("tool_3", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("tool_1", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("tool_2", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("tool_3", 0.1f, 1);
+	optitrk::SetRigidBodyEnabledbyName("ss_head", false);
+	optitrk::SetRigidBodyEnabledbyName("marker", false);
+	optitrk::SetRigidBodyEnabledbyName("rs_cam", true);
+	optitrk::SetRigidBodyEnabledbyName("probe", true);
+	optitrk::SetRigidBodyEnabledbyName("breastbody", false);
+	optitrk::SetRigidBodyEnabledbyName("spine", true);
 	optitrk::SetRigidBodyEnabledbyName("tool_1", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_2", false);
 	optitrk::SetRigidBodyEnabledbyName("tool_3", false);
+	optitrk::SetRigidBodyEnabledbyName("ss_tool_v1", false);
+	optitrk::SetRigidBodyEnabledbyName("ss_tool_v2", false);
 	int postpone = 3;
 	concurrent_queue<track_info> track_que(10);
 	std::atomic_bool tracker_alive{ true };
 	int operation_step = 0;
-	optitrk::SetRigidBodyEnabledbyName("spine", true);
-	optitrk::SetRigidBodyEnabledbyName("rs_cam", true);
-	optitrk::SetRigidBodyEnabledbyName("ss_tool_v1", false);
-	optitrk::SetRigidBodyEnabledbyName("ss_head", false);
-	//optitrk::SetRigidBodyEnabledbyName("breastbody", false);
 #define NUM_RBS 6
 	std::thread tracker_processing_thread([&]() {
 		while (tracker_alive)

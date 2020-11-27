@@ -54,56 +54,7 @@ using namespace cv;
 SS_Tool_Guide_Pts ss_tool_info;
 
 int tumor_id = 0;
-int needles_guide_id = 0;
-bool loadScrewInha(const std::string& screwfile)
-{
-	std::ifstream screwinfile(screwfile, std::ios_base::binary);
-
-	if (!screwinfile.good())
-		return false;
-
-	int screwcount = 0;
-	//screwinfile >> screwcount;
-	screwinfile.read((char*)(&screwcount), 4);
-
-	glm::vec3 startpos, endpos;
-	float screwdiameter;
-	/*
-	screw number
-	1st screw start position	1st screw end position	1st screw diameter
-	2nd screw end position		2nd screw end position	2nd screw diameter
-	.
-	.
-	.
-	n-th screw start position	n-th screw end position	n-th screw diameter
-	*/
-	vector<float> needles_radii(screwcount);
-	vector<glm::fvec3> needles_pos(screwcount * 2);
-	vector<glm::fvec3> needles_clr(screwcount);
-	for (int i = 0; i < screwcount; i++)
-	{
-		screwinfile.read((char*)(&startpos), sizeof(glm::vec3));
-		screwinfile.read((char*)(&endpos), sizeof(glm::vec3));
-		screwinfile.read((char*)(&screwdiameter), sizeof(float));
-
-		//glm::vec3 direction = endpos - startpos;
-		//float length = glm::length(direction);
-
-		// pos »óÀÇ tr
-
-		needles_pos[2 * i + 0] = startpos;
-		needles_pos[2 * i + 1] = endpos;
-		needles_clr[i] = glm::fvec3(0.2, 0.8, 1);
-		needles_radii[i] = screwdiameter / 2.0;
-		//this->PreloadedScrew_target->push_back(ScrewModelInfo(startpos, direction, length, screwdiameter / 2.0));
-	}
-
-	vzm::GenerateCylindersObject((float*)&needles_pos[0], &needles_radii[0], (float*)&needles_clr[0], screwcount, needles_guide_id);
-
-	return true;
-}
-
-bool loadScrewTest(const std::string& screwfile, const std::string& tumor_model_file)
+bool loadScrewTest2(const std::string& screwfile, const std::string& tumor_model_file, std::vector<int>& line_ids, std::vector<glm::fvec3>& guide_lines)
 {
 	std::ifstream infile(screwfile);
 	string line;
@@ -114,27 +65,28 @@ bool loadScrewTest(const std::string& screwfile, const std::string& tumor_model_
 
 		int screwcount;
 		iss_num >> screwcount;
-		
-		vector<float> needles_radii(screwcount);
-		vector<glm::fvec3> needles_pos(screwcount * 2);
-		vector<glm::fvec3> needles_clr(screwcount);
 
 		int _line_idx = 0;
 		while (getline(infile, line))
 		{
 			std::istringstream iss(line);
 			float a, b, c, d, e, f, g;
-			if (!(iss >> a >> b >> c >> d >> e >> f >> g)) { break; } // error
+			if (!(iss >> a >> b >> c >> d >> e >> f)) { break; } // error
 
-			needles_pos[2 * _line_idx + 0] = glm::fvec3(a, b, c);
-			needles_pos[2 * _line_idx + 1] = glm::fvec3(d, e, f);
-			needles_clr[_line_idx] = glm::fvec3(0.2, 0.8, 1);
-			needles_radii[_line_idx] = g / 2.f * 2.f;
+			const float line_leng = 10.f;
+			glm::fvec3 p = glm::fvec3(a, b, c);
+			glm::fvec3 dir = glm::normalize(glm::fvec3(d, e, f) - p);
+			int line_id = 0;
+			//vzm::GenerateLinesObject(__FP p, __FP (p + dir * line_leng), 1, line_id);
+			line_ids.push_back(line_id);
+			guide_lines.push_back(p);
+			guide_lines.push_back(dir);
 			_line_idx++;
 		}
 		infile.close();
 
-		vzm::GenerateCylindersObject((float*)&needles_pos[0], &needles_radii[0], (float*)&needles_clr[0], screwcount, needles_guide_id);
+		//vzm::GenerateCylindersObject((float*)&needles_pos[0], &needles_radii[0], (float*)&needles_clr[0], screwcount, needles_guide_id);
+
 	}
 
 	vzm::LoadModelFile(tumor_model_file, tumor_id);
@@ -178,8 +130,8 @@ int main()
 	const int eye_h = 480;
 	const int ws_w = 640;
 	const int ws_h = 480;
-	const int stg_w = 640;
-	const int stg_h = 480;
+	const int stg_w = 960;
+	const int stg_h = 540;
 	const int rs_w = 960;
 	const int rs_h = 540;
 
@@ -189,16 +141,35 @@ int main()
 	//rs2_extrinsics rgb_extrinsics;
 	//rs_settings::GetRsCamParams(rgb_intrinsics, depth_intrinsics, rgb_extrinsics);
 
+	// TODO <================================
 	var_settings::InitializeVarSettings(1);
 	var_settings::SetCvWindows();
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 
-	loadScrewTest(var_settings::GetDefaultFilePath() + "..\\Data\\breast\\chest_pins.txt", var_settings::GetDefaultFilePath() + "..\\Data\\breast\\tumor_pos.stl");
+	std::vector<int> guide_line_ids;
+	std::vector<glm::fvec3> guide_lines;
+	loadScrewTest2(var_settings::GetDefaultFilePath() + "..\\Data\\breast\\chest_pins.txt", var_settings::GetDefaultFilePath() + "..\\Data\\breast\\tumor_pos.stl", guide_line_ids, guide_lines);
 
-	optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
-	optitrk::SetRigidBodyPropertyByName("ss_tool_v1", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
+	//optitrk::SetRigidBodyPropertyByName("ss_tool_v2", 0.1f, 1);
+	optitrk::SetRigidBodyEnabledbyName("ss_head", false);
+	optitrk::SetRigidBodyEnabledbyName("marker", false);
+	optitrk::SetRigidBodyEnabledbyName("rs_cam", true);
+	optitrk::SetRigidBodyEnabledbyName("probe", true);
+	optitrk::SetRigidBodyEnabledbyName("breastbody", true);
+	optitrk::SetRigidBodyEnabledbyName("spine", false);
+	optitrk::SetRigidBodyEnabledbyName("tool_1", false);
+	optitrk::SetRigidBodyEnabledbyName("tool_2", false);
+	optitrk::SetRigidBodyEnabledbyName("tool_3", false);
+	optitrk::SetRigidBodyEnabledbyName("ss_tool_v1", false);
+	optitrk::SetRigidBodyEnabledbyName("ss_tool_v2", false);
+
+	std::string pin_tool_name = "ss_tool_v2";
+	optitrk::SetRigidBodyEnabledbyName(pin_tool_name, true);
+
 	int postpone = 3;
+#define NUM_RBS 5
 	concurrent_queue<track_info> track_que(10);
 	std::atomic_bool tracker_alive{ true };
 	std::thread tracker_processing_thread([&]() {
@@ -208,8 +179,8 @@ int main()
 			optitrk::UpdateFrame();
 
 			track_info cur_trk_info;
-			static string _rb_names[5] = { "rs_cam" , "probe" , "ss_tool_v1" , "ss_head" , "breastbody" };
-			for (int i = 0; i < 5; i++)
+			static string _rb_names[NUM_RBS] = { "rs_cam" , "probe", "marker" , pin_tool_name , "breastbody" };
+			for (int i = 0; i < NUM_RBS; i++)
 			{
 				glm::fmat4x4 mat_lfrm2ws;
 				bool is_detected = optitrk::GetRigidBodyLocationByName(_rb_names[i], (float*)&mat_lfrm2ws);
@@ -223,12 +194,6 @@ int main()
 			track_que.push(cur_trk_info);
 		}
 	});
-
-#ifdef EYE_VIS_RS
-	string window_name_eye_view = "EYE VIEW";
-	cv::namedWindow(g_info.window_name_eye_view, WINDOW_NORMAL);
-	cv::moveWindow(g_info.window_name_eye_view, 2560, 0);
-#endif
 
 	// params for the main thread
 	int key_pressed = -1;
@@ -365,7 +330,7 @@ int main()
 				var_settings::GetVarInfo(&ginfo);
 
 				glm::fmat4x4 mat_sstool2ws;
-				bool is_sstool_detected = trk_info.GetLFrmInfo("ss_tool_v1", mat_sstool2ws);
+				bool is_sstool_detected = trk_info.GetLFrmInfo(pin_tool_name, mat_sstool2ws);
 				if (is_sstool_detected)
 				{
 					if (ss_tool_info.pos_centers_tfrm.size() > 0)
@@ -404,22 +369,6 @@ int main()
 			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr);
 		}
 
-#ifdef EYE_VIS_RS
-		rs2::frameset eye_current_frameset;
-		eye_data.poll_for_frame(&eye_current_frameset);
-		if (eye_current_frameset)
-		{
-			auto color = eye_current_frameset.get_color_frame();
-			const int w = color.as<rs2::video_frame>().get_width();
-			const int h = color.as<rs2::video_frame>().get_height();
-
-			Mat eye_image_rs(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
-			Mat eye_imagebgr;
-
-			cvtColor(eye_image_rs, eye_imagebgr, COLOR_BGR2RGB);
-			imshow(window_name_eye_view, eye_imagebgr);
-		}
-#endif
 		key_pressed = cv::waitKey(1);
 	}
 
