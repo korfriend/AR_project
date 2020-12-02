@@ -152,7 +152,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 
 	if (event == EVENT_LBUTTONDOWN | event == EVENT_RBUTTONDOWN)
 	{
-		optitrk::SetRigidBodyEnabledbyName("probe", true);
+		optitrk::SetRigidBodyEnabledbyName(eginfo->ginfo.otrk_data.marker_rb_name, false);
 
 		map<RsTouchMode, ButtonState>& rs_buttons = eginfo->ginfo.rs_buttons;
 		auto disable_subbuttons = [&rs_buttons]()
@@ -175,6 +175,11 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				btn.touch_count = 0;
 		}
 
+		auto ExitEventOnTouch = [&rs_buttons, &eginfo](int x, int y) -> bool
+		{
+			ButtonState& btn = rs_buttons[eginfo->ginfo.touch_mode];
+			return btn.rect.contains(Point(x, y));
+		};
 		// to do //
 		switch (eginfo->ginfo.touch_mode)
 		{
@@ -190,6 +195,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		}
 		case RsTouchMode::AR_Marker:
 		{
+			if (ExitEventOnTouch(x, y)) return;
+			optitrk::SetRigidBodyEnabledbyName(eginfo->ginfo.otrk_data.marker_rb_name, true);
 			if (eginfo->ginfo.is_probe_detected)
 			{
 				vector<Point3f>& point3ds = eginfo->ginfo.otrk_data.calib_3d_pts;
@@ -231,18 +238,22 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::DST_TOOL_E0:
 		{
+			if (ExitEventOnTouch(x, y)) return;
 			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_PIN_POS, 0 , eginfo->ginfo);
 		} break;
 		case RsTouchMode::DST_TOOL_SE0:
 		{
+			if (ExitEventOnTouch(x, y)) return;
 			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_RBFRAME, 0, eginfo->ginfo);
 		} break;
 		case RsTouchMode::DST_TOOL_SE1:
 		{
+			if (ExitEventOnTouch(x, y)) return;
 			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_RBFRAME, 1, eginfo->ginfo);
 		} break;
 		case RsTouchMode::FIX_SCREW:
 		{
+			if (ExitEventOnTouch(x, y)) return;
 			if (eginfo->ginfo.is_probe_detected)
 			{
 				static vector<int> inserted_implant_ids;
@@ -275,8 +286,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::Calib_TC:
 		{
-			optitrk::SetRigidBodyEnabledbyName("probe", false);
-			
+			optitrk::SetRigidBodyEnabledbyName(eginfo->ginfo.otrk_data.marker_rb_name, true);
 			disable_subbuttons();
 			rs_buttons[RsTouchMode::Pair_Clear].is_activated = true;
 			//otrk_data.tc_calib_pt_pairs.clear();
@@ -290,6 +300,8 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			rs_buttons[RsTouchMode::Calib_STG2].is_activated = true;
 			glm::fmat4x4 mat_rbcam2ws;
 			if (!otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_rbcam2ws)) return;
+
+			if (ExitEventOnTouch(x, y)) return;
 
 			int pick_obj = 0;
 			glm::fvec3 pos_pick;
@@ -400,6 +412,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			rs_buttons[RsTouchMode::ICP].is_activated = true;
 			rs_buttons[RsTouchMode::Capture].is_activated = true;
 			if (eginfo->ginfo.model_ms_obj_id == 0) return;
+			if (ExitEventOnTouch(x, y)) return;
 			ButtonState& btn = rs_buttons[RsTouchMode::Align];
 			if (btn.rect.contains(Point(x, y)))
 			{
@@ -582,6 +595,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::Capture:
 		{
+			if (ExitEventOnTouch(x, y)) return;
 			if (x < eginfo->ginfo.rs_w / 2)
 			{
 				if (eginfo->ginfo.rs_pc_id == 0) return;

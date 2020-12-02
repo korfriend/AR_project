@@ -265,6 +265,7 @@ int main()
 			optitrk::SetRigidBodyEnabledbyName("tool_2", false);
 			optitrk::SetRigidBodyEnabledbyName("tool_3", false);
 			optitrk::SetRigidBodyEnabledbyName("probe", true);
+			probe_name = "probe", probe_mode = DEFAULT;
 			operation_step = 0; 
 			break;
 		case '1':
@@ -296,7 +297,7 @@ int main()
 			optitrk::SetRigidBodyEnabledbyName("tool_2", true);
 			optitrk::SetRigidBodyEnabledbyName("tool_3", false);
 			optitrk::SetRigidBodyEnabledbyName("probe", false);
-			probe_name = "probe", probe_mode = DEFAULT;
+			probe_name = "tool_1", probe_mode = ONLY_PIN_POS;
 			operation_step = 7;
 			ginfo.dst_tool_name = "tool_2";
 			ginfo.src_tool_name = "tool_1";
@@ -306,7 +307,7 @@ int main()
 			optitrk::SetRigidBodyEnabledbyName("tool_2", true);
 			optitrk::SetRigidBodyEnabledbyName("tool_3", false);
 			optitrk::SetRigidBodyEnabledbyName("probe", false);
-			probe_name = "probe", probe_mode = DEFAULT;
+			probe_name = "tool_2", probe_mode = ONLY_PIN_POS;
 			operation_step = 8;
 			ginfo.dst_tool_name = "tool_1";
 			ginfo.src_tool_name = "tool_2";
@@ -316,7 +317,7 @@ int main()
 			optitrk::SetRigidBodyEnabledbyName("tool_2", false);
 			optitrk::SetRigidBodyEnabledbyName("tool_3", true);
 			optitrk::SetRigidBodyEnabledbyName("probe", false);
-			probe_name = "probe", probe_mode = DEFAULT;
+			probe_name = "tool_1", probe_mode = ONLY_PIN_POS;
 			operation_step = 9;
 			ginfo.dst_tool_name = "tool_3";
 			ginfo.src_tool_name = "tool_1";
@@ -375,11 +376,8 @@ int main()
 
 			var_settings::SetSectionalImageAssets(false, NULL, NULL);
 
-			if (operation_step >= 7)
-			{
-				SetCustomTools(ginfo.src_tool_name, ONLY_PIN_POS, ginfo, glm::fvec3(0, 1, 1));
-				SetCustomTools(ginfo.dst_tool_name, operation_step == 9? ONLY_RBFRAME : ONLY_PIN_POS, ginfo, glm::fvec3(1, 1, 0));
-			}
+			SetCustomTools(ginfo.src_tool_name, ONLY_PIN_POS, ginfo, glm::fvec3(0, 1, 1), operation_step >= 7);
+			SetCustomTools(ginfo.dst_tool_name, operation_step == 9 ? ONLY_RBFRAME : ONLY_PIN_POS, ginfo, glm::fvec3(1, 1, 0), operation_step >= 7);
 			
 			var_settings::RenderAndShowWindows(show_workload, image_rs_bgr);
 		}

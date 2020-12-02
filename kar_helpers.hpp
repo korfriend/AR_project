@@ -857,7 +857,12 @@ void MakeAngle2(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2
 	const int num_angle_tris = 10;
 	//const float angle_tris_length = 50.f;
 	glm::fvec3 vec_ref = glm::normalize(glm::cross(guide_dst2end_dir, tool_tip2end_dir));
+
 	float angle = glm::orientedAngle(guide_dst2end_dir, tool_tip2end_dir, vec_ref);
+	if (angle > glm::pi<float>() * 0.5f)
+	{
+		angle = glm::pi<float>() - angle;
+	}
 	//std::cout << angle << std::endl;
 	std::vector<glm::fvec3> anlge_polygon_pos(num_angle_tris + 2);
 	std::vector<glm::fvec3> anlge_polygon_clr(num_angle_tris + 2);
@@ -933,7 +938,7 @@ void SetManualProbe(const std::string& dst_tool_name, const std::string& src_too
 	if (is_tool_src_tracked && is_tool_dst_tracked)
 	{
 		glm::fvec3 pos_pt_ws = tr_pt(mat_srcfrm2ws, glm::fvec3(0));
-		glm::fmat4x4 mat_ws2dstfrm = glm::inverse(mat_srcfrm2ws);
+		glm::fmat4x4 mat_ws2dstfrm = glm::inverse(mat_dstfrm2ws);
 		glm::fvec3 pos_pt_dstfrm = tr_pt(mat_ws2dstfrm, pos_pt_ws);
 
 		std::string file_path = ginfo.custom_pos_file_paths["preset_path"];
@@ -986,7 +991,7 @@ void SetManualProbe(const std::string& dst_tool_name, const std::string& src_too
 	}
 }
 
-void SetCustomTools(const std::string& tool_name, const PROBE_MODE probe_mode, const GlobalInfo& ginfo, const glm::fvec3& tool_color)
+void SetCustomTools(const std::string& tool_name, const PROBE_MODE probe_mode, const GlobalInfo& ginfo, const glm::fvec3& tool_color, const bool visible)
 {
 	static map<std::string, int> tool_names;
 	for (auto it : tool_names)
@@ -997,6 +1002,7 @@ void SetCustomTools(const std::string& tool_name, const PROBE_MODE probe_mode, c
 		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, it.second, tool_state);
 		vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, it.second, tool_state);
 	}
+	if (!visible) return;
 	int& tool_id = tool_names[tool_name];
 	int& tool_tip_id = tool_names[tool_name + "_tip"];
 

@@ -409,10 +409,10 @@ namespace var_settings
 		}
 		else if (scenario == 2)
 		{
-			//g_info.model_path = preset_path + "..\\Data\\spine\\lev7.stl";
-			g_info.model_path = preset_path + "..\\..\\LargeData\\Lev7\\lev7.stl";
-			//g_info.volume_model_path = preset_path + "..\\..\\LargeData\\den.x3d";
-			g_info.volume_model_path = preset_path + "..\\..\\LargeData\\201120_den\\201120_den.x3d";
+			g_info.model_path = preset_path + "..\\Data\\spine\\lev7.stl";
+			//g_info.model_path = preset_path + "..\\..\\LargeData\\Lev7\\lev7.stl";
+			g_info.volume_model_path = preset_path + "..\\..\\LargeData\\den.x3d";
+			//g_info.volume_model_path = preset_path + "..\\..\\LargeData\\201120_den\\201120_den.x3d";
 			//g_info.volume_model_path = preset_path + "..\\Data\\spine\\chest_x3d.x3d";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(spine).txt";
 			//g_info.model_predefined_pts = preset_path + "..\\..\\LargeData\\";
@@ -437,6 +437,9 @@ namespace var_settings
 		optitrk::LoadProfileAndCalibInfo(g_info.optrack_env, g_info.optrack_calib);
 		cout << "cam0 frame rate setting ==> " << optitrk::SetCameraFrameRate(0, 120) << endl;
 		cout << "cam1 frame rate setting ==> " << optitrk::SetCameraFrameRate(1, 120) << endl;
+
+		optitrk::SetCameraSettings(0, 2, 10, 50);
+		optitrk::SetCameraSettings(1, 2, 10, 50);
 
 		g_info.eye_w = eye_w;
 		g_info.eye_h = eye_h;
@@ -551,7 +554,7 @@ namespace var_settings
 		double scale_factor = 0.001;
 		glm::fmat4x4 mat_s = glm::scale(glm::fvec3(scale_factor));
 		g_info.mat_os2matchmodefrm = __cm4__ model_state.os2ws = (__cm4__ model_state.os2ws) * mat_s;
-		model_state.surfel_size = 0.005;
+		model_state.surfel_size = 0.01;
 		vzm::ObjStates model_ws_state;
 		if (g_info.model_volume_id != 0)
 		{
@@ -800,7 +803,7 @@ namespace var_settings
 		for (auto it : g_info.custom_pos_file_paths)
 		{
 			string file_path = it.second;
-			infile = std::ifstream(preset_path);
+			infile = std::ifstream(file_path);
 			if (infile.is_open())
 			{
 				vector<Point3f>& custom_pos_list = g_info.otrk_data.custom_pos_map[it.first];
@@ -1025,14 +1028,14 @@ namespace var_settings
 		is_rsrb_detected = g_info.otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_clf2ws);
 		mat_ws2clf = glm::inverse(mat_clf2ws);
 
-		static int section_probe_line_id = 0, section_probe_end_id = 0;
+		static int section_probe_line_id = 0, section_probe_tip_id = 0;
 		glm::fmat4x4 mat_opti_probe2ws;
 		//bool is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo("probe", mat_opti_probe2ws);
 		bool is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, mat_opti_probe2ws);
 		if (is_probe_detected)
 		{
 			//g_info.pos_probe_pin = tr_pt(mat_opti_probe2ws, glm::fvec3(0));
-			glm::fvec3 probe_end = tr_pt(mat_opti_probe2ws, glm::fvec3(0));
+			glm::fvec3 probe_tip = tr_pt(mat_opti_probe2ws, glm::fvec3(0));
 			glm::fvec3 probe_dir_se;
 			if (probe_mode == ONLY_PIN_POS)
 			{
@@ -1040,7 +1043,7 @@ namespace var_settings
 				if (custom_pos_list.size() > 0)
 				{
 					glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[0];
-					probe_dir_se = -glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - probe_end);
+					probe_dir_se = glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - probe_tip);
 				}
 			}
 			else if (probe_mode == ONLY_RBFRAME)
@@ -1049,30 +1052,30 @@ namespace var_settings
 				if (custom_pos_list.size() >= 2)
 				{
 					glm::fvec3 pos_s = *(glm::fvec3*)&custom_pos_list[0];
-					probe_end = tr_pt(mat_opti_probe2ws, pos_s);
+					probe_tip = tr_pt(mat_opti_probe2ws, pos_s);
 					glm::fvec3 pos_e = *(glm::fvec3*)&custom_pos_list[1];
-					probe_dir_se = -glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - pos_s);
+					probe_dir_se = glm::normalize(tr_pt(mat_opti_probe2ws, pos_e) - probe_tip);
 				}
 			}
 			else
 			{
-				probe_dir_se = glm::normalize(tr_vec(mat_opti_probe2ws, glm::fvec3(0, 0, -1)));
+				probe_dir_se = glm::normalize(tr_vec(mat_opti_probe2ws, glm::fvec3(0, 0, 1)));
 			}
-			g_info.pos_probe_pin = probe_end;
+			g_info.pos_probe_pin = probe_tip;
 			g_info.dir_probe_se = probe_dir_se;
 
-			glm::fvec3 cyl_p01[2] = { probe_end, probe_end - probe_dir_se * 0.2f };
+			glm::fvec3 cyl_p01[2] = { probe_tip, probe_tip + probe_dir_se * 0.2f };
 			float cyl_r = 0.002f;
 			glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
 			vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
-			vzm::GenerateSpheresObject(__FP glm::fvec4(probe_end, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_end_id);
+			vzm::GenerateSpheresObject(__FP glm::fvec4(probe_tip, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_tip_id);
 
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, default_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, default_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, default_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, default_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, default_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_tip_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_tip_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_tip_id, default_obj_state);
 		}
 		else
 		{
@@ -1081,9 +1084,9 @@ namespace var_settings
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, cobj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, cobj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, cobj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_end_id, cobj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_end_id, cobj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_end_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_tip_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_tip_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_tip_id, cobj_state);
 		}
 
 		//g_info.is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, g_info.mat_probe2ws);
@@ -1832,11 +1835,11 @@ namespace var_settings
 				//
 				//	model_ws_obj_state.color[3] = 0.05f;
 				//	//model_ws_obj_state.point_thickness = 15;
-				//	model_ws_obj_state.surfel_size = 0.005f;
+				model_ws_obj_state.surfel_size = 0.005f;
 				//}
 				__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 1.0);
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
-				__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 0.1);
+				__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 1.0);
 				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			}
@@ -1861,7 +1864,7 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, obj_id, guide_obj_state);
 				}
 				static vector<int> guide_line_obj_ids;
-				for (int i = 0; i < (int)guide_line_obj_ids.size() / 2; i++)
+				for (int i = 0; i < (int)guide_line_obj_ids.size(); i++)
 				{
 					int line_obj_id = guide_line_obj_ids[i];
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, line_obj_id, line_state);
@@ -1911,14 +1914,15 @@ namespace var_settings
 
 					// show angle
 					MakeAngle2(g_info.dir_probe_se, dir_guide_line, closetPoint, 0.05, 0.1, angle_id, g_info.rs_scene_id, angle_text_id, g_info.stg_scene_id, angle_text_id_stg);
-					vzm::ObjStates angle_state;
-					angle_state.color[3] = 0.7;
+					vzm::ObjStates angle_state, angle_text_state;
+					angle_state.color[3] = 0.5;
+					__cv4__ angle_text_state.color = glm::fvec4(1);
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, angle_id, angle_state);
-					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, angle_text_id_stg, angle_state);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, angle_text_id_stg, angle_text_state);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_id, angle_state);
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_text_id, angle_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_text_id, angle_text_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_id, angle_state);
-					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_text_id, angle_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_text_id, angle_text_state);
 				}
 			}
 		}
@@ -2206,22 +2210,32 @@ namespace var_settings
 		{
 			once_prob_set = false;
 			cv::moveWindow(g_info.window_name_rs_view, 0, 0);
+			cv::waitKey(1);
 			cv::moveWindow(g_info.window_name_stg_view, 0, 500);
+			cv::waitKey(1);
 			cv::moveWindow(g_info.window_name_ws_view, 900, 0);
+			cv::waitKey(1);
 			cv::moveWindow(g_info.window_name_ms_view, 900, 500);
+			cv::waitKey(1);
 
 			const int display1_w = 1680 + 2;// 1920;
 			const int display2_w = 2000 + 2;
 #ifdef __MIRRORS
 			cv::moveWindow("rs mirror", display1_w, 30);
+			cv::waitKey(1);
 			cv::moveWindow("stg mirror", display1_w + display2_w, 30);
+			cv::waitKey(1);
 			cv::setWindowProperty("rs mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 			cv::setWindowProperty("stg mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 #endif
 			cv::resizeWindow(g_info.window_name_rs_view, cv::Size(900, 500));
+			cv::waitKey(1);
 			cv::resizeWindow(g_info.window_name_stg_view, cv::Size(900, 500));
+			cv::waitKey(1);
 			cv::resizeWindow(g_info.window_name_ws_view, cv::Size(500, 500));
+			cv::waitKey(1);
 			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(500, 500));
+			cv::waitKey(1);
 		}
 	}
 

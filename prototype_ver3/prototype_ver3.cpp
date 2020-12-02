@@ -135,6 +135,10 @@ int main()
 	const int rs_w = 960;
 	const int rs_h = 540;
 
+	int breast_bone_id = 0;
+	string breast_bone_path = "..\\Data\\breast\\breast_bone.stl";
+	vzm::LoadModelFile(breast_bone_path, breast_bone_id);
+
 	rs_settings::InitializeRealsense(true, false, rs_w, rs_h, eye_w, eye_h);
 	rs_settings::RunRsThread(original_data, filtered_data, eye_data);
 	//rs2_intrinsics rgb_intrinsics, depth_intrinsics;
@@ -229,17 +233,39 @@ int main()
 #ifdef __RECORD_VER
 	// fill record_trk_info and record_rsimg
 #endif
+	vzm::SetRenderTestParam("_double4_ShadingFactorsForGlobalPrimitives", glm::dvec4(0.8, 2.5, 1.0, 30.0), sizeof(glm::dvec4), 5, 1);
+
+	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), ginfo.rs_scene_id, 1);
+	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
+	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 0.1, 0.5), sizeof(glm::dvec4), -1, -1);
+	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(0.002, 0.8, 2.0), sizeof(glm::dvec3), -1, -1);
+	vzm::SetRenderTestParam("_double_InDepthVis", 0.10, sizeof(double), -1, -1);
+	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
+
+	vzm::ObjStates brest_bone_states;
+	*(glm::fvec4*)brest_bone_states.color = glm::fvec4(1);
+
 	int line_guide_idx = 0;
 	int operation_step = 0;
+	std::string preset_path = var_settings::GetDefaultFilePath();
+	ginfo.custom_pos_file_paths["ss_tool_v2"] = preset_path + "..\\Preset\\ss_tool_v2_se.txt";
 	var_settings::LoadPresets();
+
+	std::string probe_name = "probe";
+	PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
+
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
+		//vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, breast_bone_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
 		bool reset_calib = false;
 		bool write_recoded_info = false;
 		bool recompile_hlsl = false;
-		std::string probe_name = "probe";
-		PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
 		switch (key_pressed) // http://www.asciitable.com/
 		{
 		case '[': postpone = max(postpone - 1, 0); cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
@@ -320,10 +346,10 @@ int main()
 
 			var_settings::SetTargetModelAssets("breastbody", __FP guide_lines[0], guide_lines.size() / 2, line_guide_idx);
 
-			if (operation_step >= 7)
-			{
-				SetCustomTools(ginfo.dst_tool_name, operation_step == 9 ? ONLY_RBFRAME : ONLY_PIN_POS, ginfo, glm::fvec3(1, 1, 0));
-			}
+			SetCustomTools(ginfo.dst_tool_name, ONLY_RBFRAME, ginfo, glm::fvec3(1, 1, 0), operation_step >= 7);
+
+			vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(ginfo.pos_probe_pin), sizeof(glm::dvec3), -1, -1);
+			var_settings::SetSectionalImageAssets(true, __FP ginfo.pos_probe_pin, __FP(ginfo.pos_probe_pin + ginfo.dir_probe_se * 0.2f));
 
 			// tumor vis.
 			{
@@ -341,6 +367,9 @@ int main()
 						vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, tumor_id, model_ws_obj_state);
 						vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, tumor_id, model_ws_obj_state);
 						vzm::ReplaceOrAddSceneObject(ginfo.csection_scene_id, tumor_id, model_ws_obj_state);
+
+						__cm4__ brest_bone_states.os2ws = __cm4__ model_ws_obj_state.os2ws;
+						vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, breast_bone_id, brest_bone_states);
 					}
 				}
 			}

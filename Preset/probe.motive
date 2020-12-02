@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Profile version="1">
     <NodeAssets>
-        <rigid_body version="1.1" id="e802f8c2857048ba:2c1e230f2a2b11eb">
+        <rigid_body version="1.1" id="e802f8c285704fba:accfef1a307511eb">
             <markers>
                 <marker id="0:0">
-                    <position>-0.000606537,0.0189204,0.124206</position>
+                    <position>0.000113166,0.0181726,0.123822</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>1</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.000483789,0.0189204,0.174217</position>
+                    <position>0.000134066,0.0181726,0.173756</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>2</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>0.02941,0.0189204,0.224372</position>
+                    <position>0.0297281,0.0181726,0.223836</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>3</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.0300897,0.0189204,0.259116</position>
+                    <position>-0.0293943,0.0181726,0.258587</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>4</label_id>
@@ -36,8 +36,8 @@
                 </property>
                 <property>
                     <name>Color</name>
-                    <value>16711902</value>
-                    <defaultValue>16711902</defaultValue>
+                    <value>11010194</value>
+                    <defaultValue>11010194</defaultValue>
                 </property>
                 <property>
                     <name>DisplayLabel</name>
@@ -52,12 +52,10 @@
                 <property>
                     <name>DisplayModelReplace</name>
                     <value>true</value>
-                    <defaultValue>true</defaultValue>
                 </property>
                 <property>
                     <name>ModelName</name>
                     <value>C:/ProgramData/OptiTrack/Motive/ObjectFiles/Probe/Probe.obj</value>
-                    <defaultValue>C:/ProgramData/OptiTrack/Motive/ObjectFiles/Probe/Probe.obj</defaultValue>
                 </property>
                 <property>
                     <name>ModelYaw</name>
@@ -70,7 +68,11 @@
                 <property>
                     <name>UserData</name>
                     <value>999</value>
-                    <defaultValue>999</defaultValue>
+                    <defaultValue>1027</defaultValue>
+                </property>
+                <property>
+                    <name>MinimumMarkerCount</name>
+                    <value>4</value>
                 </property>
                 <property>
                     <name>AcquisitionFrames</name>
@@ -78,23 +80,23 @@
                 </property>
                 <property>
                     <name>MarkerLocation0</name>
-                    <value>-0.000606537,0.0189204,0.124206</value>
-                    <defaultValue>-0.000606537,0.0189204,0.124206</defaultValue>
+                    <value>0.000113166,0.0181726,0.123822</value>
+                    <defaultValue>0.000113166,0.0181726,0.123822</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation1</name>
-                    <value>-0.000483789,0.0189204,0.174217</value>
-                    <defaultValue>-0.000483789,0.0189204,0.174217</defaultValue>
+                    <value>0.000134066,0.0181726,0.173756</value>
+                    <defaultValue>0.000134066,0.0181726,0.173756</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation2</name>
-                    <value>0.02941,0.0189204,0.224372</value>
-                    <defaultValue>0.02941,0.0189204,0.224372</defaultValue>
+                    <value>0.0297281,0.0181726,0.223836</value>
+                    <defaultValue>0.0297281,0.0181726,0.223836</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation3</name>
-                    <value>-0.0300897,0.0189204,0.259116</value>
-                    <defaultValue>-0.0300897,0.0189204,0.259116</defaultValue>
+                    <value>-0.0293943,0.0181726,0.258587</value>
+                    <defaultValue>-0.0293943,0.0181726,0.258587</defaultValue>
                 </property>
             </properties>
             <MarkerNames ReorderMarkers="true">
@@ -109,10 +111,10 @@
             </MarkerNames>
             <MarkerColors>
                 <!--The "name" tag in this section corresponds with the "name" values in <MarkerNames>.-->
-                <Marker name="Marker1" color="222 0 255" movable="false"/>
-                <Marker name="Marker2" color="222 0 255" movable="false"/>
-                <Marker name="Marker3" color="222 0 255" movable="false"/>
-                <Marker name="Marker4" color="222 0 255" movable="false"/>
+                <Marker name="Marker1" color="146 0 168" movable="false"/>
+                <Marker name="Marker2" color="146 0 168" movable="false"/>
+                <Marker name="Marker3" color="146 0 168" movable="false"/>
+                <Marker name="Marker4" color="146 0 168" movable="false"/>
                 <!--If nothing appears in this section it is because you need to update or generate colors. You can do this in the asset's context menu.-->
                 <!--The movable="false" tag currently is not functioning.-->
             </MarkerColors>
