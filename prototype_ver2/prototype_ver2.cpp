@@ -456,6 +456,8 @@ int main()
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.ventricle_ws_obj_id);
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
 
+	//optitrk::SetCameraSettings(0, 2, 50, 150);
+	//optitrk::SetCameraSettings(1, 2, 50, 150);
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
