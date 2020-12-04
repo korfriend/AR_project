@@ -534,7 +534,7 @@ int main()
 			Mat image_rs(Size(rs_w, rs_h), CV_8UC3, (void*)current_color_frame.get_data(), Mat::AUTO_STEP), image_rs_bgr;
 			cvtColor(image_rs, image_rs_bgr, COLOR_BGR2RGB);
 
-			var_settings::SetTcCalibMkPoints(is_ws_pick);
+			var_settings::SetTcCalibMkPoints();
 			var_settings::SetMkSpheres(show_mks, is_ws_pick);
 
 			var_settings::TryCalibrationTC(image_rs_bgr);
