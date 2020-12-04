@@ -1143,7 +1143,7 @@ void Show_Window_with_Info(const std::string& title, const int scene_id, const i
 		//show the image
 		if (title == "Model VIEW")
 		{
-			cv::putText(cvmat, "Point : " + to_string((int)ginfo.model_ms_pick_pts.size()), cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 185, 255), 2, LineTypes::LINE_AA);
+			cv::putText(cvmat, "Point : " + to_string((int)ginfo.model_ms_pick_pts.size()), cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 185, 255), 1, LineTypes::LINE_AA);
 			
 			glm::fmat4x4 mat_ws2ss;
 			vzm::GetCamProjMatrix(scene_id, cam_id, __FP mat_ws2ss);
@@ -1216,7 +1216,7 @@ void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned ch
 	auto alpha_mask = [](float r) -> float
 	{
 		const float _a = 0.7;
-		return 1.f;// min(max(atan(_a * (r - 10.f)) + atan(_a * 10.f) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f);
+		return min(max(atan(_a * (r - 10.f)) + atan(_a * 10.f) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f);
 	};
 	// cpu mem ==> dataPtr
 	int width_uibuf_pitch = w * 3;

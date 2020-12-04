@@ -176,7 +176,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 				btn.touch_count = 0;
 		}
 
-		auto ExitEventOnTouch = [&rs_buttons, &eginfo](int x, int y) -> bool
+		auto TouchOnButton = [&rs_buttons, &eginfo](int x, int y) -> bool
 		{
 			ButtonState& btn = rs_buttons[eginfo->ginfo.touch_mode];
 			return btn.rect.contains(Point(x, y));
@@ -197,7 +197,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		case RsTouchMode::AR_Marker:
 		{
 			optitrk::SetRigidBodyEnabledbyName(eginfo->ginfo.otrk_data.marker_rb_name, true);
-			if (ExitEventOnTouch(x, y)) return;
+			if (TouchOnButton(x, y)) return;
 			vector<Point3f>& point3ds_rsrbs = eginfo->ginfo.otrk_data.calib_3d_pts;
 			if (x < eginfo->ginfo.rs_w / 2)
 			{
@@ -239,22 +239,22 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::DST_TOOL_E0:
 		{
-			if (ExitEventOnTouch(x, y)) return;
+			if (TouchOnButton(x, y)) return;
 			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_PIN_POS, 0 , eginfo->ginfo);
 		} break;
 		case RsTouchMode::DST_TOOL_SE0:
 		{
-			if (ExitEventOnTouch(x, y)) return;
+			if (TouchOnButton(x, y)) return;
 			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_RBFRAME, 0, eginfo->ginfo);
 		} break;
 		case RsTouchMode::DST_TOOL_SE1:
 		{
-			if (ExitEventOnTouch(x, y)) return;
+			if (TouchOnButton(x, y)) return;
 			SetManualProbe(eginfo->ginfo.dst_tool_name, eginfo->ginfo.src_tool_name, ONLY_RBFRAME, 1, eginfo->ginfo);
 		} break;
 		case RsTouchMode::FIX_SCREW:
 		{
-			if (ExitEventOnTouch(x, y)) return;
+			if (TouchOnButton(x, y)) return;
 			if (eginfo->ginfo.is_probe_detected)
 			{
 				static vector<int> inserted_implant_ids;
@@ -302,7 +302,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			glm::fmat4x4 mat_rbcam2ws;
 			if (!otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_rbcam2ws)) return;
 
-			if (ExitEventOnTouch(x, y)) return;
+			if (TouchOnButton(x, y)) return;
 
 			int pick_obj = 0;
 			glm::fvec3 pos_pick;
@@ -413,7 +413,17 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			rs_buttons[RsTouchMode::ICP].is_activated = true;
 			rs_buttons[RsTouchMode::Capture].is_activated = true;
 			if (eginfo->ginfo.model_ms_obj_id == 0) return;
-			if (ExitEventOnTouch(x, y)) return;
+			if (TouchOnButton(x, y))
+			{
+
+				eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.199279, 0.0466209, 0.177557));
+				eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.16184, 0.0908376, 0.209669));
+				eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.198357, 0.128109, 0.191832));
+				eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.238769, 0.102674, 0.179341));
+				//world position : 0.283975, 0.0835902, 0.216004
+				//world position : 0.298452, 0.0335791, 0.254262
+				//return;
+			}
 
 			glm::fmat4x4 mat_rbs2ws;
 			if (eginfo->ginfo.match_model_rbs_name != "")
@@ -425,7 +435,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			if (x < eginfo->ginfo.rs_w / 2)
 			{
 				TESTOUT("world position : ", eginfo->ginfo.pos_probe_pin);
-
+					
 				glm::fmat4x4 mat_ws2rbs = glm::inverse(mat_rbs2ws);
 				eginfo->ginfo.model_rbs_pick_pts.push_back(tr_pt(mat_ws2rbs, eginfo->ginfo.pos_probe_pin));
 
@@ -477,7 +487,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_obj_id, model_ws_obj_state);
 
 					glm::fmat4x4 mat_ms2ws = mat_rbs2ws * mat_ms2rbs;
-					glm::fmat4x4 mat_match_model2ws = mat_match_model2ws * (__cm4__ model_obj_state.os2ws); // the latter include scale factors
+					glm::fmat4x4 mat_match_model2ws = mat_ms2ws * (__cm4__ model_obj_state.os2ws); // the latter include scale factors
 					eginfo->ginfo.mat_os2matchmodefrm = eginfo->ginfo.mat_ws2matchmodelfrm * mat_match_model2ws;
 					eginfo->ginfo.mat_matchtr = mat_ms2ws;
 					// current issue!
@@ -546,7 +556,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		} break;
 		case RsTouchMode::Capture:
 		{
-			if (ExitEventOnTouch(x, y)) return;
+			if (TouchOnButton(x, y)) return;
 			if (x < eginfo->ginfo.rs_w / 2)
 			{
 				if (eginfo->ginfo.rs_pc_id == 0) return;
