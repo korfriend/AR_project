@@ -416,13 +416,13 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 			if (TouchOnButton(x, y))
 			{
 
-				eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.199279, 0.0466209, 0.177557));
-				eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.16184, 0.0908376, 0.209669));
-				eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.198357, 0.128109, 0.191832));
-				eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.238769, 0.102674, 0.179341));
+				//eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.199279, 0.0466209, 0.177557));
+				//eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.16184, 0.0908376, 0.209669));
+				//eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.198357, 0.128109, 0.191832));
+				//eginfo->ginfo.model_rbs_pick_pts.push_back(glm::fvec3(0.238769, 0.102674, 0.179341));
 				//world position : 0.283975, 0.0835902, 0.216004
 				//world position : 0.298452, 0.0335791, 0.254262
-				//return;
+				return;
 			}
 
 			glm::fmat4x4 mat_rbs2ws;
