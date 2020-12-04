@@ -542,6 +542,27 @@ namespace var_settings
 		vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 		vzm::SetRenderTestParam("_double_AbsVZThickness", 0.002, sizeof(double), -1, -1);
 		vzm::SetRenderTestParam("_double_AbsCopVZThickness", 0.001, sizeof(double), -1, -1);
+
+		vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
+		vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 50, 0.5), sizeof(glm::dvec4), -1, -1);
+		vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(1, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
+		vzm::SetRenderTestParam("_double_InDepthVis", 0.01, sizeof(double), -1, -1);
+		vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), g_info.rs_scene_id, 1);
+		vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), g_info.stg_scene_id, 1);
+		vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), g_info.stg_scene_id, 2);
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 2, g_info.model_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.stg_scene_id, 2, g_info.brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.brain_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 2, g_info.model_ws_obj_id);
+		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 2, g_info.brain_ws_obj_id);
+
 		//double vz = 0.0;
 		//vzm::SetRenderTestParam("_double_VZThickness", vz, sizeof(double), -1, -1);
 		//double cvz = 0.00001;
@@ -663,7 +684,7 @@ namespace var_settings
 
 		vzm::SetCameraParameters(g_info.rs_scene_id, rs_cam_params, rs_cam_id);
 
-		Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
+		Show_Window_with_Info(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id, g_info);
 
 		optitrk::UpdateFrame();
 		glm::fmat4x4 mat_cam0_to_ws, mat_cam1_to_ws;
@@ -885,7 +906,7 @@ namespace var_settings
 					sobj_state.specular = 0.0f;
 					vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)g_info.model_ms_pick_pts.size(), g_info.model_ms_pick_spheres_id);
 					vzm::ReplaceOrAddSceneObject(g_info.model_scene_id, g_info.model_ms_pick_spheres_id, sobj_state);
-					Show_Window_with_Texts(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id, "Point : " + to_string((int)g_info.model_ms_pick_pts.size()));
+					Show_Window_with_Info(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id, g_info);
 				}
 			}
 		}
@@ -975,9 +996,6 @@ namespace var_settings
 		g_info.otrk_data.stg_calib_pt_pairs.clear();
 		g_info.otrk_data.stg_calib_pt_pairs_2.clear();
 		g_info.otrk_data.tc_calib_pt_pairs.clear();
-		for (int i = 0; i < g_info.otrk_data.calib_trial_rs_cam_frame_ids.size(); i++)
-			vzm::DeleteObject(g_info.otrk_data.calib_trial_rs_cam_frame_ids[i]);
-		g_info.otrk_data.calib_trial_rs_cam_frame_ids.clear();
 		g_info.is_calib_stg_cam = g_info.is_calib_stg_cam_2 = g_info.is_calib_rs_cam = false;
 		g_info.model_predefined_pts.clear();
 		vzm::DeleteObject(g_info.model_ws_pick_spheres_id);
@@ -1094,6 +1112,9 @@ namespace var_settings
 		//g_info.is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, g_info.mat_probe2ws);
 		g_info.is_probe_detected = is_probe_detected;
 		g_info.mat_probe2ws = mat_opti_probe2ws;
+
+		vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(g_info.pos_probe_pin), sizeof(glm::dvec3), -1, -1);
+
 		//if (g_info.is_probe_detected)
 		//{
 		//	g_info.pos_probe_pin = tr_pt(g_info.mat_probe2ws, glm::fvec3(0));
@@ -1126,8 +1147,10 @@ namespace var_settings
 		record_key.push_back(key_pressed);
 	}
 
-	void SetTcCalibMkPoints(bool is_visible)
+	void SetTcCalibMkPoints()
 	{
+		bool is_visible = g_info.touch_mode == RsTouchMode::AR_Marker || g_info.touch_mode == RsTouchMode::Calib_TC || g_info.touch_mode == RsTouchMode::Pair_Clear;
+
 		//auto marker_color = [](int idx, int w)
 		//{
 		//	return glm::fvec3((idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1), 1);
@@ -1135,7 +1158,7 @@ namespace var_settings
 		glm::fmat4x4 mat_armklf2ws;
 		bool is_armk_detected = g_info.otrk_data.trk_info.GetLFrmInfo(g_info.otrk_data.marker_rb_name, mat_armklf2ws);
 
-		static int armk_frame_id = 0;
+		static int armk_frame_id = 0, cb_spheres_id = 0;
 		if (is_armk_detected)
 		{
 			Axis_Gen(mat_armklf2ws, 0.05f, armk_frame_id);
@@ -1175,9 +1198,9 @@ namespace var_settings
 			if (sphers_xyzr.size() > 0)
 			{
 				vzm::GenerateSpheresObject(__FP sphers_xyzr[0], __FP sphers_rgb[0],
-					g_info.otrk_data.calib_3d_pts.size(), g_info.otrk_data.cb_spheres_id);
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.cb_spheres_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, default_obj_state);
+					g_info.otrk_data.calib_3d_pts.size(), cb_spheres_id);
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cb_spheres_id, default_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, cb_spheres_id, default_obj_state);
 
 				for (int i = 0; i < (int)g_info.otrk_data.calib_3d_pts.size(); i++)
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.armk_text_ids[i], default_obj_state);
@@ -1190,8 +1213,8 @@ namespace var_settings
 			{
 				vzm::ObjStates cstate = default_obj_state;
 				cstate.is_visible = false;
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cb_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, cb_spheres_id, cstate);
 
 				for (int i = 0; i < (int)g_info.otrk_data.armk_text_ids.size(); i++)
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.armk_text_ids[i], cstate);
@@ -1201,8 +1224,8 @@ namespace var_settings
 		{
 			vzm::ObjStates cstate = default_obj_state;
 			cstate.is_visible = false;
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.cb_spheres_id, cstate);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cb_spheres_id, cstate);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, cb_spheres_id, cstate);
 
 			for (int i = 0; i < (int)g_info.otrk_data.armk_text_ids.size(); i++)
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.armk_text_ids[i], cstate);
@@ -1216,7 +1239,7 @@ namespace var_settings
 			return glm::fvec3(1, (idx % max(w, 1)) / (float)max(w - 1, 1), (idx / max(w, 1)) / (float)max(w - 1, 1));
 		};
 
-		auto register_mks = [](const glm::fvec3* pos_list, const int num_mks, const float r, int& mks_id)
+		auto register_mks = [](const glm::fvec3* pos_list, const glm::fvec3& color, const int num_mks, const float r, int& mks_id)
 		{
 			vector<glm::fvec4> sphers_xyzr;
 			vector<glm::fvec3> sphers_rgb;
@@ -1224,7 +1247,7 @@ namespace var_settings
 			{
 				glm::fvec3 pt = pos_list[i];
 				sphers_xyzr.push_back(glm::fvec4(pt.x, pt.y, pt.z, r));
-				sphers_rgb.push_back(glm::fvec3(1, 1, 0));
+				sphers_rgb.push_back(color);
 			}
 
 			if (num_mks > 0)
@@ -1238,14 +1261,15 @@ namespace var_settings
 
 		is_pickable |= g_info.touch_mode == RsTouchMode::Calib_STG || g_info.touch_mode == RsTouchMode::Calib_STG2;
 
+		static int mks_spheres_id = 0;
 		if (is_visible && !is_pickable)
 		{
-			register_mks((glm::fvec3*)&g_info.otrk_data.trk_info.mk_xyz_list[0], g_info.otrk_data.trk_info.mk_xyz_list.size() / 3, 0.005, g_info.otrk_data.mks_spheres_id);
-			if (g_info.otrk_data.mks_spheres_id != 0)
+			register_mks((glm::fvec3*)&g_info.otrk_data.trk_info.mk_xyz_list[0], glm::fvec3(1, 1, 0), g_info.otrk_data.trk_info.mk_xyz_list.size() / 3, 0.005, mks_spheres_id);
+			if (mks_spheres_id != 0)
 			{
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.mks_spheres_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.mks_spheres_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.otrk_data.mks_spheres_id, default_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mks_spheres_id, default_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mks_spheres_id, default_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, mks_spheres_id, default_obj_state);
 			}
 		}
 		else
@@ -1253,9 +1277,9 @@ namespace var_settings
 			vzm::ObjStates cstate = default_obj_state;
 			cstate.is_visible = false;
 			{
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.mks_spheres_id, cstate);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.otrk_data.mks_spheres_id, cstate);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.otrk_data.mks_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, mks_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, mks_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, mks_spheres_id, cstate);
 			}
 		}
 
@@ -1288,6 +1312,32 @@ namespace var_settings
 				vzm::DeleteObject(g_info.otrk_data.mk_pickable_sphere_ids[i]);
 			g_info.otrk_data.mk_pickable_sphere_ids.clear();
 			g_info.vzmobjid2pos.clear();
+		}
+
+		//
+		static int dst_custom_spheres_id = 0;
+		bool hide_dst_custom_spheres = true;
+		if (g_info.touch_mode == RsTouchMode::DST_TOOL_E0 || g_info.touch_mode == RsTouchMode::DST_TOOL_SE0 || g_info.touch_mode == RsTouchMode::DST_TOOL_SE1)
+		{
+			vector<Point3f>& dst_pos_list = g_info.otrk_data.custom_pos_map[g_info.dst_tool_name];
+			glm::fmat4x4 mat_dstfrm2ws;
+			bool is_tool_dst_tracked = g_info.otrk_data.trk_info.GetLFrmInfo(g_info.dst_tool_name, mat_dstfrm2ws);
+			if (is_tool_dst_tracked && dst_pos_list.size() > 0)
+			{
+				hide_dst_custom_spheres = false;
+				register_mks((glm::fvec3*)&dst_pos_list[0], glm::fvec3(1, 0, 1), dst_pos_list.size(), 0.005, dst_custom_spheres_id);
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, dst_custom_spheres_id, default_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, dst_custom_spheres_id, default_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, dst_custom_spheres_id, default_obj_state);
+			}
+		}
+		if (hide_dst_custom_spheres && dst_custom_spheres_id != 0)
+		{
+			vzm::ObjStates cstate = default_obj_state;
+			cstate.is_visible = false;
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, dst_custom_spheres_id, cstate);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, dst_custom_spheres_id, cstate);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, dst_custom_spheres_id, cstate);
 		}
 	}
 
@@ -1335,10 +1385,11 @@ namespace var_settings
 			if (list_det_armks.size() > 0)
 			{
 				vector<Point2f> point2d;
-				vector<Point3f> point3d;
+				vector<Point3f> point3dws;
 
 				glm::fmat4x4 mat_armklf2ws;
-				g_info.otrk_data.trk_info.GetLFrmInfo(g_info.otrk_data.marker_rb_name, mat_armklf2ws);
+				bool marker_rb_detected = g_info.otrk_data.trk_info.GetLFrmInfo(g_info.otrk_data.marker_rb_name, mat_armklf2ws);
+				if (g_info.otrk_data.marker_rb_name != "" && !marker_rb_detected) return;
 
 				for (int i = 0; i < (int)list_det_armks.size(); i++)
 				{
@@ -1353,7 +1404,7 @@ namespace var_settings
 					point2d.push_back(pt2d / 4.f);
 					const glm::fvec3& pos_3d = *(glm::fvec3*)&g_info.otrk_data.calib_3d_pts[armk.id - 1];
 					const Point3f& pos_3dws = *(Point3f*)&tr_pt(mat_armklf2ws, pos_3d);
-					point3d.push_back(pos_3dws);
+					point3dws.push_back(pos_3dws);
 				}
 
 
@@ -1385,18 +1436,25 @@ namespace var_settings
 					float pnp_err = -1.f;
 					int calib_samples = 0;
 					glm::fmat4x4 __mat_rscs2clf = mat_rscs2clf;
-					bool is_success = CalibrteCamLocalFrame(*(vector<glm::fvec2>*)&point2d, *(vector<glm::fvec3>*)&point3d, mat_ws2clf,
+
+					static int err_count = 0;
+					bool is_success = CalibrteCamLocalFrame(*(vector<glm::fvec2>*)&point2d, *(vector<glm::fvec3>*)&point3dws, mat_ws2clf,
 						rs_settings::rgb_intrinsics.fx, rs_settings::rgb_intrinsics.fy, rs_settings::rgb_intrinsics.ppx, rs_settings::rgb_intrinsics.ppy,
 						__mat_rscs2clf, &pnp_err, &calib_samples, g_info.otrk_data.tc_calib_pt_pairs);
-#define ERR_MAX 3
-					if (pnp_err >= ERR_MAX && calib_samples >= 12)
+					if (pnp_err >= 5 && calib_samples >= 12)
 					{
 						//calib_samples == 12 ? g_info.otrk_data.tc_calib_pt_pairs.clear() : 
 							g_info.otrk_data.tc_calib_pt_pairs.pop_back();
 					}
-
-					if (is_success && pnp_err < ERR_MAX)
+					else if (is_success)
 					{
+						//static int calib_frame_id = 0;
+						//Axis_Gen(mat_clf2ws, 0.05f, calib_frame_id);
+						//vzm::ObjStates cstate = default_obj_state;
+						//cstate.color[3] = 0.3f;
+						//vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_frame_id, cstate);
+						//g_info.otrk_data.calib_trial_rs_cam_frame_ids.push_back(calib_frame_id);
+
 						mat_rscs2clf = __mat_rscs2clf;
 
 						g_info.is_calib_rs_cam = true;
@@ -1409,9 +1467,10 @@ namespace var_settings
 							outfile << to_string(point2d.size()) << endl;
 							for (int i = 0; i < (int)point2d.size(); i++)
 							{
-								Point2d p2d = point2d[i];
-								Point3d p3d = point3d[i];
-								string line = to_string(p2d.x) + " " + to_string(p2d.y) + " " + to_string(p3d.x) + " " + to_string(p3d.y) + " " + to_string(p3d.z);
+								pair<Point2f, Point3f>& _pair = g_info.otrk_data.tc_calib_pt_pairs[i];
+								Point2d p2d = std::get<0>(_pair);
+								Point3d p3d_clf = std::get<1>(_pair);
+								string line = to_string(p2d.x) + " " + to_string(p2d.y) + " " + to_string(p3d_clf.x) + " " + to_string(p3d_clf.y) + " " + to_string(p3d_clf.z);
 								outfile << line << endl;
 							}
 
@@ -1424,43 +1483,40 @@ namespace var_settings
 						}
 						outfile.close();
 					}
-
-					if (g_info.otrk_data.marker_rb_name == "")
-					{
-						for (int i = 0; i < g_info.otrk_data.calib_trial_rs_cam_frame_ids.size(); i++)
-						{
-							vzm::ObjStates cstate;
-							vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
-							cstate.is_visible = true;
-							vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
-						}
-
-						static int calib_frame_id = 0;
-						Axis_Gen(mat_clf2ws, 0.05f, calib_frame_id);
-						vzm::ObjStates cstate = default_obj_state;
-						cstate.color[3] = 0.3f;
-						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_frame_id, cstate);
-						g_info.otrk_data.calib_trial_rs_cam_frame_ids.push_back(calib_frame_id);
-					}
-					else
-					{
-						vector<glm::fvec4> ws_armk_spheres_xyzr;
-						vector<glm::fvec3> ws_armk_spheres_rgb;
-						for (int i = 0; i < (int)g_info.otrk_data.tc_calib_pt_pairs.size(); i++)
-						{
-							const glm::fvec3 pos_3d = *(glm::fvec3*)&g_info.otrk_data.tc_calib_pt_pairs[i].second;
-
-							ws_armk_spheres_xyzr.push_back(glm::fvec4(pos_3d, 0.007));
-							ws_armk_spheres_rgb.push_back(glm::fvec3(1));
-						}
-
-						static int calib_armks_id = 0;
-						vzm::GenerateSpheresObject(__FP ws_armk_spheres_xyzr[0], __FP ws_armk_spheres_rgb[0], g_info.otrk_data.tc_calib_pt_pairs.size(), calib_armks_id);
-						vzm::ObjStates cstate = default_obj_state;
-						cstate.color[3] = 0.3f;
-						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_armks_id, cstate);
-					}
 				}
+			}
+		}
+
+		// display samples //
+		if (g_info.touch_mode == RsTouchMode::AR_Marker || g_info.touch_mode == RsTouchMode::Calib_TC || g_info.touch_mode == RsTouchMode::Pair_Clear)
+		{
+			if (g_info.otrk_data.marker_rb_name == "")
+			{
+				for (int i = 0; i < g_info.otrk_data.calib_trial_rs_cam_frame_ids.size(); i++)
+				{
+					vzm::ObjStates cstate;
+					vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
+					cstate.is_visible = true;
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
+				}
+			}
+			else
+			{
+				vector<glm::fvec4> ws_armk_spheres_xyzr;
+				vector<glm::fvec3> ws_armk_spheres_rgb;
+				for (int i = 0; i < (int)g_info.otrk_data.tc_calib_pt_pairs.size(); i++)
+				{
+					const glm::fvec3 pos_3d = tr_pt(mat_clf2ws ,*(glm::fvec3*)&g_info.otrk_data.tc_calib_pt_pairs[i].second);
+
+					ws_armk_spheres_xyzr.push_back(glm::fvec4(pos_3d, 0.007));
+					ws_armk_spheres_rgb.push_back(glm::fvec3(1));
+				}
+
+				static int calib_armks_id = 0;
+				vzm::GenerateSpheresObject(__FP ws_armk_spheres_xyzr[0], __FP ws_armk_spheres_rgb[0], g_info.otrk_data.tc_calib_pt_pairs.size(), calib_armks_id);
+				vzm::ObjStates cstate = default_obj_state;
+				cstate.color[3] = 0.3f;
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, calib_armks_id, cstate);
 			}
 		}
 
@@ -1837,8 +1893,21 @@ namespace var_settings
 				//
 				//	model_ws_obj_state.color[3] = 0.05f;
 				//	//model_ws_obj_state.point_thickness = 15;
-				model_ws_obj_state.surfel_size = 0.005f;
-				//}
+
+				model_ws_obj_state.surfel_size = 0.003f;
+				if (g_info.touch_mode == RsTouchMode::Align)
+				{
+					model_ws_obj_state.color[3] = 0.7f;
+					vzm::SetRenderTestParam("_bool_IsGhostSurface", false, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+					vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", false, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+				}
+				else
+				{
+					model_ws_obj_state.color[3] = 1.f;
+					vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+					vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
+				}
+
 				__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 1.0);
 				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 				__cv4__ model_ws_obj_state.color = glm::fvec4(0.9, 0.7, 0.3, 1.0);
@@ -1849,9 +1918,11 @@ namespace var_settings
 			if(guide_posdir_lines_ptr != NULL && guide_line_idx >= 0)
 			{
 				glm::fvec3* guide_posdir_lines = (glm::fvec3*)guide_posdir_lines_ptr;
-				vzm::ObjStates line_state;
+				vzm::ObjStates line_state, cyl_state;
 				line_state.line_thickness = 5;
 				line_state.is_visible = false;
+				cyl_state.is_visible = false;
+				__cv4__ cyl_state.color = glm::fvec4(0, 1, 1, 0.3);
 				static int closest_dist_line_id = 0, closest_dist_text_id = 0;
 				static int angle_id = 0, angle_text_id = 0, angle_text_id_stg = 0;
 				int guide_objs[] = { closest_dist_line_id , closest_dist_text_id , 
@@ -1866,12 +1937,17 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, obj_id, guide_obj_state);
 				}
 				static vector<int> guide_line_obj_ids;
+				static vector<int> guide_cylinder_obj_ids;
 				for (int i = 0; i < (int)guide_line_obj_ids.size(); i++)
 				{
 					int line_obj_id = guide_line_obj_ids[i];
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, line_obj_id, line_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, line_obj_id, line_state);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, line_obj_id, line_state);
+					int cyl_obj_id = guide_cylinder_obj_ids[i];
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, cyl_obj_id, cyl_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, cyl_obj_id, cyl_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cyl_obj_id, cyl_state);
 				}
 
 				if (guide_line_idx < num_guide_lines)
@@ -1885,10 +1961,22 @@ namespace var_settings
 
 					// guide line
 					for (int i = guide_line_obj_ids.size(); i < num_guide_lines; i++) guide_line_obj_ids.push_back(0);
+					for (int i = guide_cylinder_obj_ids.size(); i < num_guide_lines; i++) guide_cylinder_obj_ids.push_back(0);
 
 					glm::fvec3 line_pos[2] = { pos_guide_line, pos_guide_line + dir_guide_line * 10.f };
 					int& guide_line_id = guide_line_obj_ids[guide_line_idx];
 					vzm::GenerateLinesObject(__FP line_pos[0], NULL, 1, guide_line_id);
+
+					glm::fvec3 cyl_pos[2] = { pos_guide_line, pos_guide_line + dir_guide_line * 0.3f };
+					int& guide_cyl_id = guide_cylinder_obj_ids[guide_line_idx];
+					vzm::GenerateLinesObject(__FP cyl_pos[0], NULL, 1, guide_cyl_id);
+					// 
+
+					cyl_state.is_visible = true;
+
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, guide_cyl_id, cyl_state);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, guide_cyl_id, cyl_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, guide_cyl_id, cyl_state);
 
 					line_state.is_visible = true;
 
@@ -1930,7 +2018,7 @@ namespace var_settings
 		}
 	}
 
-	void SetSectionalImageAssets(const bool show_sectional_views, const float* _pos_tip, const float* _pos_end)
+	void SetSectionalImageAssets(const bool show_sectional_views, const float* _pos_tip, const float* _pos_end, const float rot_angle_rad)
 	{
 		// after calling SetTargetModelAssets
 		_show_sectional_views = show_sectional_views;
@@ -1960,20 +2048,20 @@ namespace var_settings
 			csection_cam_params_model.projection_mode = 4;
 			csection_cam_params_model.ip_w = 0.1;
 			csection_cam_params_model.ip_h = 0.1;
-			csection_cam_params_model.w = 180;
-			csection_cam_params_model.h = 180;
+			csection_cam_params_model.w = 100;
+			csection_cam_params_model.h = 100;
 
 			__cv3__ csection_cam_params_model.pos = pos_tip; // g_info.pos_probe_pin;
 			glm::fvec3 cs_up = glm::normalize(pos_end - pos_tip);// tr_vec(mat_section_probe2ws, glm::fvec3(0, 0, -1));
 			__cv3__ csection_cam_params_model.up = cs_up;
 
-			glm::fvec3 cs_view = glm::fvec3(0, 0, 1);
+			glm::fvec3 cs_view = glm::rotate(glm::fvec3(0, 0, 1), rot_angle_rad, glm::fvec3(0, 1, 0));// glm::fvec3(0, 0, 1);
 			glm::fvec3 cs_right = glm::cross(cs_view, cs_up);
 			cs_view = glm::normalize(glm::cross(cs_up, cs_right));
 			__cv3__ csection_cam_params_model.view = cs_view;
 			vzm::SetCameraParameters(g_info.csection_scene_id, csection_cam_params_model, 0);
 
-			cs_view = glm::fvec3(1, 0, 0);
+			cs_view = glm::rotate(glm::fvec3(1, 0, 0), rot_angle_rad, glm::fvec3(0, 1, 0)); //glm::fvec3(1, 0, 0);
 			cs_right = glm::cross(cs_view, cs_up);
 			cs_view = glm::normalize(glm::cross(cs_up, cs_right));
 			__cv3__ csection_cam_params_model.view = cs_view;
@@ -1981,7 +2069,7 @@ namespace var_settings
 		}
 	}
 
-	void RenderAndShowWindows(bool show_times, Mat& img_rs, bool skip_show_rs_window)
+	void RenderAndShowWindows(bool show_times, Mat& img_rs, bool skip_show_rs_window, int addtional_scene, int addtional_cam)
 	{
 		auto DisplayTimes = [&show_times](const LARGE_INTEGER lIntCntStart, const string& _test)
 		{
@@ -2030,8 +2118,20 @@ namespace var_settings
 				if (vzm::GetRenderBufferPtrs(g_info.rs_scene_id, &ptr_rgba, &ptr_zdepth, &rs_w, &rs_h, rs_cam_id))
 					copy_back_ui_buffer(img_rs.data, ptr_rgba, rs_w, rs_h, false);
 
+				if (g_info.touch_mode == RsTouchMode::Align)
+				{
+					unsigned char* ms_ptr_rgba;
+					float* ms_ptr_zdepth;
+					int ms_w, ms_h;
+					if (vzm::GetRenderBufferPtrs(g_info.model_scene_id, &ms_ptr_rgba, &ms_ptr_zdepth, &ms_w, &ms_h, model_cam_id))
+					{
+						cv::Mat cs_cvmat(ms_h, ms_w, CV_8UC4, ms_ptr_rgba);
+
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, ms_ptr_rgba, ms_w, ms_h, 10, 100, false, true);
+					}
+				}
 #ifdef SHOW_RS_VIEW
-				if (_show_sectional_views)
+				else if (_show_sectional_views && g_info.is_modelaligned)
 				{
 					vzm::RenderScene(g_info.csection_scene_id, 0);
 					vzm::RenderScene(g_info.csection_scene_id, 1);
@@ -2047,7 +2147,8 @@ namespace var_settings
 						cv::circle(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), 2, cv::Scalar(255, 0, 0, 255), 2);
 
 						// to do //
-						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, rs_w - cs_w, rs_h - cs_h - cs_h * i, false);
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, 10 + cs_w * i, 100, false, true);
+						rectangle(img_rs, Rect(0, 0, 10 + cs_w * i, 100), Scalar(200, 200, 200), 1, LineTypes::LINE_AA);
 					}
 				}
 #endif

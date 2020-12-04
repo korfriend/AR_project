@@ -38,7 +38,7 @@ namespace var_settings
 	// probe_mode [0, 1, 2] => [DEFAULT, ONLY_PIN_POS, ONLY_RBFRAME]
 	__dojostatic void UpdateTrackInfo(const void* trk_info, const std::string& probe_specifier_rb_name = "probe", int probe_mode = 0);
 	__dojostatic void RecordInfo(const int key_pressed, const void* color_data);
-	__dojostatic void SetTcCalibMkPoints(bool is_visible);
+	__dojostatic void SetTcCalibMkPoints();
 	__dojostatic void SetMkSpheres(bool is_visible, bool is_pickable);
 	__dojostatic void GetVarInfo(void*);
 	__dojostatic void GetVarInfoPtr(void**);
@@ -48,8 +48,8 @@ namespace var_settings
 	__dojostatic void SetCalibFrames(bool is_visible);
 	__dojostatic void SetDepthMapPC(const bool is_visible, rs2::depth_frame& depth_frame, rs2::video_frame& color_frame);
 	__dojostatic void SetTargetModelAssets(const std::string& name, const float* guide_posdir_lines = NULL, const int num_guide_lines = 0, const int guide_line_idx = -1);
-	__dojostatic void SetSectionalImageAssets(const bool show_sectional_views, const float* pos_tip, const float* pos_end);
-	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs, bool skip_show_rs_window = false);
+	__dojostatic void SetSectionalImageAssets(const bool show_sectional_views, const float* pos_tip, const float* pos_end, const float rot_angle_rad = 0);
+	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs, bool skip_show_rs_window = false, int addtional_scene = -1, int addtional_cam = -1);
 	__dojostatic void DeinitializeVarSettings();
 
 	__dojostatic std::string GetDefaultFilePath();
