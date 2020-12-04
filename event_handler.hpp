@@ -795,7 +795,10 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 		// manipulating camera location
 		if (event == EVENT_LBUTTONDOWN || event == EVENT_RBUTTONDOWN)
 		{
-			aball_ov.intializer((float*)&glm::fvec3(), 0.10f);
+			if(eginfo->ginfo.scenario != 0)
+				aball_ov.intializer((float*)&glm::fvec3(), 0.10f);
+			else
+				aball_ov.intializer((float*)&(glm::fvec3(112.896, 112.896, 91.5) * 0.001f), 0.20f);
 
 			helpers::cam_pose arc_cam_pose;
 			glm::fvec3 pos = __cv3__ arc_cam_pose.pos = __cv3__ cam_params.pos;

@@ -372,6 +372,8 @@ struct ButtonState
 
 struct GlobalInfo
 {
+	int scenario;
+
 	map<int, glm::fvec3> vzmobjid2pos;
 
 	RsTouchMode touch_mode;
@@ -388,7 +390,7 @@ struct GlobalInfo
 	glm::fmat4x4 mat_probe2ws;
 	string src_tool_name;
 	string dst_tool_name;
-
+	
 	// model related
 	bool is_modelaligned;
 	int model_ms_obj_id;
@@ -416,6 +418,7 @@ struct GlobalInfo
 	int stg_w, stg_h;
 	int eye_w, eye_h;
 	int ws_w, ws_h;
+	int ms_w, ms_h;
 
 	// scene definition
 	int ws_scene_id; // arbitrary integer
@@ -470,6 +473,8 @@ struct GlobalInfo
 		brain_ws_obj_id = 0;
 		ventricle_ms_obj_id = 0;
 		ventricle_ws_obj_id = 0;
+
+		scenario = 0;
 	}
 };
 
@@ -1110,7 +1115,7 @@ void Show_Window(const std::string& title, const int scene_id, const int cam_id,
 		cv::Mat cvmat(h, w, CV_8UC4, ptr_rgba);
 		//show the image
 		if(ptext)
-			cv::putText(cvmat, *ptext, cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 185, 255));
+			cv::putText(cvmat, *ptext, cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 185, 255), 1, LineTypes::LINE_AA);
 
 		cv::imshow(title, cvmat);
 	}
@@ -1145,7 +1150,7 @@ void Show_Window_with_Info(const std::string& title, const int scene_id, const i
 			for (int i = 0; i < (int)ginfo.model_ms_pick_pts.size(); i++)
 			{
 				glm::fvec3 pos_ss = tr_pt(mat_ws2ss, ginfo.model_ms_pick_pts[i]);
-				cv::putText(cvmat, to_string(i), cv::Point(pos_ss.x, pos_ss.y), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(100, 185, 155), 2, LineTypes::LINE_AA);
+				cv::putText(cvmat, to_string(i), cv::Point(pos_ss.x, pos_ss.y), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(30, 10, 255), 1, LineTypes::LINE_AA);
 			}
 		}
 
@@ -1211,7 +1216,7 @@ void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned ch
 	auto alpha_mask = [](float r) -> float
 	{
 		const float _a = 0.7;
-		return min(max(atan(_a * (r - 10.f)) + atan(_a * 10.f) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f);
+		return 1.f;// min(max(atan(_a * (r - 10.f)) + atan(_a * 10.f) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f);
 	};
 	// cpu mem ==> dataPtr
 	int width_uibuf_pitch = w * 3;
@@ -1297,7 +1302,17 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 	}
 
 	if (num_samples) *num_samples = points_buf_2d.size();
-	if (points_buf_2d.size() < 12) return false;
+	if (points_buf_2d.size() < 12)
+	{
+		for (int i = 0; i < (int)points_buf_2d.size(); i++)
+		{
+			Point2f p2d = *(Point2f*)&points_buf_2d[i];
+			Point3f p3d = *(Point3f*)&points_buf_3d_clf[i];
+
+			pair_pts.push_back(PAIR_MAKE(p2d, p3d));
+		}
+		return false;
+	}
 
 	Mat cam_mat = cv::Mat::zeros(3, 3, CV_64FC1); // intrinsic camera parameters
 	cam_mat.at<double>(0, 0) = fx;       //      [ fx   0  cx ]
@@ -1310,7 +1325,7 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 	cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64FC1);          // output translation vector
 	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
 	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
-	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_AP3P);
+	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
 	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
 
 #define ERR_REPROJ_MAX 2
@@ -1326,15 +1341,18 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 			vector<Point2f> points_buf_2d_tmp = points_buf_2d;
 			points_buf_3d_clf.clear();
 			points_buf_2d.clear();
-			for (int i = 0; inliers_ids.rows; i++)
+			for (int i = 0; i < inliers_ids.rows; i++)
 			{
 				int index = inliers_ids.at<int>(i, 0);
+				//cout << i << ",";
 				points_buf_3d_clf.push_back(points_buf_3d_clf_tmp[index]);
 				points_buf_2d.push_back(points_buf_2d_tmp[index]);
 			}
+			//cout << endl;
 		}
 	}
 
+	pair_pts.clear();
 	for (int i = 0; i < (int)points_buf_2d.size(); i++)
 	{
 		Point2f p2d = *(Point2f*)&points_buf_2d[i];
@@ -1480,7 +1498,7 @@ void Draw_TouchButtons(cv::Mat img, const std::map<RsTouchMode, ButtonState>& bu
 			if (it->first == touch_mode) bg = btn.activated_bg;
 			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), bg, -1);
 			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), Scalar(0, 0, 0), 1, LineTypes::LINE_AA);
-			putText(img(btn.rect), btn.name, Point(btn.rect.width*0.1, btn.rect.height*0.4), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0), 2, LineTypes::LINE_AA);
+			putText(img(btn.rect), btn.name, Point(btn.rect.width*0.1, btn.rect.height*0.4), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0), 1, LineTypes::LINE_AA);
 		}
 	}
 }

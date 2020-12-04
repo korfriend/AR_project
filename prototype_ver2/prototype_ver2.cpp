@@ -1254,8 +1254,8 @@ int main()
 			}
 			*/
 
-			int model_cam_id = var_settings::GetCameraID_SSU(g_info.model_scene_id);
-			Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
+			//int model_cam_id = var_settings::GetCameraID_SSU(g_info.model_scene_id);
+			//Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
 
 			//DisplayTimes(frq_begin, "");
 		}
