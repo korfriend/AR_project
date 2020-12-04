@@ -195,12 +195,12 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		}
 		case RsTouchMode::AR_Marker:
 		{
-			if (ExitEventOnTouch(x, y)) return;
 			optitrk::SetRigidBodyEnabledbyName(eginfo->ginfo.otrk_data.marker_rb_name, true);
-			if (eginfo->ginfo.is_probe_detected)
+			if (ExitEventOnTouch(x, y)) return;
+			vector<Point3f>& point3ds = eginfo->ginfo.otrk_data.calib_3d_pts;
+			if (x < eginfo->ginfo.rs_w / 2)
 			{
-				vector<Point3f>& point3ds = eginfo->ginfo.otrk_data.calib_3d_pts;
-				if (x < eginfo->ginfo.rs_w / 2)
+				if (eginfo->ginfo.is_probe_detected)
 				{
 					glm::fvec3 ar_marker_pt = eginfo->ginfo.pos_probe_pin;
 					cout << "----> " << eginfo->ginfo.vzmobjid2pos.size() << endl;
@@ -215,26 +215,26 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					point3ds.push_back(Point3f(ar_marker_pt.x, ar_marker_pt.y, ar_marker_pt.z));
 					cout << "# of total 3d pick positions : " << point3ds.size() << endl;
 				}
-				else
-				{
-					if (point3ds.size() > 0)
-						point3ds.pop_back();
-				}
-
-				ofstream outfile(eginfo->ginfo.cb_positions);
-				if (outfile.is_open())
-				{
-					outfile.clear();
-					for (int i = 0; i < point3ds.size(); i++)
-					{
-						string line = to_string(point3ds[i].x) + " " +
-							to_string(point3ds[i].y) + " " +
-							to_string(point3ds[i].z);
-						outfile << line << endl;
-					}
-				}
-				outfile.close();
 			}
+			else
+			{
+				if (point3ds.size() > 0)
+					point3ds.pop_back();
+			}
+
+			ofstream outfile(eginfo->ginfo.cb_positions);
+			if (outfile.is_open())
+			{
+				outfile.clear();
+				for (int i = 0; i < point3ds.size(); i++)
+				{
+					string line = to_string(point3ds[i].x) + " " +
+						to_string(point3ds[i].y) + " " +
+						to_string(point3ds[i].z);
+					outfile << line << endl;
+				}
+			}
+			outfile.close();
 		} break;
 		case RsTouchMode::DST_TOOL_E0:
 		{

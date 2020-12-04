@@ -4,25 +4,25 @@
         <rigid_body version="1.1" id="e802f8c285704fba:accfef1a307511eb">
             <markers>
                 <marker id="0:0">
-                    <position>0.000113166,0.0181726,0.123822</position>
+                    <position>0.000989953,0.0185237,0.125186</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>1</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>0.000134066,0.0181726,0.173756</position>
+                    <position>0.00124631,0.0185237,0.175238</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>2</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>0.0297281,0.0181726,0.223836</position>
+                    <position>0.0308668,0.0185237,0.225259</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>3</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.0293943,0.0181726,0.258587</position>
+                    <position>-0.0279377,0.0185237,0.259785</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>4</label_id>
@@ -52,10 +52,12 @@
                 <property>
                     <name>DisplayModelReplace</name>
                     <value>true</value>
+                    <defaultValue>true</defaultValue>
                 </property>
                 <property>
                     <name>ModelName</name>
                     <value>C:/ProgramData/OptiTrack/Motive/ObjectFiles/Probe/Probe.obj</value>
+                    <defaultValue>C:/ProgramData/OptiTrack/Motive/ObjectFiles/Probe/Probe.obj</defaultValue>
                 </property>
                 <property>
                     <name>ModelYaw</name>
@@ -68,35 +70,37 @@
                 <property>
                     <name>UserData</name>
                     <value>999</value>
-                    <defaultValue>1027</defaultValue>
+                    <defaultValue>998</defaultValue>
                 </property>
                 <property>
                     <name>MinimumMarkerCount</name>
                     <value>4</value>
+                    <defaultValue>4</defaultValue>
                 </property>
                 <property>
                     <name>AcquisitionFrames</name>
                     <value>1</value>
+                    <defaultValue>1</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation0</name>
-                    <value>0.000113166,0.0181726,0.123822</value>
-                    <defaultValue>0.000113166,0.0181726,0.123822</defaultValue>
+                    <value>0.000989953,0.0185237,0.125186</value>
+                    <defaultValue>0.000989953,0.0185237,0.125186</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation1</name>
-                    <value>0.000134066,0.0181726,0.173756</value>
-                    <defaultValue>0.000134066,0.0181726,0.173756</defaultValue>
+                    <value>0.00124631,0.0185237,0.175238</value>
+                    <defaultValue>0.00124631,0.0185237,0.175238</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation2</name>
-                    <value>0.0297281,0.0181726,0.223836</value>
-                    <defaultValue>0.0297281,0.0181726,0.223836</defaultValue>
+                    <value>0.0308668,0.0185237,0.225259</value>
+                    <defaultValue>0.0308668,0.0185237,0.225259</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation3</name>
-                    <value>-0.0293943,0.0181726,0.258587</value>
-                    <defaultValue>-0.0293943,0.0181726,0.258587</defaultValue>
+                    <value>-0.0279377,0.0185237,0.259785</value>
+                    <defaultValue>-0.0279377,0.0185237,0.259785</defaultValue>
                 </property>
             </properties>
             <MarkerNames ReorderMarkers="true">

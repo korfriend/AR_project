@@ -137,13 +137,14 @@ int main()
 	//rs2_extrinsics rgb_extrinsics;
 	//rs_settings::GetRsCamParams(rgb_intrinsics, depth_intrinsics, rgb_extrinsics);
 
-	var_settings::InitializeVarSettings(2);
+	var_settings::InitializeVarSettings(2, 2, "marker");
 	var_settings::SetCvWindows();
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 
 	std::vector<int> guide_line_ids;
 	std::vector<glm::fvec3> guide_lines;
-	loadScrewGuideLines("C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\spine_pins.txt", guide_line_ids, guide_lines);
+	//loadScrewGuideLines("C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\spine_pins.txt", guide_line_ids, guide_lines);
+	loadScrewGuideLines("C:\\Users\\User\\source\\repos\\korfriend\\AR_project\\Data\\spine\\spine_pins.txt", guide_line_ids, guide_lines);
 
 	//optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
 	//optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
@@ -165,14 +166,14 @@ int main()
 	concurrent_queue<track_info> track_que(10);
 	std::atomic_bool tracker_alive{ true };
 	int operation_step = 0;
-#define NUM_RBS 6
+#define NUM_RBS 7
 	std::thread tracker_processing_thread([&]() {
 		while (tracker_alive)
 		{
 			Sleep(postpone);
 			optitrk::UpdateFrame();
 			track_info cur_trk_info;
-			static string _rb_names[NUM_RBS] = { "rs_cam" , "probe" , "spine" , "tool_1" , "tool_2", "tool_3" };
+			static string _rb_names[NUM_RBS] = { "rs_cam" , "marker", "probe" , "spine" , "tool_1" , "tool_2", "tool_3" };
 			for (int i = 0; i < NUM_RBS; i++)
 			{
 				glm::fmat4x4 mat_lfrm2ws;
@@ -233,9 +234,9 @@ int main()
 
 	int line_guide_idx = 0;
 	std::string preset_path = var_settings::GetDefaultFilePath();
-	ginfo.custom_pos_file_paths["tool_1"] = preset_path + "..\\Preset\\tool_1_end.txt";
-	ginfo.custom_pos_file_paths["tool_2"] = preset_path + "..\\Preset\\tool_2_end.txt";
-	ginfo.custom_pos_file_paths["tool_3"] = preset_path + "..\\Preset\\tool_3_se.txt";
+	//ginfo.custom_pos_file_paths["tool_1"] = preset_path + "..\\Preset\\tool_1_end.txt";
+	//ginfo.custom_pos_file_paths["tool_2"] = preset_path + "..\\Preset\\tool_2_end.txt";
+	//ginfo.custom_pos_file_paths["tool_3"] = preset_path + "..\\Preset\\tool_3_se.txt";
 	var_settings::LoadPresets();
 
 	while (key_pressed != 'q' && key_pressed != 27)
@@ -361,7 +362,7 @@ int main()
 			Mat image_rs(Size(rs_w, rs_h), CV_8UC3, (void*)current_color_frame.get_data(), Mat::AUTO_STEP), image_rs_bgr;
 			cvtColor(image_rs, image_rs_bgr, COLOR_BGR2RGB);
 
-			var_settings::SetTcCalibMkPoints(is_ws_pick);
+			var_settings::SetTcCalibMkPoints(show_mks);
 			var_settings::SetMkSpheres(show_mks, is_ws_pick);
 
 			var_settings::TryCalibrationTC(image_rs_bgr);

@@ -118,6 +118,7 @@ void LoadPresets(GlobalInfo& g_info)
 	infile.close();
 	
 
+	/*
 	// head registration file load //
 	float os2matchmodefrm[16], matchtr[16];
 	string path = "..\\Preset\\registration_matrix.txt";
@@ -156,6 +157,7 @@ void LoadPresets(GlobalInfo& g_info)
 		//g_info.mat_matchtr = glm::fmat4x4(*matchtr);
 		g_info.is_modelaligned = true;
 	}	
+	/**/
 }
 void InitializeVarSettings(GlobalInfo& g_info)
 {
@@ -902,6 +904,9 @@ int main()
 						ss_tool_guide_info.pos_centers_tfrm.push_back(sstool_guide_p2_os);
 
 						bSaveGuideFile = true;
+
+						vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_guide_p1_ws), sizeof(glm::dvec3), -1, -1);
+						var_settings::SetSectionalImageAssets(true, __FP sstool_guide_p1_ws, __FP sstool_guide_p2_ws);
 					}
 					else if (guide_toggle == false && bSaveGuideFile && ss_tool_guide_info.pos_centers_tfrm.size() > 0) {
 						ofstream outfile(guide_path);
@@ -965,8 +970,11 @@ int main()
 						glm::fvec3 sstool_dir_norm = glm::normalize(sstool_dir);
 						glm::fvec3 ssguide_dir_norm = glm::normalize(ssguide_dir);
 
-						vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
-						var_settings::SetSectionalImageAssets(true, __FP sstool_p1_ws, __FP(sstool_p1_ws + ssguide_dir * 0.2f));
+						if (!guide_toggle)
+						{
+							vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
+							var_settings::SetSectionalImageAssets(true, __FP sstool_p1_ws, __FP(sstool_p1_ws + ssguide_dir * 0.2f));
+						}
 
 						// model scene
 						{
@@ -1226,6 +1234,8 @@ int main()
 			else {
 				var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, false);
 			}
+			cv::Mat img_rs_mirror(g_info.rs_h, g_info.rs_w, CV_8UC3, image_rs_bgr.data);
+			imshow("rs mirror", img_rs_mirror);
 
 			Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 

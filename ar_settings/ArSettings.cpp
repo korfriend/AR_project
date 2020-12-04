@@ -399,7 +399,8 @@ namespace var_settings
 		{
 			g_info.model_path = preset_path + "..\\Data\\skin.obj";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points.txt";
-			g_info.volume_model_path = "C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\head\\head.x3d";
+			//g_info.volume_model_path = "C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\head\\head.x3d";
+			g_info.volume_model_path = preset_path + "..\\Data\\head_phantom\\head_phantom.x3d";
 		}
 		else if (scenario == 1)
 		{
@@ -438,8 +439,8 @@ namespace var_settings
 		cout << "cam0 frame rate setting ==> " << optitrk::SetCameraFrameRate(0, 120) << endl;
 		cout << "cam1 frame rate setting ==> " << optitrk::SetCameraFrameRate(1, 120) << endl;
 
-		optitrk::SetCameraSettings(0, 2, 10, 50);
-		optitrk::SetCameraSettings(1, 2, 10, 50);
+		optitrk::SetCameraSettings(0, 4, 20, 40);
+		optitrk::SetCameraSettings(1, 4, 20, 40);
 
 		g_info.eye_w = eye_w;
 		g_info.eye_h = eye_h;
@@ -775,6 +776,7 @@ namespace var_settings
 
 		static EventGlobalInfo rg_info_rs(g_info, g_info.rs_scene_id, rs_cam_id);
 		cv::setMouseCallback(g_info.window_name_rs_view, CallBackFunc_RsMouse, &rg_info_rs);
+		//cv::setMouseCallback("rs mirror", CallBackFunc_RsMouse, &rg_info_rs);
 		//static EventGlobalInfo rg_info_stg(g_info, 0, 0);
 		//cv::setMouseCallback(g_info.window_name_stg_view, CallBackFunc_StgMouse, &rg_info_stg);
 	}
@@ -1819,7 +1821,7 @@ namespace var_settings
 				if (scenario == 0)
 				{
 					glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
-					glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.128, 112.128, 108.5));
+					glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
 					__cm4__ volume_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm * mat_t * mat_s;
 				}
 				else
@@ -1938,10 +1940,10 @@ namespace var_settings
 			glm::fvec3 pos_tip = __cv3__ _pos_tip;
 			glm::fvec3 pos_end = __cv3__ _pos_end;
 
-			vzm::ObjStates model_ws_obj_state;
-			vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			if (g_info.model_volume_id == 0)
 			{
+				vzm::ObjStates model_ws_obj_state;
+				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 				vzm::ReplaceOrAddSceneObject(g_info.csection_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			}
 			else
@@ -2071,6 +2073,7 @@ namespace var_settings
 				imshow(g_info.window_name_rs_view, img_rs);
 
 #ifdef __MIRRORS
+			if(scenario != 0)
 			{
 				cv::Mat img_rs_mirror(g_info.rs_h, g_info.rs_w, CV_8UC3, img_rs.data);
 				imshow("rs mirror", img_rs_mirror);
@@ -2232,9 +2235,9 @@ namespace var_settings
 			cv::waitKey(1);
 			cv::resizeWindow(g_info.window_name_stg_view, cv::Size(900, 500));
 			cv::waitKey(1);
-			cv::resizeWindow(g_info.window_name_ws_view, cv::Size(500, 500));
+			cv::resizeWindow(g_info.window_name_ws_view, cv::Size(700, 500));
 			cv::waitKey(1);
-			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(500, 500));
+			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(700, 500));
 			cv::waitKey(1);
 		}
 	}
