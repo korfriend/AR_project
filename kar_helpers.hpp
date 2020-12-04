@@ -1249,7 +1249,10 @@ void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned ch
 				unsigned char _g = (rgb >> 8) & 0xFF;
 				unsigned char _b = (rgb >> 16) & 0xFF;
 
-				float fa = (float)a / 255.f * alpha_mask(glm::length(_c - glm::fvec2(j, i)));
+				float _a = alpha_mask(glm::length(_c - glm::fvec2(j, i)));
+				if (i % 20 == 1 && j % 20 == 1)
+					cout << _a << ", ";
+				float fa = (float)a / 255.f * _a;
 				float fr = (1.f - fa) * (float)_r + (float)r * fa;
 				float fg = (1.f - fa) * (float)_g + (float)g * fa;
 				float fb = (1.f - fa) * (float)_b + (float)b * fa;
@@ -1262,6 +1265,7 @@ void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned ch
 				memcpy(&data_ui[ui_y * width_uibuf_pitch + ui_x * 3 + 0], &rgb, 3);
 			}
 		}
+	cout << endl;
 };
 
 #define PAIR_MAKE(P2D, P3D) std::pair<cv::Point2f, cv::Point3f>(cv::Point2f(P2D.x, P2D.y), cv::Point3f(P3D.x, P3D.y, P3D.z))
