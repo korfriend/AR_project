@@ -340,7 +340,7 @@ namespace var_settings
 
 	void InitializeVarSettings(int _scenario, bool is_stereo_stg, const std::string& marker_rb_name)
 	{
-		scenario = _scenario;
+		g_info.scenario = scenario = _scenario;
 		g_info.stg_display_num = is_stereo_stg ? 2 : 1;
 
 		g_info.otrk_data.marker_rb_name = marker_rb_name;
@@ -450,6 +450,8 @@ namespace var_settings
 		g_info.stg_h = stg_h;
 		g_info.rs_w = rs_w;
 		g_info.rs_h = rs_h;
+		g_info.ms_w = 400;
+		g_info.ms_h = 400;
 
 		int volume_obj_id = 0;
 		if (scenario == 0)
@@ -487,9 +489,11 @@ namespace var_settings
 		cam_params_model.fp = 10.0f;
 		if (scenario == 0)
 		{
-			__cv3__ cam_params_model.pos = glm::fvec3(0.3f, 0, 0);
-			__cv3__ cam_params_model.up = glm::fvec3(0, 1.f, 0);
+			__cv3__ cam_params_model.pos = glm::fvec3(0.4f, 0, 0) + glm::fvec3(112.896, 112.896, 91.5) * 0.001f;
+			__cv3__ cam_params_model.up = glm::fvec3(0, 0.f, 1.f);
 			__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
+
+			//glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
 		}
 		else if (scenario == 1)
 		{
@@ -503,8 +507,8 @@ namespace var_settings
 			__cv3__ cam_params_model.up = glm::fvec3(0, 0, 1.f);
 			__cv3__ cam_params_model.view = glm::fvec3(0, 1.f, 0.f);
 		}
-		cam_params_model.w = 400;
-		cam_params_model.h = 400;
+		cam_params_model.w = g_info.ms_w;
+		cam_params_model.h = g_info.ms_h;
 
 		vzm::SetCameraParameters(g_info.model_scene_id, cam_params_model, model_cam_id);
 
@@ -1500,7 +1504,7 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.otrk_data.calib_trial_rs_cam_frame_ids[i], cstate);
 				}
 			}
-			else
+			else if(g_info.otrk_data.tc_calib_pt_pairs.size() > 0)
 			{
 				vector<glm::fvec4> ws_armk_spheres_xyzr;
 				vector<glm::fvec3> ws_armk_spheres_rgb;
@@ -2315,11 +2319,11 @@ namespace var_settings
 			once_prob_set = false;
 			cv::moveWindow(g_info.window_name_rs_view, 0, 0);
 			cv::waitKey(1);
-			cv::moveWindow(g_info.window_name_stg_view, 0, 500);
+			cv::moveWindow(g_info.window_name_stg_view, 0, g_info.rs_h + 5);
 			cv::waitKey(1);
-			cv::moveWindow(g_info.window_name_ws_view, 900, 0);
+			cv::moveWindow(g_info.window_name_ws_view, g_info.rs_w + 5, 0);
 			cv::waitKey(1);
-			cv::moveWindow(g_info.window_name_ms_view, 900, 500);
+			cv::moveWindow(g_info.window_name_ms_view, g_info.rs_w + 5, g_info.rs_h + 5);
 			cv::waitKey(1);
 
 			const int display1_w = 1680 + 2;// 1920;
@@ -2332,13 +2336,13 @@ namespace var_settings
 			cv::setWindowProperty("rs mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 			cv::setWindowProperty("stg mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 #endif
-			cv::resizeWindow(g_info.window_name_rs_view, cv::Size(900, 500));
+			cv::resizeWindow(g_info.window_name_rs_view, cv::Size(g_info.rs_w, g_info.rs_h));
 			cv::waitKey(1);
-			cv::resizeWindow(g_info.window_name_stg_view, cv::Size(900, 500));
+			cv::resizeWindow(g_info.window_name_stg_view, cv::Size(g_info.stg_w, g_info.stg_h));
 			cv::waitKey(1);
-			cv::resizeWindow(g_info.window_name_ws_view, cv::Size(700, 500));
+			cv::resizeWindow(g_info.window_name_ws_view, cv::Size(g_info.ws_w, g_info.ws_h));
 			cv::waitKey(1);
-			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(700, 500));
+			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(g_info.ms_w, g_info.ms_h));
 			cv::waitKey(1);
 		}
 	}
