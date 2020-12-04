@@ -69,6 +69,8 @@ int brain_ws_obj_id = 0;
 int ventricle_ms_obj_id = 0;
 int ventricle_ws_obj_id = 0;
 
+std::vector<int> guide_line_ids;		// 추후에 global로 들어올 것
+std::vector<glm::fvec3> guide_lines;	// 추후에 global로 들어올 것
 
 void InitializeVarSettings(GlobalInfo& ginfo)
 {
@@ -387,93 +389,127 @@ void UpdateTool(GlobalInfo& ginfo, track_info& trk_info, const std::string& prob
 }
 void UpdateGuide(GlobalInfo& ginfo)
 {
+	
+}
+void UpdateZoomNavigation(GlobalInfo& ginfo)
+{
 	if (ginfo.is_modelaligned) {
-		static int tool_ms_line_id = 0, tool_end_id = 0;
+		static int ssu_tool_guide_distance_id = 0, ssu_tool_guide_distance_text_id = 0;
+		static int ssu_tool_guide_distance_arrow1_id = 0, ssu_tool_guide_distance_arrow2_id = 0;
+		static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0;
+
+		static int ssu_tool_guide_line_ws_id = 0, ssu_tool_guide_line_ms_id = 0;
+		static int ssu_tool_guide_cylline_ws_id = 0;
+
+		static int ssu_tool_guide_distanceLine_id = 0, ssu_tool_guide_distanceLineText_id = 0;
+		static int ssu_tool_guide_angle_id = 0, ssu_tool_guide_angleText_id2 = 0;
+
 
 		glm::fvec3 sstool_p1_ws = ginfo.pos_probe_pin;
 		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
 		glm::fvec3 sstool_dir = ginfo.dir_probe_se;
 
-		glm::fmat4 mat_os2ws = glm::inverse(ginfo.mat_ws2matchmodelfrm) * ginfo.mat_os2matchmodefrm;	// !!!
-		// g_info.otrk_data.trk_info.GetLFrmInfo(name, mat_matchmodelfrm2ws);로 변경
-		glm::fmat4 mat_ws2os = glm::inverse(mat_os2ws);
-		glm::fvec3 sstool_p1_os = tr_pt(mat_ws2os, sstool_p1_ws);
-		glm::fvec3 sstool_p2_os = tr_pt(mat_ws2os, sstool_p2_ws);
+		glm::fvec3 ssguide_p1_ws = guide_lines[0];
+		glm::fvec3 ssguide_p2_ws = guide_lines[1] * 0.2f;
+		glm::fvec3 ssguide_dir = guide_lines[1];
 
-		glm::fvec3 ssguide_p1_ws;
+		float fGuideAngle = glm::acos(glm::dot(sstool_dir, ssguide_dir)) * 180 / 3.141592;
+		float fGuideDist = glm::distance(ssguide_p1_ws, sstool_p1_ws);
 
-		// world scene, realsense scene
-		vzm::ObjStates ws_states;
+		glm::fvec3 tool_tip_ws = sstool_p1_ws;
+		glm::fvec3 tool_dir_ws = sstool_dir;
+		glm::fvec3 tool_right_ws = glm::normalize(glm::cross(tool_dir_ws, glm::fvec3(0, 1, 0)));
+		glm::fvec3 tool_up_ws = glm::normalize(glm::cross(tool_right_ws, tool_dir_ws));
+		glm::fvec3 tip2GuideEntry = ssguide_p2_ws - sstool_p1_ws;
+		glm::fvec3 tip2GuideEnd = ssguide_p1_ws - sstool_p1_ws;
+		glm::fvec3 guide_entry_ws = ssguide_p2_ws;
+		glm::fvec3 guide_dir_ws = ssguide_dir;
 
+		// draw direction line  ///////////////////////////////////////////////////////////////
+		vzm::ObjStates distanceLineState, distanceArrowState;
 
+		float dist_r = glm::dot(tip2GuideEntry, tool_right_ws);
+		float dist_u = glm::dot(tip2GuideEntry, tool_up_ws);
+		float dist_v = glm::dot(tip2GuideEnd, tool_dir_ws);
 
-		glm::fvec3 tempP = ssguide_p1_ws + ssguide_dir * 1000.0f;
-		glm::fvec3 guide_p[2] = { ssguide_p1_ws, tempP };
-		glm::fvec3 guide_c[2] = { glm::fvec3(1,0,0), glm::fvec3(0,0,0) };
-		vzm::GenerateLinesObject((float*)guide_p, (float*)guide_c, 1, ssu_tool_guide_line_ws_id);
-		ws_states.line_thickness = 5;
+		std::vector<glm::fvec3> pos_lines(4), clr_lines(4);
+		pos_lines[0] = tool_tip_ws; // r
+		pos_lines[1] = dist_r * tool_right_ws + tool_tip_ws;
+		pos_lines[2] = tool_tip_ws; // u
+		pos_lines[3] = dist_u * tool_up_ws + tool_tip_ws;
+		clr_lines[0] = clr_lines[1] = clr_lines[2] = clr_lines[3] = glm::fvec3(1.0, 1.0, 1.0);
 
-		vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-		SetDashEffectInRendering(ginfo.ws_scene_id, 1, ssu_tool_guide_line_ws_id, 0.01, false);
+		glm::fvec4 color = glm::fvec4(1, 0.5, 1, 0.5);
+		__cm4__ distanceArrowState.os2ws = glm::fmat4(1.f);
+		__cv4__ distanceArrowState.color = color;
+		vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[1], 0.001f, ssu_tool_guide_distance_arrow1_id);
+		vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[3], 0.001f, ssu_tool_guide_distance_arrow2_id);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
 
-		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-		SetDashEffectInRendering(ginfo.rs_scene_id, 1, ssu_tool_guide_line_ws_id, 0.01, false);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
 
-		// distance line, angle /////////////////////////////////////////////////////////
-		// distance line
-		glm::fvec3 closetPoint;
-		ComputeClosestPointBetweenLineAndPoint(ssguide_p1_ws, ssguide_dir_norm, sstool_p1_ws, closetPoint);
-		MakeDistanceLine(ginfo.rs_scene_id, sstool_p1_ws, closetPoint, 0.05, ssu_tool_guide_distanceLine_id, ssu_tool_guide_distanceLineText_id);
+		string dist_str = std::to_string((int)(fGuideDist * 1000));
+		auto MakeDistTextWidget = [&dist_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
+			vector<glm::fvec3> text_xyzlt_view_up(3);
+			text_xyzlt_view_up[0] = pos_lt;
+			text_xyzlt_view_up[1] = __cv3__ cam_param.view;
+			text_xyzlt_view_up[2] = __cv3__ cam_param.up;
+			vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, size_font, true, false, text_id);
+		};
 
-		vzm::ObjStates ws_distanceLine_states;
-		ws_distanceLine_states = ws_states;
+		float right_offset = -0.03f;
+		vzm::CameraParameters zoom_cam_params;
 
-		vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, ssu_tool_guide_distanceLine_id, ws_states);
-		SetDashEffectInRendering(ginfo.ws_scene_id, 1, ssu_tool_guide_distanceLine_id, 0.01, true);
+		vzm::GetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);			// copy
+		MakeDistTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_distance_text_id);
 
-		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ssu_tool_guide_distanceLine_id, ws_states);
-		SetDashEffectInRendering(ginfo.rs_scene_id, 1, ssu_tool_guide_distanceLine_id, 0.01, true);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
-		// angle
-		MakeAngle(ginfo.rs_scene_id, sstool_dir_norm, ssguide_dir_norm, closetPoint, 0.05, 0.1, ssu_tool_guide_angle_id, ssu_tool_guide_angleText_id2);
-		vzm::ObjStates angle_obj_states = ws_states;
-		angle_obj_states.color[3] = 0.5f;
-		vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, ssu_tool_guide_angle_id, ws_states);
-		vzm::ReplaceOrAddSceneObject(ginfo.ws_scene_id, ssu_tool_guide_angleText_id2, ws_states);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_id, distanceLineState);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_text_id, distanceLineState);
 
-		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ssu_tool_guide_angle_id, ws_states);
-		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ssu_tool_guide_angleText_id2, ws_states);
+		// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
+		vzm::ObjStates angleArrowState, angleTextState;
 
+		string angle_str = std::to_string((int)fGuideAngle) + "˚";
 
-		// smartglass scene //
-		vzm::ObjStates stg_states;
-		stg_states = ws_states;
-		stg_states.color[3] = 1;
-		vzm::ReplaceOrAddSceneObject(ginfo.stg_scene_id, ssu_tool_guide_line_ws_id, stg_states);
+		auto MakeAngleTextWidget = [&angle_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
+			vector<glm::fvec3> text_xyzlt_view_up(3);
+			text_xyzlt_view_up[0] = pos_lt;
+			text_xyzlt_view_up[1] = __cv3__ cam_param.view;
+			text_xyzlt_view_up[2] = __cv3__ cam_param.up;
+			vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
+		};
 
-		// zoom scene //
-		{
-			// cylinder
-			if (true) {
-				glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
-				glm::fvec3 cyl_p[2] = { ssguide_p1_ws, ssguide_p2_ws };
-				float cyl_r = 0.0015f;
+		// Text			
+		right_offset = -0.02f;
+		MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
+		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleText_id, angleTextState);
+	}
+}
+void UpdateSectionalImage(GlobalInfo& ginfo)
+{
+	if (ginfo.is_modelaligned) {
+		vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(ginfo.pos_probe_pin), sizeof(glm::dvec3), -1, -1);
 
-				vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_cylline_ws_id);
+		glm::fvec3 dir_probe = glm::normalize(tr_vec(ginfo.mat_probe2ws, glm::fvec3(0, 0, 1)));
+		var_settings::SetSectionalImageAssets(true, __FP ginfo.pos_probe_pin, __FP(ginfo.pos_probe_pin + dir_probe * 0.2f));
+	}
+	else {
+		glm::fvec3 sstool_p1_ws = ginfo.pos_probe_pin;
+		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
+		glm::fvec3 sstool_dir = ginfo.dir_probe_se;
 
-				ws_states.color[3] = 0.2;
-				vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_cylline_ws_id, ws_states);
-				ws_states.color[3] = 0.8;
-				vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_cylline_ws_id, ws_states);
-			}
-			else {
-				// line
-				ws_states.color[3] = 0.2;
-				vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_ws_id, ws_states);
-				ws_states.color[3] = 0.8;
-				vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_line_ws_id, ws_states);
-			}
-		}
+		glm::fvec3 ssguide_p1_ws = guide_lines[0];
+		glm::fvec3 ssguide_p2_ws = guide_lines[1] * 0.2f;
+		glm::fvec3 ssguide_dir = guide_lines[1];
+
+		vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
+		var_settings::SetSectionalImageAssets(true, __FP sstool_p1_ws, __FP(sstool_p1_ws + ssguide_dir * 0.2f));
 	}
 }
 
@@ -555,11 +591,9 @@ int main()
 				glm::fmat4x4 mat_lfrm2ws;
 				bool is_detected = optitrk::GetRigidBodyLocationByName(_rb_names[i], (float*)&mat_lfrm2ws);
 				cur_trk_info.SetLFrmInfo(_rb_names[i], is_detected, mat_lfrm2ws);
-				if(_rb_names[i] =="ss_head")
+				if (_rb_names[i] == "ss_head")
 					cur_trk_info.SetLFrmInfo(_rb_names[i], true, glm::fmat4x4());
 			}
-
-			//cout << cur_is_rsrb_detected << ", " << cur_is_probe_detected << endl;
 
 			optitrk::GetMarkersLocation(&cur_trk_info.mk_xyz_list, &cur_trk_info.mk_residue_list, &cur_trk_info.mk_cid_list);
 			cur_trk_info.is_updated = true;
@@ -605,7 +639,7 @@ int main()
 			}
 		}
 	});
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// params for the main thread
 	int key_pressed = -1;
@@ -659,6 +693,12 @@ int main()
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.ventricle_ws_obj_id);
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.model_ws_obj_id);
 
+	std::string probe_name = "probe";
+	PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
+	int line_guide_idx = 0;
+
+	//optitrk::SetCameraSettings(0, 2, 50, 150);
+	//optitrk::SetCameraSettings(1, 2, 50, 150);
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
@@ -679,22 +719,22 @@ int main()
 		bool recompile_hlsl = false;
 		switch (key_pressed) // http://www.asciitable.com/
 		{
-		case '[': postpone = max(postpone - 1, 0); std::cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
-		case ']': postpone += 1; std::cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
-		case 'r': recompile_hlsl = true; std::cout << "Recompile Shader!" << endl; break;
-		case 'l': load_calib_info = true; break;
-		case 'g': load_stg_calib_info = true; break;
-		case 'v': show_calib_frames = !show_calib_frames; break;
-		case 'p': show_pc = !show_pc; break;
-		case 'e': show_apis_console = !show_apis_console; break;
-		case 'm': show_mks = !show_mks; break;
-		case 's': show_csection = !show_csection; break;
-		case 'x': reset_calib = true; break;
-		case 'd': record_info = !record_info; break;
-		case 'w': write_recoded_info = true; break;
-		case 'f': show_workload = !show_workload; break;
-		case 'c': is_ws_pick = !is_ws_pick; break;
-		case 'o': vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1); break;
+			case '[': postpone = max(postpone - 1, 0); std::cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
+			case ']': postpone += 1; std::cout << "delay of IR tracker : " << postpone << "ms" << endl; break;
+			case 'r': recompile_hlsl = true; std::cout << "Recompile Shader!" << endl; break;
+			case 'l': load_calib_info = true; break;
+			case 'g': load_stg_calib_info = true; break;
+			case 'v': show_calib_frames = !show_calib_frames; break;
+			case 'p': show_pc = !show_pc; break;
+			case 'e': show_apis_console = !show_apis_console; break;
+			case 'm': show_mks = !show_mks; break;
+			case 's': show_csection = !show_csection; break;
+			case 'x': reset_calib = true; break;
+			case 'd': record_info = !record_info; break;
+			case 'w': write_recoded_info = true; break;
+			case 'f': show_workload = !show_workload; break;
+			case 'c': is_ws_pick = !is_ws_pick; break;
+			case 'o': vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1); break;
 		}
 		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", show_apis_console, sizeof(bool), -1, -1);
@@ -742,110 +782,16 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("ss_head"); // "breastbody"
+			var_settings::SetTargetModelAssets("ss_head", __FP guide_lines[0], guide_lines.size() / 2, line_guide_idx);
 
 			// SS tool custom vis.
-			{
-				// Update & Render ////////////////////////////////////////////////////////////////
-				UpdateModel(ginfo, s, show_mks);							// Skin(head), Brain, Ventricle
-				UpdateTool(ginfo, trk_info, probe_name, probe_mode, s);
-				UpdateGuide(ginfo);
-				
-						
+			UpdateModel(ginfo, s, show_mks);							// Skin(head), Brain, Ventricle
+			UpdateTool(ginfo, trk_info, probe_name, probe_mode, s);
+			UpdateGuide(ginfo);
+			UpdateZoomNavigation(ginfo);
+			UpdateSectionalImage(ginfo);
 
-						// navigation (zoom scene) //
-						float fGuideAngle = glm::acos(glm::dot(sstool_dir_norm, ssguide_dir_norm)) * 180 / 3.141592;
-						float fGuideDist = glm::distance(ssguide_p1_ws, sstool_p1_ws);
-
-						if (show_guide_view) {
-							glm::fvec3 tool_tip_ws = sstool_p1_ws;
-							glm::fvec3 tool_dir_ws = sstool_dir;
-							glm::fvec3 tool_right_ws = glm::normalize(glm::cross(tool_dir_ws, glm::fvec3(0, 1, 0)));
-							glm::fvec3 tool_up_ws = glm::normalize(glm::cross(tool_right_ws, tool_dir_ws));
-							glm::fvec3 tip2GuideEntry = ssguide_p2_ws - sstool_p1_ws;
-							glm::fvec3 tip2GuideEnd = ssguide_p1_ws - sstool_p1_ws;
-							glm::fvec3 guide_entry_ws = ssguide_p2_ws;
-							glm::fvec3 guide_dir_ws = ssguide_dir;
-
-							// draw direction line  ///////////////////////////////////////////////////////////////
-							vzm::ObjStates distanceLineState, distanceArrowState;
-
-							float dist_r = glm::dot(tip2GuideEntry, tool_right_ws);
-							float dist_u = glm::dot(tip2GuideEntry, tool_up_ws);
-							float dist_v = glm::dot(tip2GuideEnd, tool_dir_ws);
-
-							std::vector<glm::fvec3> pos_lines(4), clr_lines(4);
-							pos_lines[0] = tool_tip_ws; // r
-							pos_lines[1] = dist_r * tool_right_ws + tool_tip_ws;
-							pos_lines[2] = tool_tip_ws; // u
-							pos_lines[3] = dist_u * tool_up_ws + tool_tip_ws;
-							clr_lines[0] = clr_lines[1] = clr_lines[2] = clr_lines[3] = glm::fvec3(1.0, 1.0, 1.0);
-
-							glm::fvec4 color = glm::fvec4(1, 0.5, 1, 0.5);
-							__cm4__ distanceArrowState.os2ws = glm::fmat4(1.f);
-							__cv4__ distanceArrowState.color = color;
-							vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[1], 0.001f, ssu_tool_guide_distance_arrow1_id);
-							vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[3], 0.001f, ssu_tool_guide_distance_arrow2_id);
-							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
-							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
-
-							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
-							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
-
-
-							string dist_str = std::to_string((int)(fGuideDist * 1000));
-							auto MakeDistTextWidget = [&dist_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
-								vector<glm::fvec3> text_xyzlt_view_up(3);
-								text_xyzlt_view_up[0] = pos_lt;
-								text_xyzlt_view_up[1] = __cv3__ cam_param.view;
-								text_xyzlt_view_up[2] = __cv3__ cam_param.up;
-								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, size_font, true, false, text_id);
-							};
-
-							float right_offset = -0.03f;
-							vzm::CameraParameters zoom_cam_params;
-
-							vzm::GetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);			// copy
-							MakeDistTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_distance_text_id);
-
-							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
-							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
-
-							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_id, distanceLineState);
-							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_text_id, distanceLineState);
-
-							// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
-							vzm::ObjStates angleArrowState, angleTextState;
-
-							string angle_str = std::to_string((int)fGuideAngle) + "˚";
-
-							auto MakeAngleTextWidget = [&angle_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
-								vector<glm::fvec3> text_xyzlt_view_up(3);
-								text_xyzlt_view_up[0] = pos_lt;
-								text_xyzlt_view_up[1] = __cv3__ cam_param.view;
-								text_xyzlt_view_up[2] = __cv3__ cam_param.up;
-								vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
-							};
-
-							// Text			
-							right_offset = -0.02f;
-							MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
-							vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
-							vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleText_id, angleTextState);
-						}
-					}
-				}
-				else if (ginfo.is_modelaligned)
-				{
-					vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(ginfo.pos_probe_pin), sizeof(glm::dvec3), -1, -1);
-
-					glm::fvec3 dir_probe = glm::normalize(tr_vec(ginfo.mat_probe2ws, glm::fvec3(0, 0, 1)));
-					var_settings::SetSectionalImageAssets(true, __FP ginfo.pos_probe_pin, __FP (ginfo.pos_probe_pin + dir_probe * 0.2f));
-				}
-			}
-
-			// dojo sample
-			if(ginfo.is_modelaligned) {
+			if (ginfo.is_modelaligned) {
 				var_settings::RenderAndShowWindows(show_workload, image_rs_bgr, true);
 				vzm::RenderScene(zoom_scene_id, zoom_cam_id);
 				vzm::RenderScene(zoom_scene_stg_id, zoom_cam_stg_id);
@@ -857,7 +803,7 @@ int main()
 				bool bZoomBuffer = vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba_zv, &ptr_zdepth_zv, &w_zv, &h_zv, zoom_cam_id);
 				bool bZoomBuffer_stg = vzm::GetRenderBufferPtrs(zoom_scene_stg_id, &ptr_rgba_zv_stg, &ptr_zdepth_zv_stg, &w_zv_stg, &h_zv_stg, zoom_cam_stg_id);
 
-				if(bZoomBuffer)
+				if (bZoomBuffer)
 				{
 					// realsense
 					unsigned char* rs_buffer = image_rs_bgr.data;		// 3 channels bgr
@@ -865,11 +811,11 @@ int main()
 					int nChan_rs = 3;
 					int nLeftTopX_rs = 30;
 					int nLeftTopY_rs = 170;
-					
+
 					for (int y = 0; y < zoom_h; y++) {
 						for (int x = 0; x < zoom_w; x++) {
-							int idx_zv = nChan_zs *zoom_w*y + nChan_zs *x;
-							int idx_rs = nChan_rs *rs_w*(y+nLeftTopY_rs) + nChan_rs*(x+nLeftTopX_rs);
+							int idx_zv = nChan_zs * zoom_w*y + nChan_zs * x;
+							int idx_rs = nChan_rs * rs_w*(y + nLeftTopY_rs) + nChan_rs * (x + nLeftTopX_rs);
 
 							rs_buffer[idx_rs + 0] = ptr_rgba_zv[idx_zv + 0];
 							rs_buffer[idx_rs + 1] = ptr_rgba_zv[idx_zv + 1];
@@ -920,26 +866,12 @@ int main()
 
 			Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 
-			/*
-			{
-				unsigned char* ptr_rgba;
-				float* ptr_zdepth;
-				int _stg_w, _stg_h;
-				if (vzm::GetRenderBufferPtrs(zoom_scene_id, &ptr_rgba, &ptr_zdepth, &_stg_w, &_stg_h, zoom_cam_id))
-				{
-					cv::Mat img_stg_mirror(Size(_stg_w, _stg_h), CV_8UC4, ptr_rgba);
-					imshow("zs_mirror", img_stg_mirror);
-				}
-			}
-			*/
+			int model_cam_id = var_settings::GetCameraID_SSU(ginfo.model_scene_id);
+			Show_Window(ginfo.window_name_ms_view, ginfo.model_scene_id, model_cam_id);
 
-			int model_cam_id = var_settings::GetCameraID_SSU(g_info.model_scene_id);
-			Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
-
-			//DisplayTimes(frq_begin, "");
 		}
 
-#ifdef EYE_VIS_RS
+		#ifdef EYE_VIS_RS
 		rs2::frameset eye_current_frameset;
 		eye_data.poll_for_frame(&eye_current_frameset);
 		if (eye_current_frameset)
@@ -954,7 +886,7 @@ int main()
 			cvtColor(eye_image_rs, eye_imagebgr, COLOR_BGR2RGB);
 			imshow(window_name_eye_view, eye_imagebgr);
 		}
-#endif
+		#endif
 		key_pressed = cv::waitKey(1);
 	}
 
@@ -976,4 +908,5 @@ int main()
 	s.destroySimulation();
 
 	return 0;
+
 }
