@@ -149,10 +149,6 @@ int main()
 	var_settings::SetCvWindows();
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
 
-	std::vector<int> guide_line_ids;
-	std::vector<glm::fvec3> guide_lines;
-	loadScrewTest2(var_settings::GetDefaultFilePath() + "..\\Data\\breast\\chest_pins.txt", var_settings::GetDefaultFilePath() + "..\\Data\\breast\\tumor_pos.stl", guide_line_ids, guide_lines);
-
 	//optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
 	//optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
 	//optitrk::SetRigidBodyPropertyByName("ss_tool_v2", 0.1f, 1);
@@ -201,6 +197,12 @@ int main()
 	GlobalInfo* _ginfo;
 	var_settings::GetVarInfoPtr((void**)&_ginfo);
 	GlobalInfo& ginfo = *_ginfo;
+
+	std::vector<int> guide_line_ids;
+	std::vector<glm::fvec3> guide_lines;
+	loadScrewTest2(var_settings::GetDefaultFilePath() + "..\\Data\\breast\\chest_pins.txt", var_settings::GetDefaultFilePath() + "..\\Data\\breast\\tumor_pos.stl", guide_line_ids, guide_lines);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
 
 	// params for the main thread
 	int key_pressed = -1;
@@ -254,14 +256,11 @@ int main()
 	std::string probe_name = "probe";
 	PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
 
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, breast_bone_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
-		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
-		//vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
-		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
-		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, breast_bone_id);
-		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
-
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
 		bool reset_calib = false;
 		bool write_recoded_info = false;
@@ -333,7 +332,7 @@ int main()
 			Mat image_rs(Size(rs_w, rs_h), CV_8UC3, (void*)current_color_frame.get_data(), Mat::AUTO_STEP), image_rs_bgr;
 			cvtColor(image_rs, image_rs_bgr, COLOR_BGR2RGB);
 
-			var_settings::SetTcCalibMkPoints(is_ws_pick);
+			var_settings::SetTcCalibMkPoints();
 			var_settings::SetMkSpheres(show_mks, is_ws_pick);
 
 			var_settings::TryCalibrationTC(image_rs_bgr);
@@ -348,8 +347,7 @@ int main()
 
 			SetCustomTools(ginfo.dst_tool_name, ONLY_RBFRAME, ginfo, glm::fvec3(1, 1, 0), operation_step >= 7);
 
-			vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(ginfo.pos_probe_pin), sizeof(glm::dvec3), -1, -1);
-			var_settings::SetSectionalImageAssets(true, __FP ginfo.pos_probe_pin, __FP(ginfo.pos_probe_pin + ginfo.dir_probe_se * 0.2f));
+			var_settings::SetSectionalImageAssets(ginfo.is_modelaligned, __FP ginfo.pos_probe_pin, __FP(ginfo.pos_probe_pin + ginfo.dir_probe_se * 0.2f));
 
 			// tumor vis.
 			{

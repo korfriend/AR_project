@@ -659,11 +659,6 @@ int main()
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.ventricle_ws_obj_id);
 	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.model_ws_obj_id);
 
-
-
-	std::string probe_name = "probe";
-	PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
-
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
@@ -736,7 +731,7 @@ int main()
 			Mat image_rs(Size(rs_w, rs_h), CV_8UC3, (void*)current_color_frame.get_data(), Mat::AUTO_STEP), image_rs_bgr;
 			cvtColor(image_rs, image_rs_bgr, COLOR_BGR2RGB);
 
-			var_settings::SetTcCalibMkPoints(is_ws_pick);
+			var_settings::SetTcCalibMkPoints();
 			var_settings::SetMkSpheres(show_mks, is_ws_pick);
 
 			var_settings::TryCalibrationTC(image_rs_bgr);
@@ -938,8 +933,8 @@ int main()
 			}
 			*/
 
-			int model_cam_id = var_settings::GetCameraID_SSU(ginfo.model_scene_id);
-			Show_Window(ginfo.window_name_ms_view, ginfo.model_scene_id, model_cam_id);
+			int model_cam_id = var_settings::GetCameraID_SSU(g_info.model_scene_id);
+			Show_Window(g_info.window_name_ms_view, g_info.model_scene_id, model_cam_id);
 
 			//DisplayTimes(frq_begin, "");
 		}

@@ -108,13 +108,6 @@ int main()
 	GlobalInfo* _ginfo;
 	var_settings::GetVarInfoPtr((void**)&_ginfo);
 	GlobalInfo& ginfo = *_ginfo;
-	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), ginfo.rs_scene_id, 1);
-	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
-	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 50, 0.5), sizeof(glm::dvec4), -1, -1);
-	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(1, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
-	vzm::SetRenderTestParam("_double_InDepthVis", 0.01, sizeof(double), -1, -1);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, ginfo.model_ws_obj_id);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), 0, 0, ginfo.brain_ws_obj_id);
 
 
 	// After initial post-processing, frames will flow into this queue:
@@ -362,7 +355,7 @@ int main()
 			Mat image_rs(Size(rs_w, rs_h), CV_8UC3, (void*)current_color_frame.get_data(), Mat::AUTO_STEP), image_rs_bgr;
 			cvtColor(image_rs, image_rs_bgr, COLOR_BGR2RGB);
 
-			var_settings::SetTcCalibMkPoints(show_mks);
+			var_settings::SetTcCalibMkPoints();
 			var_settings::SetMkSpheres(show_mks, is_ws_pick);
 
 			var_settings::TryCalibrationTC(image_rs_bgr);
@@ -375,7 +368,7 @@ int main()
 
 			var_settings::SetTargetModelAssets("spine", __FP guide_lines[0], guide_lines.size() / 2, line_guide_idx);
 
-			var_settings::SetSectionalImageAssets(false, NULL, NULL);
+			var_settings::SetSectionalImageAssets(ginfo.is_modelaligned, __FP ginfo.pos_probe_pin, __FP(ginfo.pos_probe_pin + ginfo.dir_probe_se * 0.2f));
 
 			SetCustomTools(ginfo.src_tool_name, ONLY_PIN_POS, ginfo, glm::fvec3(0, 1, 1), operation_step >= 7);
 			SetCustomTools(ginfo.dst_tool_name, operation_step == 9 ? ONLY_RBFRAME : ONLY_PIN_POS, ginfo, glm::fvec3(1, 1, 0), operation_step >= 7);

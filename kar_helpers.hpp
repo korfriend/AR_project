@@ -304,15 +304,13 @@ struct OpttrkData
 {
 	track_info trk_info; // available when USE_OPTITRACK
 	vzm::ObjStates obj_state;
-	int cb_spheres_id;
 	vector<int> armk_text_ids;
-	int mks_spheres_id;
 	int rs_lf_axis_id, probe_lf_axis_id; // lf means local frame
 	vector<pair<Point2f, Point3f>> tc_calib_pt_pairs;
 	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs;
 	vector<pair<Point2f, Point3f>> stg_calib_pt_pairs_2;
 	bitset<128> stg_calib_mk_cid;
-	vector<int> calib_trial_rs_cam_frame_ids;
+	vector<int> calib_trial_rs_cam_frame_ids; // deprecated!!
 	vector<int> mk_pickable_sphere_ids;
 
 	map<string, vector<Point3f>> custom_pos_map;
@@ -323,8 +321,6 @@ struct OpttrkData
 	{
 		marker_rb_name = "";
 		stg_calib_mk_cid = 0;
-		cb_spheres_id = 0;
-		mks_spheres_id = 0;
 		rs_lf_axis_id = probe_lf_axis_id = 0;
 		obj_state.emission = 0.4f;
 		obj_state.diffusion = 0.6f;
@@ -376,6 +372,8 @@ struct ButtonState
 
 struct GlobalInfo
 {
+	int scenario;
+
 	map<int, glm::fvec3> vzmobjid2pos;
 
 	RsTouchMode touch_mode;
@@ -392,7 +390,7 @@ struct GlobalInfo
 	glm::fmat4x4 mat_probe2ws;
 	string src_tool_name;
 	string dst_tool_name;
-
+	
 	// model related
 	bool is_modelaligned;
 	int model_ms_obj_id;
@@ -406,7 +404,8 @@ struct GlobalInfo
 	int rs_pc_id;
 
 	vector<glm::fvec3> model_ms_pick_pts;
-	vector<glm::fvec3> model_ws_pick_pts;
+	vector<glm::fvec3> model_rbs_pick_pts;
+	std::string match_model_rbs_name;
 	int model_ws_pick_spheres_id;
 	int model_ms_pick_spheres_id;
 
@@ -419,6 +418,7 @@ struct GlobalInfo
 	int stg_w, stg_h;
 	int eye_w, eye_h;
 	int ws_w, ws_h;
+	int ms_w, ms_h;
 
 	// scene definition
 	int ws_scene_id; // arbitrary integer
@@ -473,6 +473,8 @@ struct GlobalInfo
 		brain_ws_obj_id = 0;
 		ventricle_ms_obj_id = 0;
 		ventricle_ws_obj_id = 0;
+
+		scenario = 0;
 	}
 };
 
@@ -1113,7 +1115,7 @@ void Show_Window(const std::string& title, const int scene_id, const int cam_id,
 		cv::Mat cvmat(h, w, CV_8UC4, ptr_rgba);
 		//show the image
 		if(ptext)
-			cv::putText(cvmat, *ptext, cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 185, 255));
+			cv::putText(cvmat, *ptext, cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 185, 255), 1, LineTypes::LINE_AA);
 
 		cv::imshow(title, cvmat);
 	}
@@ -1127,6 +1129,33 @@ void Show_Window(const std::string& title, const int scene_id, const int cam_id)
 void Show_Window_with_Texts(const std::string& title, const int scene_id, const int cam_id, const std::string& text)
 {
 	Show_Window(title, scene_id, cam_id, &text);
+}
+
+void Show_Window_with_Info(const std::string& title, const int scene_id, const int cam_id, const GlobalInfo& ginfo)
+{
+	vzm::RenderScene(scene_id, cam_id);
+	unsigned char* ptr_rgba;
+	float* ptr_zdepth;
+	int w, h;
+	if (vzm::GetRenderBufferPtrs(scene_id, &ptr_rgba, &ptr_zdepth, &w, &h, cam_id))
+	{
+		cv::Mat cvmat(h, w, CV_8UC4, ptr_rgba);
+		//show the image
+		if (title == "Model VIEW")
+		{
+			cv::putText(cvmat, "Point : " + to_string((int)ginfo.model_ms_pick_pts.size()), cv::Point(3, 30), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255, 185, 255), 2, LineTypes::LINE_AA);
+			
+			glm::fmat4x4 mat_ws2ss;
+			vzm::GetCamProjMatrix(scene_id, cam_id, __FP mat_ws2ss);
+			for (int i = 0; i < (int)ginfo.model_ms_pick_pts.size(); i++)
+			{
+				glm::fvec3 pos_ss = tr_pt(mat_ws2ss, ginfo.model_ms_pick_pts[i]);
+				cv::putText(cvmat, to_string(i), cv::Point(pos_ss.x, pos_ss.y), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(30, 10, 255), 1, LineTypes::LINE_AA);
+			}
+		}
+
+		cv::imshow(title, cvmat);
+	}
 }
 
 int GL_CLR_CHANNELS = 4;
@@ -1182,11 +1211,17 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 		}
 };
 
-void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned char* data_render_bf, int w_bf, int h_bf, int offset_x, int offset_y, bool v_flib)
+void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned char* data_render_bf, int w_bf, int h_bf, int offset_x, int offset_y, bool v_flib, bool smooth_mask)
 {
+	auto alpha_mask = [](float r) -> float
+	{
+		const float _a = 0.7;
+		return 1.f;// min(max(atan(_a * (r - 10.f)) + atan(_a * 10.f) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f);
+	};
 	// cpu mem ==> dataPtr
 	int width_uibuf_pitch = w * 3;
 	int width_fbbuf_pitch = w_bf * GL_CLR_CHANNELS;
+	glm::fvec2 _c = glm::fvec2(w_bf * 0.5, h_bf * 0.5);
 #pragma omp parallel for 
 	for (int i = 0; i < h_bf; i++)
 		for (int j = 0; j < w_bf; j++)
@@ -1219,7 +1254,7 @@ void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned ch
 				unsigned char _g = (rgb >> 8) & 0xFF;
 				unsigned char _b = (rgb >> 16) & 0xFF;
 
-				float fa = (float)a / 255.f;
+				float fa = (float)a / 255.f * alpha_mask(glm::length(_c - glm::fvec2(j, i)));
 				float fr = (1.f - fa) * (float)_r + (float)r * fa;
 				float fg = (1.f - fa) * (float)_g + (float)g * fa;
 				float fb = (1.f - fa) * (float)_b + (float)b * fa;
@@ -1256,7 +1291,6 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 		points_buf_3d_clf.push_back(std::get<1>(_pair));
 	}
 
-
 	int num_incoming_pts = (int)points_3dws.size();
 	for (int i = 0; i < num_incoming_pts; i++)
 	{
@@ -1265,11 +1299,20 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 
 		points_buf_2d.push_back(p2d);
 		points_buf_3d_clf.push_back(p3d);
-		pair_pts.push_back(PAIR_MAKE(p2d, p3d));
 	}
 
 	if (num_samples) *num_samples = points_buf_2d.size();
-	if (pair_pts.size() < 12) return false;
+	if (points_buf_2d.size() < 12)
+	{
+		for (int i = 0; i < (int)points_buf_2d.size(); i++)
+		{
+			Point2f p2d = *(Point2f*)&points_buf_2d[i];
+			Point3f p3d = *(Point3f*)&points_buf_3d_clf[i];
+
+			pair_pts.push_back(PAIR_MAKE(p2d, p3d));
+		}
+		return false;
+	}
 
 	Mat cam_mat = cv::Mat::zeros(3, 3, CV_64FC1); // intrinsic camera parameters
 	cam_mat.at<double>(0, 0) = fx;       //      [ fx   0  cx ]
@@ -1284,7 +1327,39 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
 	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
 	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
-	//cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, 5, 1.f, 0.98, noArray(), SOLVEPNP_DLS);
+
+#define ERR_REPROJ_MAX 2
+
+	Mat inliers_ids;
+	if (pair_pts.size() > 20)
+	{
+		cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, 5, 3.f, 0.8, inliers_ids, SOLVEPNP_ITERATIVE);
+		cout << "# of inliers : " << inliers_ids.rows << endl;
+		if (inliers_ids.rows > 0)
+		{
+			vector<Point3f> points_buf_3d_clf_tmp = points_buf_3d_clf;
+			vector<Point2f> points_buf_2d_tmp = points_buf_2d;
+			points_buf_3d_clf.clear();
+			points_buf_2d.clear();
+			for (int i = 0; i < inliers_ids.rows; i++)
+			{
+				int index = inliers_ids.at<int>(i, 0);
+				//cout << i << ",";
+				points_buf_3d_clf.push_back(points_buf_3d_clf_tmp[index]);
+				points_buf_2d.push_back(points_buf_2d_tmp[index]);
+			}
+			//cout << endl;
+		}
+	}
+
+	pair_pts.clear();
+	for (int i = 0; i < (int)points_buf_2d.size(); i++)
+	{
+		Point2f p2d = *(Point2f*)&points_buf_2d[i];
+		Point3f p3d = *(Point3f*)&points_buf_3d_clf[i];
+
+		pair_pts.push_back(PAIR_MAKE(p2d, p3d));
+	}
 
 	//cv::calibrateCamera(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), Size(img_w, img_h), cam_mat, distCoeffs, rvec, tvec, 
 	//	CALIB_USE_INTRINSIC_GUESS | CALIB_FIX_PRINCIPAL_POINT | CALIB_FIX_ASPECT_RATIO | CALIB_ZERO_TANGENT_DIST | CALIB_FIX_K1 | CALIB_FIX_K2 | CALIB_FIX_K3 | CALIB_FIX_K4 | CALIB_FIX_K5 | CALIB_FIX_K6, 
@@ -1314,17 +1389,17 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 	}
 
 	// TEST //
-	if (points_buf_2d.size() > 100)
-	{
-		cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false);
-
-		vector<cv::Point2f> reprojectPoints;
-		cv::projectPoints(Mat(*(vector<Point3f>*)&points_buf_3d_clf), rvec, tvec, cam_mat, cv::noArray(), reprojectPoints);
-		float reproj_err_sum = 0.;
-		reproj_err_sum = cv::norm(Mat(reprojectPoints), Mat(*(vector<Point2f>*)&points_buf_2d)); //  default L2
-		*err = sqrt(reproj_err_sum * reproj_err_sum / points_buf_2d.size());
-		cout << "PnP Ransac reprojection error : " << *err << " pixels" << endl;
-	}
+	//if (points_buf_2d.size() > 100)
+	//{
+	//	cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false);
+	//
+	//	vector<cv::Point2f> reprojectPoints;
+	//	cv::projectPoints(Mat(*(vector<Point3f>*)&points_buf_3d_clf), rvec, tvec, cam_mat, cv::noArray(), reprojectPoints);
+	//	float reproj_err_sum = 0.;
+	//	reproj_err_sum = cv::norm(Mat(reprojectPoints), Mat(*(vector<Point2f>*)&points_buf_2d)); //  default L2
+	//	*err = sqrt(reproj_err_sum * reproj_err_sum / points_buf_2d.size());
+	//	cout << "PnP Ransac reprojection error : " << *err << " pixels" << endl;
+	//}
 
 	return true;
 };
@@ -1422,8 +1497,8 @@ void Draw_TouchButtons(cv::Mat img, const std::map<RsTouchMode, ButtonState>& bu
 			Scalar bg = Scalar(150, 150, 150);
 			if (it->first == touch_mode) bg = btn.activated_bg;
 			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), bg, -1);
-			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), Scalar(0, 0, 0), 1);
-			putText(img(btn.rect), btn.name, Point(btn.rect.width*0.1, btn.rect.height*0.4), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0));
+			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), Scalar(0, 0, 0), 1, LineTypes::LINE_AA);
+			putText(img(btn.rect), btn.name, Point(btn.rect.width*0.1, btn.rect.height*0.4), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0), 1, LineTypes::LINE_AA);
 		}
 	}
 }
