@@ -2226,7 +2226,7 @@ namespace var_settings
 					{
 						cv::Mat cs_cvmat(ms_h, ms_w, CV_8UC4, ms_ptr_rgba);
 
-						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, ms_ptr_rgba, ms_w, ms_h, 10, 100, false, true);
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, ms_ptr_rgba, ms_w, ms_h, 10, 100, false, true, 0.2f, 50.f, false);
 					}
 				}
 #ifdef SHOW_RS_VIEW
@@ -2244,10 +2244,10 @@ namespace var_settings
 						cv::Mat cs_cvmat(cs_h, cs_w, CV_8UC4, cs_ptr_rgba);
 						cv::line(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), cv::Point(cs_w / 2, 0), cv::Scalar(255, 255, 0, 255), 2, 2);
 						cv::circle(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), 2, cv::Scalar(255, 0, 0, 255), 2);
+						cv::rectangle(cs_cvmat, Rect(10, 100, 10 + cs_w * (i + 1), 100 + cs_h), Scalar(200, 200, 200, 255), 1, LineTypes::LINE_AA);
 
 						// to do //
-						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, 10 + cs_w * i, 100, false, true);
-						rectangle(img_rs, Rect(0, 0, 10 + cs_w * i, 100), Scalar(200, 200, 200), 1, LineTypes::LINE_AA);
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, 10 + cs_w * i, 100, false, true, 1.f, 15.f, true);
 					}
 				}
 #endif
