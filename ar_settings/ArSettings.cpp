@@ -401,12 +401,14 @@ namespace var_settings
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points.txt";
 			//g_info.volume_model_path = "C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\head\\head.x3d";
 			g_info.volume_model_path = preset_path + "..\\Data\\head_phantom\\head_phantom.x3d";
+			g_info.model_view_preset = preset_path + "..\\Preset\\mv_preset(head).txt";
 		}
 		else if (scenario == 1)
 		{
 			g_info.model_path = preset_path + "..\\Data\\breast\\chest_front_points(nrl)_simple1.ply";
 			g_info.volume_model_path = preset_path + "..\\Data\\breast\\chest_x3d.x3d";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(breast).txt";
+			g_info.model_view_preset = preset_path + "..\\Preset\\mv_preset(breast).txt";
 		}
 		else if (scenario == 2)
 		{
@@ -416,6 +418,7 @@ namespace var_settings
 			//g_info.volume_model_path = preset_path + "..\\..\\LargeData\\201120_den\\201120_den.x3d";
 			//g_info.volume_model_path = preset_path + "..\\Data\\spine\\chest_x3d.x3d";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(spine).txt";
+			g_info.model_view_preset = preset_path + "..\\Preset\\mv_preset(spine).txt";
 			//g_info.model_predefined_pts = preset_path + "..\\..\\LargeData\\";
 		}
 

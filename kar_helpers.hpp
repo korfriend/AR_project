@@ -26,6 +26,7 @@
 #define __cv3__ *(glm::fvec3*)
 #define __cv4__ *(glm::fvec4*)
 #define __cm4__ *(glm::fmat4x4*)
+#define __PR(A, INTERVAL) A[0] << INTERVAL << A[1] << INTERVAL << A[2]
 
 using namespace std;
 using namespace cv;
@@ -446,6 +447,7 @@ struct GlobalInfo
 	string volume_model_path;
 	string model_predefined_pts;
 	string guide_path;		// 20200818 add guide path name
+	string model_view_preset;
 
 	map<string, string> custom_pos_file_paths;
 
