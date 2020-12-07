@@ -525,6 +525,8 @@ namespace var_settings
 		scn_env_params.effect_ssao.is_on_ssao = false;
 		scn_env_params.effect_ssao.kernel_r = 0.01f;
 		scn_env_params.effect_ssao.num_dirs = 16;
+		scn_env_params.is_on_camera = true;
+		scn_env_params.is_pointlight = true;
 		__cv3__ scn_env_params.pos_light = __cv3__ cam_params.pos;
 		__cv3__ scn_env_params.dir_light = __cv3__ cam_params.view;
 		vzm::SetSceneEnvParameters(g_info.ws_scene_id, scn_env_params);
@@ -590,21 +592,25 @@ namespace var_settings
 			std::vector<glm::fvec4> rgb_ctrs;
 			if (scenario == 0)
 			{
-				alpha_ctrs.push_back(glm::fvec2(0, 14000));
-				alpha_ctrs.push_back(glm::fvec2(1, 26000));
+				const int a_0 = 104;
+				const int a_1 = 1249;
+				//const int a_0 = 14000;
+				//const int a_1 = 26000;
+				alpha_ctrs.push_back(glm::fvec2(0, a_0));
+				alpha_ctrs.push_back(glm::fvec2(1, a_1));
 				alpha_ctrs.push_back(glm::fvec2(1, 65536));
 				alpha_ctrs.push_back(glm::fvec2(0, 65537));
 				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 0));
-				rgb_ctrs.push_back(glm::fvec4(0.31, 0.78, 1, 17760));
-				rgb_ctrs.push_back(glm::fvec4(1, 0.51, 0.49, 18900));
+				rgb_ctrs.push_back(glm::fvec4(0.31, 0.78, 1, a_0));
+				rgb_ctrs.push_back(glm::fvec4(1, 0.51, 0.49, a_1));
 				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 21000));
 				rgb_ctrs.push_back(glm::fvec4(1, 1, 1, 65536));
 				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id);
-				alpha_ctrs[0] = glm::fvec2(0, 14000);
-				alpha_ctrs[1] = glm::fvec2(1, 26000);
+				alpha_ctrs[0] = glm::fvec2(0, a_0);
+				alpha_ctrs[1] = glm::fvec2(1, a_1);
 				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], vr_tmap_id1);
-				alpha_ctrs[0] = glm::fvec2(0, 14000);
-				alpha_ctrs[1] = glm::fvec2(1, 26000);
+				alpha_ctrs[0] = glm::fvec2(0, a_0);
+				alpha_ctrs[1] = glm::fvec2(1, a_1);
 				rgb_ctrs[1] = glm::fvec4(1);
 				rgb_ctrs[2] = glm::fvec4(1);
 				vzm::GenerateMappingTable(65537, alpha_ctrs.size(), (float*)&alpha_ctrs[0], rgb_ctrs.size(), (float*)&rgb_ctrs[0], mpr_tmap_id);
@@ -1992,9 +1998,9 @@ namespace var_settings
 				cyl_state.is_visible = false;
 				__cv4__ cyl_state.color = glm::fvec4(0, 1, 1, 0.3);
 				static int closest_dist_line_id = 0, closest_dist_text_id = 0;
-				static int angle_id = 0, angle_text_id = 0, angle_text_id_stg = 0;
+				static int angle_id = 0, angle_text_id = 0, angle_text_id_stg = 0, angle_text_id_ws = 0;
 				int guide_objs[] = { closest_dist_line_id , closest_dist_text_id , 
-					angle_id , angle_text_id , angle_text_id_stg };
+					angle_id , angle_text_id , angle_text_id_stg, angle_text_id_ws };
 				vzm::ObjStates guide_obj_state;
 				guide_obj_state.is_visible = false;
 				for (int i = 0; i < (int)(sizeof(guide_objs) / sizeof(int)); i++)
@@ -2072,14 +2078,19 @@ namespace var_settings
 					SetDashEffectInRendering(g_info.ws_scene_id, 1, closest_dist_line_id, 0.01, true);
 
 					// show angle
-					g_info.angle = MakeAngle2(g_info.dir_probe_se, dir_guide_line, closetPoint, 0.05, 0.1, angle_id, g_info.rs_scene_id, angle_text_id, g_info.stg_scene_id, angle_text_id_stg);
+					g_info.angle = MakeAngle3(g_info.dir_probe_se, dir_guide_line, closetPoint, 0.05, 0.1, angle_id, 
+						g_info.rs_scene_id, angle_text_id, g_info.stg_scene_id, angle_text_id_stg,
+						g_info.ws_scene_id, angle_text_id_ws);
 					vzm::ObjStates angle_state, angle_text_state;
-					angle_state.color[3] = 0.5;
+					angle_state.emission = 2.f;
+					angle_state.diffusion = 0.f;
+					angle_state.specular = 0.f;
+					angle_state.color[3] = 0.8;
 					__cv4__ angle_text_state.color = glm::fvec4(1);
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, angle_id, angle_state);
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, angle_text_id_stg, angle_text_state);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_id, angle_state);
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_text_id, angle_text_state);
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_text_id_ws, angle_text_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_id, angle_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_text_id, angle_text_state);
 
@@ -2232,15 +2243,15 @@ namespace var_settings
 			using namespace glm;
 			fvec3 up = fvec3(0, 1, 0);
 			fvec3 view = -g_info.dir_probe_se;
-			fvec3 right = normalize(cross(up, view));
-			fvec3 pos_lookat = g_info.pos_probe_pin + g_info.dir_probe_se * 0.1f;
+			fvec3 left = normalize(cross(up, view));
+			fvec3 pos_lookat = g_info.pos_probe_pin;// +g_info.dir_probe_se * 0.1f;
 
 			vzm::CameraParameters cam_param;
 			vzm::GetCameraParameters(g_info.ws_scene_id, cam_param, ov_cam_id);
 
-			__cv3__ cam_param.pos = pos_lookat + right * 0.3f;
+			__cv3__ cam_param.pos = pos_lookat + left * 0.3f;
 			__cv3__ cam_param.up = up;
-			__cv3__ cam_param.view = right;
+			__cv3__ cam_param.view = -left;
 
 			vzm::SetCameraParameters(g_info.ws_scene_id, cam_param, ov_cam_id);
 		};

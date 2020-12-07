@@ -908,6 +908,63 @@ float MakeAngle2(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst
 	return angle;
 }
 
+float MakeAngle3(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length,
+	int& angle_tris_id,
+	const int scene0_id, int& angle_text0_id,
+	const int scene1_id, int& angle_text1_id,
+	const int scene2_id, int& angle_text2_id)
+{
+	//const float font_size = 30.f;
+	const int num_angle_tris = 10;
+	//const float angle_tris_length = 50.f;
+	glm::fvec3 vec_ref = glm::normalize(glm::cross(guide_dst2end_dir, tool_tip2end_dir));
+
+	float angle = glm::orientedAngle(guide_dst2end_dir, tool_tip2end_dir, vec_ref);
+	if (angle > glm::pi<float>() * 0.5f)
+	{
+		angle = glm::pi<float>() - angle;
+	}
+	//std::cout << angle << std::endl;
+	std::vector<glm::fvec3> anlge_polygon_pos(num_angle_tris + 2);
+	std::vector<glm::fvec3> anlge_polygon_clr(num_angle_tris + 2);
+	anlge_polygon_pos[0] = pos_dst_point;
+	anlge_polygon_clr[0] = glm::fvec3(1);
+	std::vector<unsigned int> idx_prims(num_angle_tris * 3);
+	for (int i = 0; i < num_angle_tris + 1; i++)
+	{
+		glm::fvec3 r_vec = glm::rotate(guide_dst2end_dir, angle / (float)num_angle_tris * (float)i, vec_ref);
+		anlge_polygon_pos[1 + i] = pos_dst_point + r_vec * angle_tris_length;
+		anlge_polygon_clr[1 + i] = glm::fvec3((float)i / (float)num_angle_tris, 0, 1.f - (float)i / (float)num_angle_tris);
+		if (i < num_angle_tris)
+		{
+			idx_prims[3 * i + 0] = 0;
+			idx_prims[3 * i + 1] = i + 1;
+			idx_prims[3 * i + 2] = i + 2;
+		}
+	}
+	//static int angle_tris_id = 0, angle_text_id = 0;
+	vzm::GeneratePrimitiveObject(__FP anlge_polygon_pos[0], NULL, __FP anlge_polygon_clr[0], NULL, num_angle_tris + 2, (unsigned int*)&idx_prims[0], num_angle_tris, 3, angle_tris_id);
+	//vzm::ObjStates obj_state_angle_tris;
+	//obj_state_angle_tris.color[3] = 0.5f;
+	//vzm::ReplaceOrAddSceneObject(0, angle_tris_id, obj_state_angle_tris);
+
+	int* ids[] = { &angle_text0_id , &angle_text1_id , &angle_text2_id };
+	int scene_ids[] = { scene0_id , scene1_id , scene2_id };
+
+	for (int i = 0; i < 3; i++)
+	{
+		vzm::CameraParameters cam_params;
+		vzm::GetCameraParameters(scene_ids[i], cam_params, 1);
+		glm::fvec3 xyz_LT_view_up[3] = { anlge_polygon_pos[1], __cv3__ cam_params.view, __cv3__ cam_params.up };
+		if (angle * 180.f / glm::pi<float>() < 0.1) angle = 0;
+		vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(angle * 180.f / glm::pi<float>(), 3) + "вк", font_size, true, false, *ids[i]);
+	}
+	//vzm::ObjStates obj_state_angle_text;
+	//vzm::ReplaceOrAddSceneObject(0, angle_text_id, obj_state_angle_text);
+
+	return angle;
+}
+
 //void MakeTrackeffect(const int track_fade_num, const glm::fvec3& pos_dst, int& track_spheres_id, std::vector<glm::fvec3>& track_points)
 void MakeTrackeffect(const int track_fade_num, const float min_move_dist, const glm::fvec3& pos_dst, int& track_spheres_id)
 {
