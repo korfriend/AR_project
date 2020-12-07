@@ -69,9 +69,6 @@ int brain_ws_obj_id = 0;
 int ventricle_ms_obj_id = 0;
 int ventricle_ws_obj_id = 0;
 
-std::vector<int> guide_line_ids;		// 추후에 global로 들어올 것
-std::vector<glm::fvec3> guide_lines;	// 추후에 global로 들어올 것
-
 void InitializeVarSettings(GlobalInfo& ginfo)
 {
 	var_settings::InitializeVarSettings(0, true, "marker");
@@ -140,41 +137,9 @@ void LoadPresets(GlobalInfo& ginfo, const std::string& probe_specifier_rb_name)
 {
 	std::string preset_path = var_settings::GetDefaultFilePath();
 	ginfo.custom_pos_file_paths[probe_specifier_rb_name] = preset_path + "..\\Preset\\ss_tool_v2_se.txt";
+	ginfo.custom_pos_file_paths["guide_lines"] = preset_path + "..\\Data\\brain_pin.txt";
 
 	var_settings::LoadPresets();
-
-
-	// guide
-	std::string guidefile = preset_path + "..\\Data\\brain_pin.txt";
-	std::ifstream infile(guidefile);
-	string line;
-	if (infile.is_open())
-	{
-		getline(infile, line);
-		std::istringstream iss_num(line);
-
-		int screwcount;
-		iss_num >> screwcount;
-
-		int _line_idx = 0;
-		while (getline(infile, line))
-		{
-			std::istringstream iss(line);
-			float a, b, c, d, e, f, g;
-			if (!(iss >> a >> b >> c >> d >> e >> f)) { break; } // error
-
-			const float line_leng = 10.f;
-			glm::fvec3 p = glm::fvec3(a, b, c);
-			glm::fvec3 dir = glm::normalize(glm::fvec3(d, e, f) - p);
-			int line_id = 0;
-			//vzm::GenerateLinesObject(__FP p, __FP (p + dir * line_leng), 1, line_id);
-			guide_line_ids.push_back(line_id);
-			guide_lines.push_back(p);
-			guide_lines.push_back(dir);
-			_line_idx++;
-		}
-		infile.close();
-	}
 }
 void DeinitializeVarSettings(GlobalInfo& ginfo)
 {
@@ -395,6 +360,46 @@ void UpdateTool(GlobalInfo& ginfo, track_info& trk_info, const std::string& prob
 		vzm::GenerateCylindersObject((float*)cyl_p03, &cyl_r, __FP cyl_rgb, 1, tool_ms_line_id);
 		vzm::ReplaceOrAddSceneObject(ginfo.model_scene_id, tool_ms_line_id, tool_line_ms_state);
 		*/
+	}
+}
+void UpdateGuide(GlobalInfo& ginfo)
+{
+	
+}
+void UpdateZoomNavigation(GlobalInfo& ginfo)
+{
+	if (ginfo.is_modelaligned) {
+		glm::fvec3 sstool_p1_ws = ginfo.pos_probe_pin;
+		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
+		glm::fvec3 sstool_dir = ginfo.dir_probe_se;
+
+		vzm::ObjStates model_ws_obj_state;
+		vzm::GetSceneObjectState(ginfo.ws_scene_id, ginfo.model_ws_obj_id, model_ws_obj_state);
+		glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
+		glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+		glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
+		tr = tr * mat_t * mat_s;
+
+		std::pair< glm::fvec3, glm::fvec3>& guide_line = ginfo.guide_lines_target_rbs[0];
+		glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
+		glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
+
+		glm::fvec3 ssguide_p1_ws = pos_guide_line;
+		glm::fvec3 ssguide_p2_ws = pos_guide_line + dir_guide_line * 0.2f;
+		glm::fvec3 ssguide_dir = dir_guide_line;
+		
+
+		float fGuideAngle = glm::acos(glm::dot(sstool_dir, ssguide_dir)) * 180 / 3.141592;
+		float fGuideDist = glm::distance(ssguide_p1_ws, sstool_p1_ws);
+
+		glm::fvec3 tool_tip_ws = sstool_p1_ws;
+		glm::fvec3 tool_dir_ws = sstool_dir;
+		glm::fvec3 tool_right_ws = glm::normalize(glm::cross(tool_dir_ws, glm::fvec3(0, 1, 0)));
+		glm::fvec3 tool_up_ws = glm::normalize(glm::cross(tool_right_ws, tool_dir_ws));
+		glm::fvec3 tip2GuideEntry = ssguide_p2_ws - sstool_p1_ws;
+		glm::fvec3 tip2GuideEnd = ssguide_p1_ws - sstool_p1_ws;
+		glm::fvec3 guide_entry_ws = ssguide_p2_ws;
+		glm::fvec3 guide_dir_ws = ssguide_dir;
 
 		// (zoom, zoom stg) camera transformation, zoom scene //////////////////////////////////////////////////////////////
 		// camera transformation
@@ -409,117 +414,167 @@ void UpdateTool(GlobalInfo& ginfo, track_info& trk_info, const std::string& prob
 		__cv3__ zoom_cam_params.up = up;
 
 		vzm::SetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);
-
-		// sphere (zs)
-		vzm::ObjStates model_states;
-		model_states.color[3] = 0.3;
-
-		vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0015f), __FP glm::fvec3(0, 1, 1), 1, tool_end_id);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_id, tool_end_id, model_states);
-
-		// zoom stg
 		vzm::SetCameraParameters(zoom_scene_stg_id, zoom_cam_params, zoom_cam_id);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, tool_end_id, model_states);
-	}
-}
-void UpdateGuide(GlobalInfo& ginfo)
-{
-	
-}
-void UpdateZoomNavigation(GlobalInfo& ginfo)
-{
-	if (ginfo.is_modelaligned) {
-		static int ssu_tool_guide_distance_id = 0, ssu_tool_guide_distance_text_id = 0;
-		static int ssu_tool_guide_distance_arrow1_id = 0, ssu_tool_guide_distance_arrow2_id = 0;
-		static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0;
+		
 
-		static int ssu_tool_guide_distanceLine_id = 0, ssu_tool_guide_distanceLineText_id = 0;
-		static int ssu_tool_guide_angle_id = 0, ssu_tool_guide_angleText_id2 = 0;
+		// draw tool /////////////////////////////////////////////////////////////////////////
+		if (true) {
+			static int ssu_tool_end_id = 0;
+			vzm::ObjStates toolEndState;
+			toolEndState.color[3] = 0.3;
 
-		glm::fvec3 sstool_p1_ws = ginfo.pos_probe_pin;
-		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
-		glm::fvec3 sstool_dir = ginfo.dir_probe_se;
+			vzm::GenerateSpheresObject(__FP glm::fvec4(sstool_p1_ws, 0.0015f), __FP glm::fvec3(0, 1, 1), 1, ssu_tool_end_id);
 
-		glm::fvec3 ssguide_p1_ws = guide_lines[0];
-		glm::fvec3 ssguide_p2_ws = guide_lines[1] * 0.2f;
-		glm::fvec3 ssguide_dir = guide_lines[1];
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_end_id, toolEndState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_end_id, toolEndState);
+		}
+		
+		// draw guide /////////////////////////////////////////////////////////////////////////
+		if (true) {
+			static int ssu_tool_guide_line_id = 0;
+			vzm::ObjStates guideLineState;
 
-		float fGuideAngle = glm::acos(glm::dot(sstool_dir, ssguide_dir)) * 180 / 3.141592;
-		float fGuideDist = glm::distance(ssguide_p1_ws, sstool_p1_ws);
+			glm::fvec3 cyl_p[2] = { ssguide_p1_ws, ssguide_p2_ws };
+			float cyl_r = 0.0015f;
+			glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 0);
 
-		glm::fvec3 tool_tip_ws = sstool_p1_ws;
-		glm::fvec3 tool_dir_ws = sstool_dir;
-		glm::fvec3 tool_right_ws = glm::normalize(glm::cross(tool_dir_ws, glm::fvec3(0, 1, 0)));
-		glm::fvec3 tool_up_ws = glm::normalize(glm::cross(tool_right_ws, tool_dir_ws));
-		glm::fvec3 tip2GuideEntry = ssguide_p2_ws - sstool_p1_ws;
-		glm::fvec3 tip2GuideEnd = ssguide_p1_ws - sstool_p1_ws;
-		glm::fvec3 guide_entry_ws = ssguide_p2_ws;
-		glm::fvec3 guide_dir_ws = ssguide_dir;
+			vzm::GenerateCylindersObject((float*)cyl_p, &cyl_r, __FP cyl_rgb, 1, ssu_tool_guide_line_id);
+			guideLineState.color[3] = 0.3;
+
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_line_id, guideLineState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_line_id, guideLineState);
+		}
 
 		// draw direction line  ///////////////////////////////////////////////////////////////
-		vzm::ObjStates distanceLineState, distanceArrowState;
+		if (true) {
+			// Compute Cloest Point
+			glm::fvec3 closetPoint;
+			ComputeClosestPointBetweenLineAndPoint(ssguide_p1_ws, ssguide_dir, sstool_p1_ws, closetPoint);
 
-		float dist_r = glm::dot(tip2GuideEntry, tool_right_ws);
-		float dist_u = glm::dot(tip2GuideEntry, tool_up_ws);
-		float dist_v = glm::dot(tip2GuideEnd, tool_dir_ws);
+			// angleArrow
+			static int ssu_tool_guide_angleArrow_id = 0;
+			vzm::ObjStates angleArrowState;
 
-		std::vector<glm::fvec3> pos_lines(4), clr_lines(4);
-		pos_lines[0] = tool_tip_ws; // r
-		pos_lines[1] = dist_r * tool_right_ws + tool_tip_ws;
-		pos_lines[2] = tool_tip_ws; // u
-		pos_lines[3] = dist_u * tool_up_ws + tool_tip_ws;
-		clr_lines[0] = clr_lines[1] = clr_lines[2] = clr_lines[3] = glm::fvec3(1.0, 1.0, 1.0);
+			glm::fvec4 color = glm::fvec4(1, 0.5, 1, 0.5);
+			__cm4__ angleArrowState.os2ws = glm::fmat4(1.f);
+			__cv4__ angleArrowState.color = color;
 
-		glm::fvec4 color = glm::fvec4(1, 0.5, 1, 0.5);
-		__cm4__ distanceArrowState.os2ws = glm::fmat4(1.f);
-		__cv4__ distanceArrowState.color = color;
-		vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[1], 0.001f, ssu_tool_guide_distance_arrow1_id);
-		vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[3], 0.001f, ssu_tool_guide_distance_arrow2_id);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
+			vzm::GenerateArrowObject((float*)&sstool_p1_ws, (float*)&closetPoint, 0.001f, ssu_tool_guide_angleArrow_id);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleArrow_id, angleArrowState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleArrow_id, angleArrowState);
 
-		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
+			// Text Dist
+			static int ssu_tool_guide_distance_text_id, ssu_tool_guide_angle_text_id;
+			vzm::ObjStates textState;
 
-		string dist_str = std::to_string((int)(fGuideDist * 1000));
-		auto MakeDistTextWidget = [&dist_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
-			vector<glm::fvec3> text_xyzlt_view_up(3);
-			text_xyzlt_view_up[0] = pos_lt;
-			text_xyzlt_view_up[1] = __cv3__ cam_param.view;
-			text_xyzlt_view_up[2] = __cv3__ cam_param.up;
-			vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, size_font, true, false, text_id);
-		};
+			vzm::CameraParameters zoom_cam_params;
+			vzm::GetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);
 
-		float right_offset = -0.03f;
-		vzm::CameraParameters zoom_cam_params;
+			float right_offset = -0.03f;
 
-		vzm::GetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);			// copy
-		MakeDistTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_distance_text_id);
+			string dist_str = std::to_string((int)(fGuideDist * 1000));
+			auto MakeDistTextWidget = [&dist_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
+				vector<glm::fvec3> text_xyzlt_view_up(3);
+				text_xyzlt_view_up[0] = pos_lt;
+				text_xyzlt_view_up[1] = __cv3__ cam_param.view;
+				text_xyzlt_view_up[2] = __cv3__ cam_param.up;
+				vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, size_font, true, false, text_id);
+			};
 
-		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
+			MakeDistTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_distance_text_id);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, textState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_text_id, textState);
 
-		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_id, distanceLineState);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_text_id, distanceLineState);
+			// Text Angle
+			string angle_str = std::to_string((int)fGuideAngle) + "˚";
 
-		// draw angle(arrow, text) ///////////////////////////////////////////////////////////////
-		vzm::ObjStates angleArrowState, angleTextState;
+			auto MakeAngleTextWidget = [&angle_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
+				vector<glm::fvec3> text_xyzlt_view_up(3);
+				text_xyzlt_view_up[0] = pos_lt;
+				text_xyzlt_view_up[1] = __cv3__ cam_param.view;
+				text_xyzlt_view_up[2] = __cv3__ cam_param.up;
+				vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
+			};
 
-		string angle_str = std::to_string((int)fGuideAngle) + "˚";
+			// Text			
+			right_offset = -0.02f;
+			MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angle_text_id);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angle_text_id, textState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angle_text_id, textState);
+		}
 
-		auto MakeAngleTextWidget = [&angle_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
-			vector<glm::fvec3> text_xyzlt_view_up(3);
-			text_xyzlt_view_up[0] = pos_lt;
-			text_xyzlt_view_up[1] = __cv3__ cam_param.view;
-			text_xyzlt_view_up[2] = __cv3__ cam_param.up;
-			vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
-		};
+		if (false) {	// 예전꺼
+			static int ssu_tool_guide_distance_id = 0, ssu_tool_guide_distance_text_id = 0;
+			static int ssu_tool_guide_distance_arrow1_id = 0, ssu_tool_guide_distance_arrow2_id = 0;
+			static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0;
 
-		// Text			
-		right_offset = -0.02f;
-		MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
-		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleText_id, angleTextState);
+			static int ssu_tool_guide_distanceLine_id = 0, ssu_tool_guide_distanceLineText_id = 0;
+			static int ssu_tool_guide_angle_id = 0, ssu_tool_guide_angleText_id2 = 0;
+
+			vzm::ObjStates distanceLineState, distanceArrowState;
+
+			float dist_r = glm::dot(tip2GuideEntry, tool_right_ws);
+			float dist_u = glm::dot(tip2GuideEntry, tool_up_ws);
+			float dist_v = glm::dot(tip2GuideEnd, tool_dir_ws);
+
+			std::vector<glm::fvec3> pos_lines(4), clr_lines(4);
+			pos_lines[0] = tool_tip_ws; // r
+			pos_lines[1] = dist_r * tool_right_ws + tool_tip_ws;
+			pos_lines[2] = tool_tip_ws; // u
+			pos_lines[3] = dist_u * tool_up_ws + tool_tip_ws;
+			clr_lines[0] = clr_lines[1] = clr_lines[2] = clr_lines[3] = glm::fvec3(1.0, 1.0, 1.0);
+
+			glm::fvec4 color = glm::fvec4(1, 0.5, 1, 0.5);
+			__cm4__ distanceArrowState.os2ws = glm::fmat4(1.f);
+			__cv4__ distanceArrowState.color = color;
+			vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[1], 0.001f, ssu_tool_guide_distance_arrow1_id);
+			vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[3], 0.001f, ssu_tool_guide_distance_arrow2_id);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
+
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
+
+			string dist_str = std::to_string((int)(fGuideDist * 1000));
+			auto MakeDistTextWidget = [&dist_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
+				vector<glm::fvec3> text_xyzlt_view_up(3);
+				text_xyzlt_view_up[0] = pos_lt;
+				text_xyzlt_view_up[1] = __cv3__ cam_param.view;
+				text_xyzlt_view_up[2] = __cv3__ cam_param.up;
+				vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], dist_str, size_font, true, false, text_id);
+			};
+
+			float right_offset = -0.03f;
+			vzm::CameraParameters zoom_cam_params;
+
+			vzm::GetCameraParameters(zoom_scene_id, zoom_cam_params, zoom_cam_id);			// copy
+			MakeDistTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_distance_text_id);
+
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_id, distanceLineState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_text_id, distanceLineState);
+
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_id, distanceLineState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_distance_text_id, distanceLineState);
+
+			// draw angle(text) ///////////////////////////////////////////////////////////////
+			vzm::ObjStates angleArrowState, angleTextState;
+
+			string angle_str = std::to_string((int)fGuideAngle) + "˚";
+
+			auto MakeAngleTextWidget = [&angle_str](const glm::fvec3 pos_lt, const vzm::CameraParameters& cam_param, const float size_font, int& text_id) {
+				vector<glm::fvec3> text_xyzlt_view_up(3);
+				text_xyzlt_view_up[0] = pos_lt;
+				text_xyzlt_view_up[1] = __cv3__ cam_param.view;
+				text_xyzlt_view_up[2] = __cv3__ cam_param.up;
+				vzm::GenerateTextObject((float*)&text_xyzlt_view_up[0], angle_str, size_font, true, false, text_id);
+			};
+
+			// Text			
+			right_offset = -0.02f;
+			MakeAngleTextWidget(tool_tip_ws + right_offset * tool_right_ws, zoom_cam_params, 0.01f, ssu_tool_guide_angleText_id);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleText_id, angleTextState);
+			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleText_id, angleTextState);
+		}
 	}
 }
 void UpdateSectionalImage(GlobalInfo& ginfo)
@@ -535,9 +590,20 @@ void UpdateSectionalImage(GlobalInfo& ginfo)
 		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
 		glm::fvec3 sstool_dir = ginfo.dir_probe_se;
 
-		glm::fvec3 ssguide_p1_ws = guide_lines[0];
-		glm::fvec3 ssguide_p2_ws = guide_lines[1] * 0.2f;
-		glm::fvec3 ssguide_dir = guide_lines[1];
+		vzm::ObjStates model_ws_obj_state;
+		vzm::GetSceneObjectState(ginfo.ws_scene_id, ginfo.model_ws_obj_id, model_ws_obj_state);
+		glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
+		glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+		glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
+		tr = tr * mat_t * mat_s;
+
+		std::pair< glm::fvec3, glm::fvec3>& guide_line = ginfo.guide_lines_target_rbs[0];
+		glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
+		glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
+
+		glm::fvec3 ssguide_p1_ws = pos_guide_line;
+		glm::fvec3 ssguide_p2_ws = pos_guide_line + dir_guide_line * 0.2f;
+		glm::fvec3 ssguide_dir = dir_guide_line;
 
 		vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
 		var_settings::SetSectionalImageAssets(true, __FP sstool_p1_ws, __FP(sstool_p1_ws + ssguide_dir * 0.2f));
@@ -813,7 +879,7 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("ss_head", __FP guide_lines[0], guide_lines.size() / 2, line_guide_idx);
+			var_settings::SetTargetModelAssets("ss_head", line_guide_idx);
 
 			// SS tool custom vis.
 			UpdateModel(ginfo, s, show_mks);							// Skin(head), Brain, Ventricle
