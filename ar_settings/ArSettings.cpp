@@ -1106,6 +1106,7 @@ namespace var_settings
 		clear_record_info();
 	}
 
+	static int probe_line_id = 0, probe_tip_id = 0;
 	void UpdateTrackInfo(const void* trk_info, const std::string& probe_specifier_rb_name, int _probe_mode)
 	{
 		PROBE_MODE probe_mode = (PROBE_MODE)_probe_mode;
@@ -1113,7 +1114,6 @@ namespace var_settings
 		is_rsrb_detected = g_info.otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_clf2ws);
 		mat_ws2clf = glm::inverse(mat_clf2ws);
 
-		static int section_probe_line_id = 0, section_probe_tip_id = 0;
 		glm::fmat4x4 mat_opti_probe2ws;
 		//bool is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo("probe", mat_opti_probe2ws);
 		bool is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, mat_opti_probe2ws);
@@ -1151,82 +1151,29 @@ namespace var_settings
 
 			glm::fvec3 cyl_p01[2] = { probe_tip, probe_tip + probe_dir_se * 0.2f };
 			float cyl_r = 0.002f;
-			glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
+			vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, NULL, 1, probe_line_id);
+			vzm::ObjStates probe_state = default_obj_state;
+			__cv4__ probe_state.color = glm::fvec4(0, 1, 1, 1);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, probe_line_id, probe_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, probe_line_id, probe_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, probe_line_id, probe_state);
 
-			if (g_info.is_modelaligned && g_info.guide_line_idx != -1)
-			{
-				vzm::ObjStates model_ws_obj_state;
-				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
-				glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
-				if (scenario == 0)
-				{
-					glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
-					glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
-					tr = tr * mat_t * mat_s;
-				}
-
-				const pair< glm::fvec3, glm::fvec3>& guide_line = g_info.guide_lines_target_rbs[g_info.guide_line_idx];
-				glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
-				glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
-
-				glm::fvec3 closetPoint;
-				ComputeClosestPointBetweenLineAndPoint(pos_guide_line, dir_guide_line, g_info.pos_probe_pin, closetPoint);
-
-				// color coding w.r.t. distance and angle. //
-				float length = glm::length(g_info.pos_probe_pin - closetPoint);
-				if (length <= cyl_r) {
-					float r = 0 / 255.0;
-					float g = 255 / 255.0;
-					float b = 0 / 255.0;
-					float o = 1.0;
-					glm::fvec4 color = glm::fvec4(r, g, b, o);
-					memcpy(default_obj_state.color, (float*)&color, sizeof(float) * 4);
-				}
-				else {
-					float r = 255 / 255.0;
-					float g = 0 / 255.0;
-					float b = 0 / 255.0;
-					float o = 1.0;
-					glm::fvec4 color = glm::fvec4(r, g, b, o);
-					memcpy(default_obj_state.color, (float*)&color, sizeof(float) * 4);
-				}
-
-				// probe cylinder visible false
-				vzm::ObjStates probe_line_state;
-				vzm::GetSceneObjectState(g_info.ws_scene_id, section_probe_line_id, probe_line_state);
-				probe_line_state.is_visible = false;
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, probe_line_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, probe_line_state);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, probe_line_state);
-			}
-			else {
-				vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
-				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, default_obj_state);
-				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, default_obj_state);
-			}
-
-			vzm::GenerateSpheresObject(__FP glm::fvec4(probe_tip, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_tip_id);
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_tip_id, default_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_tip_id, default_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_tip_id, default_obj_state);
-
-
-
-			// zoom navi view //
-			vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, section_probe_tip_id, default_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, section_probe_tip_id, default_obj_state);
+			vzm::GenerateSpheresObject(__FP glm::fvec4(probe_tip, 0.0045f), NULL, 1, probe_tip_id);
+			__cv4__ probe_state.color = glm::fvec4(1, 1, 1, 1);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, probe_tip_id, probe_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, probe_tip_id, probe_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, probe_tip_id, probe_state);
 		}
 		else
 		{
 			vzm::ObjStates cobj_state = default_obj_state;
 			cobj_state.is_visible = false;
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, cobj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, cobj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, cobj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_tip_id, cobj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_tip_id, cobj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_tip_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, probe_line_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, probe_line_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, probe_line_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, probe_tip_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, probe_tip_id, cobj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, probe_tip_id, cobj_state);
 		}
 
 		//g_info.is_probe_detected = g_info.otrk_data.trk_info.GetLFrmInfo(probe_specifier_rb_name, g_info.mat_probe2ws);
@@ -2056,6 +2003,8 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, obj_id, guide_obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, obj_id, guide_obj_state);
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, obj_id, guide_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, obj_id, guide_obj_state);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, obj_id, guide_obj_state);
 				}
 
 				int num_guide_lines = (int)g_info.guide_lines_target_rbs.size();
@@ -2110,7 +2059,7 @@ namespace var_settings
 					SetDashEffectInRendering(g_info.ws_scene_id, 1, guide_line_id, 0.01, false);
 
 					// show dist line
-					MakeDistanceLine(-1, g_info.pos_probe_pin, closetPoint, 0.05, closest_dist_line_id, closest_dist_text_id);
+					g_info.closest_dist = MakeDistanceLine(-1, g_info.pos_probe_pin, closetPoint, 0.05, closest_dist_line_id, closest_dist_text_id);
 					vzm::ObjStates closest_dist_line_state;
 					closest_dist_line_state.line_thickness = 5;
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, closest_dist_line_id, closest_dist_line_state);
@@ -2123,7 +2072,7 @@ namespace var_settings
 					SetDashEffectInRendering(g_info.ws_scene_id, 1, closest_dist_line_id, 0.01, true);
 
 					// show angle
-					MakeAngle2(g_info.dir_probe_se, dir_guide_line, closetPoint, 0.05, 0.1, angle_id, g_info.rs_scene_id, angle_text_id, g_info.stg_scene_id, angle_text_id_stg);
+					g_info.angle = MakeAngle2(g_info.dir_probe_se, dir_guide_line, closetPoint, 0.05, 0.1, angle_id, g_info.rs_scene_id, angle_text_id, g_info.stg_scene_id, angle_text_id_stg);
 					vzm::ObjStates angle_state, angle_text_state;
 					angle_state.color[3] = 0.5;
 					__cv4__ angle_text_state.color = glm::fvec4(1);
@@ -2134,27 +2083,22 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_id, angle_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_text_id, angle_text_state);
 
-					if (g_info.is_modelaligned)
 					{
 						// color coding w.r.t. distance and angle. //
-						cyl_state.is_visible = false;
-
-						float length = glm::length(g_info.pos_probe_pin-closetPoint);
-						if (length <= cyl_r) {
+						if (g_info.closest_dist <= cyl_r) {
 							float r = 0 / 255.0;
 							float g = 255 / 255.0;
 							float b = 0 / 255.0;
 							float o = 1.0;
-							glm::fvec4 color = glm::fvec4(r, g, b, o);
-							memcpy(line_state.color, (float*)&color, sizeof(float) * 4);
+							__cv4__ line_state.color = glm::fvec4(r, g, b, o);
 						}
 						else {
+							cyl_state.is_visible = false;
 							float r = 255 / 255.0;
 							float g = 127 / 255.0;
 							float b = 39 / 255.0;
 							float o = 1.0;
-							glm::fvec4 color = glm::fvec4(r, g, b, o);
-							memcpy(line_state.color, (float*)&color, sizeof(float) * 4);
+							__cv4__ line_state.color = glm::fvec4(r, g, b, o);
 						}
 					}
 
@@ -2164,11 +2108,21 @@ namespace var_settings
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, line_obj_id, line_state);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, line_obj_id, line_state);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, line_obj_id, line_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, line_obj_id, line_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, line_obj_id, line_state);
 						int cyl_obj_id = guide_cylinder_obj_ids[i];
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, cyl_obj_id, cyl_state);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, cyl_obj_id, cyl_state);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cyl_obj_id, cyl_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, cyl_obj_id, line_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, cyl_obj_id, line_state);
 					}
+
+					// zoom navi view //
+					vzm::ObjStates probe_state = default_obj_state;
+					__cv4__ probe_state.color = glm::fvec4(1);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, probe_tip_id, probe_state);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, probe_tip_id, probe_state);
 				}
 			}
 		}
@@ -2249,7 +2203,7 @@ namespace var_settings
 		{
 			using namespace glm;
 
-			if (g_info.is_probe_detected && g_info.is_modelaligned && g_info.guide_lines_target_rbs.size() > 0)
+			if (g_info.is_probe_detected && g_info.is_modelaligned && g_info.guide_lines_target_rbs.size() > 0 && g_info.guide_line_idx >= 0)
 			{
 				vzm::CameraParameters zoom_cam_params;
 

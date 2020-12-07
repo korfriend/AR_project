@@ -395,6 +395,7 @@ struct GlobalInfo
 	// guide lines w.r.t. target asset coord.
 	vector<std::pair<glm::fvec3, glm::fvec3>> guide_lines_target_rbs;
 	int guide_line_idx;
+	float closest_dist, angle;
 	
 	// model related
 	bool is_modelaligned;
@@ -788,7 +789,7 @@ void SetDashEffectInRendering(const int scene_id, const int cam_id, const int li
 	vzm::SetRenderTestParam("_double_LineDashInterval", dash_interval, sizeof(double), scene_id, cam_id, line_obj_id);
 }
 
-void MakeDistanceLine(const int scene_id, const glm::fvec3& pos_tool_tip, const glm::fvec3& pos_dst_point, const float font_size, int& closest_point_line_id, int& dist_text_id)
+float MakeDistanceLine(const int scene_id, const glm::fvec3& pos_tool_tip, const glm::fvec3& pos_dst_point, const float font_size, int& closest_point_line_id, int& dist_text_id)
 {
 	//const float font_size = 30.f; // mm
 	//static int closest_point_line_id = 0, dist_text_id = 0;
@@ -809,9 +810,10 @@ void MakeDistanceLine(const int scene_id, const glm::fvec3& pos_tool_tip, const 
 	if (dist < 0.001f) dist = 0;
 	//vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(dist, 3) + "mm", font_size, true, false, dist_text_id);
 	//vzm::ReplaceOrAddSceneObject(0, dist_text_id, obj_state_closest_point_line);
+	return dist;
 }
 
-void MakeAngle(const int scene_id, const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length, int& angle_tris_id, int& angle_text_id)
+float MakeAngle(const int scene_id, const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length, int& angle_tris_id, int& angle_text_id)
 {
 	//const float font_size = 30.f;
 	const int num_angle_tris = 10;
@@ -849,9 +851,11 @@ void MakeAngle(const int scene_id, const glm::fvec3& tool_tip2end_dir, const glm
 	vzm::GenerateTextObject(__FP xyz_LT_view_up, to_string_with_precision(angle * 180.f / glm::pi<float>(), 3) + "вк", font_size, true, false, angle_text_id);
 	vzm::ObjStates obj_state_angle_text;
 	//vzm::ReplaceOrAddSceneObject(0, angle_text_id, obj_state_angle_text);
+
+	return angle;
 }
 
-void MakeAngle2(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length, 
+float MakeAngle2(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2end_dir, const glm::fvec3& pos_dst_point, const float font_size, const float angle_tris_length, 
 	int& angle_tris_id,
 	const int scene0_id, int& angle_text0_id,
 	const int scene1_id, int& angle_text1_id)
@@ -900,6 +904,8 @@ void MakeAngle2(const glm::fvec3& tool_tip2end_dir, const glm::fvec3& guide_dst2
 	}
 	//vzm::ObjStates obj_state_angle_text;
 	//vzm::ReplaceOrAddSceneObject(0, angle_text_id, obj_state_angle_text);
+
+	return angle;
 }
 
 //void MakeTrackeffect(const int track_fade_num, const glm::fvec3& pos_dst, int& track_spheres_id, std::vector<glm::fvec3>& track_points)
