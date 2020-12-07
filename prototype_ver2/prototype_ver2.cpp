@@ -139,9 +139,42 @@ void SetPreoperations(GlobalInfo& ginfo, const int rs_w, const int rs_h, const i
 void LoadPresets(GlobalInfo& ginfo, const std::string& probe_specifier_rb_name)
 {
 	std::string preset_path = var_settings::GetDefaultFilePath();
-	ginfo.custom_pos_file_paths["ss_tool_v2"] = preset_path + "..\\Preset\\ss_tool_v2_se.txt";
+	ginfo.custom_pos_file_paths[probe_specifier_rb_name] = preset_path + "..\\Preset\\ss_tool_v2_se.txt";
 
 	var_settings::LoadPresets();
+
+
+	// guide
+	std::string guidefile = preset_path + "..\\Data\\brain_pin.txt";
+	std::ifstream infile(guidefile);
+	string line;
+	if (infile.is_open())
+	{
+		getline(infile, line);
+		std::istringstream iss_num(line);
+
+		int screwcount;
+		iss_num >> screwcount;
+
+		int _line_idx = 0;
+		while (getline(infile, line))
+		{
+			std::istringstream iss(line);
+			float a, b, c, d, e, f, g;
+			if (!(iss >> a >> b >> c >> d >> e >> f)) { break; } // error
+
+			const float line_leng = 10.f;
+			glm::fvec3 p = glm::fvec3(a, b, c);
+			glm::fvec3 dir = glm::normalize(glm::fvec3(d, e, f) - p);
+			int line_id = 0;
+			//vzm::GenerateLinesObject(__FP p, __FP (p + dir * line_leng), 1, line_id);
+			guide_line_ids.push_back(line_id);
+			guide_lines.push_back(p);
+			guide_lines.push_back(dir);
+			_line_idx++;
+		}
+		infile.close();
+	}
 }
 void DeinitializeVarSettings(GlobalInfo& ginfo)
 {
@@ -349,6 +382,7 @@ void UpdateTool(GlobalInfo& ginfo, track_info& trk_info, const std::string& prob
 		s.rigidBodies[iToolIdx]->m_visFiducialPoint[1] = btVector3(sstool_p2_os.x, sstool_p2_os.y, sstool_p2_os.z);
 
 		// (model) scene //////////////////////////////////////////////////////////////
+		/*
 		glm::fvec3 cyl_p03[2] = { sstool_p1_os, sstool_p2_os };
 		float cyl_r = 1.5f;
 		glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
@@ -360,6 +394,7 @@ void UpdateTool(GlobalInfo& ginfo, track_info& trk_info, const std::string& prob
 
 		vzm::GenerateCylindersObject((float*)cyl_p03, &cyl_r, __FP cyl_rgb, 1, tool_ms_line_id);
 		vzm::ReplaceOrAddSceneObject(ginfo.model_scene_id, tool_ms_line_id, tool_line_ms_state);
+		*/
 
 		// (zoom, zoom stg) camera transformation, zoom scene //////////////////////////////////////////////////////////////
 		// camera transformation
@@ -398,12 +433,8 @@ void UpdateZoomNavigation(GlobalInfo& ginfo)
 		static int ssu_tool_guide_distance_arrow1_id = 0, ssu_tool_guide_distance_arrow2_id = 0;
 		static int ssu_tool_guide_angleArrow_id = 0, ssu_tool_guide_angleText_id = 0;
 
-		static int ssu_tool_guide_line_ws_id = 0, ssu_tool_guide_line_ms_id = 0;
-		static int ssu_tool_guide_cylline_ws_id = 0;
-
 		static int ssu_tool_guide_distanceLine_id = 0, ssu_tool_guide_distanceLineText_id = 0;
 		static int ssu_tool_guide_angle_id = 0, ssu_tool_guide_angleText_id2 = 0;
-
 
 		glm::fvec3 sstool_p1_ws = ginfo.pos_probe_pin;
 		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
@@ -864,10 +895,10 @@ int main()
 			cv::Mat img_rs_mirror(ginfo.rs_h, ginfo.rs_w, CV_8UC3, image_rs_bgr.data);
 			imshow("rs mirror", img_rs_mirror);
 
-			Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
+			//Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 
-			int model_cam_id = var_settings::GetCameraID_SSU(ginfo.model_scene_id);
-			Show_Window(ginfo.window_name_ms_view, ginfo.model_scene_id, model_cam_id);
+			//int model_cam_id = var_settings::GetCameraID_SSU(ginfo.model_scene_id);
+			//Show_Window(ginfo.window_name_ms_view, ginfo.model_scene_id, model_cam_id);
 
 		}
 

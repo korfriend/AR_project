@@ -1864,7 +1864,7 @@ namespace var_settings
 		bool model_match_rb = g_info.otrk_data.trk_info.GetLFrmInfo(name, mat_matchmodelfrm2ws); 
 		g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	
 
-		if (model_match_rb && g_info.is_modelaligned)
+		if (/*model_match_rb && */g_info.is_modelaligned)
 		{
 			// model
 			vzm::ObjStates model_ws_obj_state;
@@ -1902,6 +1902,7 @@ namespace var_settings
 				if (g_info.touch_mode == RsTouchMode::Align)
 				{
 					model_ws_obj_state.color[3] = 0.7f;
+					//model_ws_obj_state.
 					vzm::SetRenderTestParam("_bool_IsGhostSurface", false, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 					vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", false, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 				}
@@ -1957,6 +1958,12 @@ namespace var_settings
 				if (guide_line_idx < num_guide_lines)
 				{
 					glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
+					if (scenario == 0)
+					{
+						glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+						glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
+						tr = tr * mat_t * mat_s;
+					}
 					glm::fvec3 pos_guide_line = tr_pt(tr, guide_posdir_lines[2 * guide_line_idx + 0]);
 					glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, guide_posdir_lines[2 * guide_line_idx + 1]));
 
@@ -1967,13 +1974,14 @@ namespace var_settings
 					for (int i = guide_line_obj_ids.size(); i < num_guide_lines; i++) guide_line_obj_ids.push_back(0);
 					for (int i = guide_cylinder_obj_ids.size(); i < num_guide_lines; i++) guide_cylinder_obj_ids.push_back(0);
 
-					glm::fvec3 line_pos[2] = { pos_guide_line, pos_guide_line + dir_guide_line * 10.f };
+					glm::fvec3 line_pos[2] = { pos_guide_line, pos_guide_line + dir_guide_line * 1.f };
 					int& guide_line_id = guide_line_obj_ids[guide_line_idx];
 					vzm::GenerateLinesObject(__FP line_pos[0], NULL, 1, guide_line_id);
 
 					glm::fvec3 cyl_pos[2] = { pos_guide_line, pos_guide_line + dir_guide_line * 0.3f };
+					float cyl_r = 0.015;
 					int& guide_cyl_id = guide_cylinder_obj_ids[guide_line_idx];
-					vzm::GenerateLinesObject(__FP cyl_pos[0], NULL, 1, guide_cyl_id);
+					vzm::GenerateCylindersObject(__FP cyl_pos[0], __FP cyl_r, NULL, 1, guide_cyl_id);
 					// 
 
 					cyl_state.is_visible = true;
