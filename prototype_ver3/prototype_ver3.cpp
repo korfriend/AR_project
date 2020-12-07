@@ -51,61 +51,6 @@ using namespace cv;
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include <librealsense2/rsutil.h>
 
-SS_Tool_Guide_Pts ss_tool_info;
-
-int tumor_id = 0;
-bool loadScrewTest2(const std::string& screwfile, const std::string& tumor_model_file, std::vector<int>& line_ids, std::vector<glm::fvec3>& guide_lines)
-{
-	std::ifstream infile(screwfile);
-	string line;
-	if (infile.is_open())
-	{
-		getline(infile, line);
-		std::istringstream iss_num(line);
-
-		int screwcount;
-		iss_num >> screwcount;
-
-		int _line_idx = 0;
-		while (getline(infile, line))
-		{
-			std::istringstream iss(line);
-			float a, b, c, d, e, f, g;
-			if (!(iss >> a >> b >> c >> d >> e >> f)) { break; } // error
-
-			const float line_leng = 10.f;
-			glm::fvec3 p = glm::fvec3(a, b, c);
-			glm::fvec3 dir = glm::normalize(glm::fvec3(d, e, f) - p);
-			int line_id = 0;
-			//vzm::GenerateLinesObject(__FP p, __FP (p + dir * line_leng), 1, line_id);
-			line_ids.push_back(line_id);
-			guide_lines.push_back(p);
-			guide_lines.push_back(dir);
-			_line_idx++;
-		}
-		infile.close();
-
-		//vzm::GenerateCylindersObject((float*)&needles_pos[0], &needles_radii[0], (float*)&needles_clr[0], screwcount, needles_guide_id);
-
-	}
-
-	vzm::LoadModelFile(tumor_model_file, tumor_id);
-
-	ss_tool_info.pos_centers_tfrm.clear();
-	infile = std::ifstream(var_settings::GetDefaultFilePath() + "..\\Preset\\ss_tool_pts.txt");
-	line = "";
-	while (getline(infile, line))
-	{
-		std::istringstream iss(line);
-		float a, b, c;
-		if (!(iss >> a >> b >> c)) { break; } // error
-		ss_tool_info.pos_centers_tfrm.push_back(glm::fvec3(a, b, c));
-		// process pair (a,b)
-	}
-	infile.close();
-
-	return true;
-}
 
 int main()
 {
@@ -198,12 +143,6 @@ int main()
 	var_settings::GetVarInfoPtr((void**)&_ginfo);
 	GlobalInfo& ginfo = *_ginfo;
 
-	std::vector<int> guide_line_ids;
-	std::vector<glm::fvec3> guide_lines;
-	loadScrewTest2(var_settings::GetDefaultFilePath() + "..\\Data\\breast\\chest_pins.txt", var_settings::GetDefaultFilePath() + "..\\Data\\breast\\tumor_pos.stl", guide_line_ids, guide_lines);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
-
 	// params for the main thread
 	int key_pressed = -1;
 	bool show_apis_console = false;
@@ -247,10 +186,16 @@ int main()
 	vzm::ObjStates brest_bone_states;
 	*(glm::fvec4*)brest_bone_states.color = glm::fvec4(1);
 
+	int tumor_id = 0;
+	vzm::LoadModelFile(var_settings::GetDefaultFilePath() + "..\\Data\\tumor_2\\tumor_2.stl", tumor_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+
 	int line_guide_idx = 0;
 	int operation_step = 0;
 	std::string preset_path = var_settings::GetDefaultFilePath();
 	ginfo.custom_pos_file_paths["ss_tool_v2"] = preset_path + "..\\Preset\\ss_tool_v2_se.txt";
+	ginfo.custom_pos_file_paths["guide_lines"] = preset_path + "..\\Data\\breast\\chest_pins.txt";
 	var_settings::LoadPresets();
 
 	std::string probe_name = "probe";
@@ -295,7 +240,7 @@ int main()
 			ginfo.src_tool_name = "probe";
 			break;
 		case ',': line_guide_idx = max(line_guide_idx - 1, 0); break;
-		case '.': line_guide_idx = min(line_guide_idx + 1, (int)guide_line_ids.size() - 1); break;
+		case '.': line_guide_idx = min(line_guide_idx + 1, (int)ginfo.guide_lines_target_rbs.size() - 1); break;
 		}
 		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", show_apis_console, sizeof(bool), -1, -1);
@@ -343,7 +288,7 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("breastbody", __FP guide_lines[0], guide_lines.size() / 2, line_guide_idx);
+			var_settings::SetTargetModelAssets("breastbody", line_guide_idx);
 
 			SetCustomTools(ginfo.dst_tool_name, ONLY_RBFRAME, ginfo, glm::fvec3(1, 1, 0), operation_step >= 7);
 

@@ -47,7 +47,7 @@ namespace var_settings
 	__dojostatic void TryCalibrationSTG();
 	__dojostatic void SetCalibFrames(bool is_visible);
 	__dojostatic void SetDepthMapPC(const bool is_visible, rs2::depth_frame& depth_frame, rs2::video_frame& color_frame);
-	__dojostatic void SetTargetModelAssets(const std::string& name, const float* guide_posdir_lines = NULL, const int num_guide_lines = 0, const int guide_line_idx = -1);
+	__dojostatic void SetTargetModelAssets(const std::string& name, const int guide_line_idx = -1);
 	__dojostatic void SetSectionalImageAssets(const bool show_sectional_views, const float* pos_tip, const float* pos_end, const float rot_angle_rad = 0);
 	__dojostatic void RenderAndShowWindows(bool show_times, cv::Mat& img_rs, bool skip_show_rs_window = false, int addtional_scene = -1, int addtional_cam = -1);
 	__dojostatic void DeinitializeVarSettings();

@@ -391,6 +391,9 @@ struct GlobalInfo
 	glm::fmat4x4 mat_probe2ws;
 	string src_tool_name;
 	string dst_tool_name;
+
+	// guide lines w.r.t. target asset coord.
+	vector<std::pair<glm::fvec3, glm::fvec3>> guide_lines_target_rbs;
 	
 	// model related
 	bool is_modelaligned;
