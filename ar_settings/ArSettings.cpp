@@ -2101,6 +2101,7 @@ namespace var_settings
 					{
 						// color coding w.r.t. distance and angle. //
 						if (g_info.closest_dist <= cyl_r) {
+							cyl_state.color[3] = 0.15;
 							float r = 0 / 255.0;
 							float g = 255 / 255.0;
 							float b = 0 / 255.0;
@@ -2108,7 +2109,7 @@ namespace var_settings
 							__cv4__ line_state.color = glm::fvec4(r, g, b, o);
 						}
 						else {
-							cyl_state.is_visible = false;
+							//cyl_state.is_visible = false;
 							float r = 255 / 255.0;
 							float g = 127 / 255.0;
 							float b = 39 / 255.0;
@@ -2134,10 +2135,27 @@ namespace var_settings
 					}
 
 					// zoom navi view //
-					vzm::ObjStates probe_state = default_obj_state;
-					__cv4__ probe_state.color = glm::fvec4(1);
-					vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, probe_tip_id, probe_state);
-					vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, probe_tip_id, probe_state);
+					{
+						vzm::ObjStates probe_state = default_obj_state;
+						__cv4__ probe_state.color = glm::fvec4(1);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, probe_tip_id, probe_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, probe_tip_id, probe_state);
+
+						//vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, closest_dist_line_id, closest_dist_line_state);
+						//vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, closest_dist_line_id, closest_dist_line_state);
+						//SetDashEffectInRendering(g_info.znavi_rs_scene_id, 1, closest_dist_line_id, 0.01, true);
+						//SetDashEffectInRendering(g_info.znavi_stg_scene_id, 1, closest_dist_line_id, 0.01, true);
+						//SetDashEffectInRendering(g_info.znavi_stg_scene_id, 2, closest_dist_line_id, 0.01, true);
+
+						// displacement arrow
+						static int guide_dist_arrow_id = 0;
+						vzm::ObjStates guide_dist_arrow_state;
+						__cv4__ guide_dist_arrow_state.color = glm::fvec4(1, 0.5, 1, 0.5);
+
+						vzm::GenerateArrowObject(__FP g_info.pos_probe_pin, __FP closetPoint, 0.0015f, guide_dist_arrow_id);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, guide_dist_arrow_id, guide_dist_arrow_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, guide_dist_arrow_id, guide_dist_arrow_state);
+					}
 				}
 			}
 		}
