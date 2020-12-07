@@ -1350,12 +1350,13 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 		//cout << "PnP reprojection error : " << err_proj << " pixels, # of point pairs L " << points_buf_2d.size() << endl;
 	}
 
-#define ERR_REPROJ_MAX 2
 	const float err_criterion = 3.f;
 	Mat inliers_ids;
 	if (pair_pts.size() > 20 && err_proj > err_criterion)
 	{
-		cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, 5, err_criterion, 0.8, inliers_ids, SOLVEPNP_ITERATIVE);
+		float confidence = 0.9f;
+		if (pair_pts.size() >= 100) confidence = 0.8f;
+		cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, 5, err_criterion, confidence, inliers_ids, SOLVEPNP_ITERATIVE);
 		cout << "# of inliers : " << inliers_ids.rows << endl;
 		if (inliers_ids.rows > 0)
 		{
