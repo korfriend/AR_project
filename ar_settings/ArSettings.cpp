@@ -2320,7 +2320,7 @@ namespace var_settings
 						cv::rectangle(cs_cvmat, Rect(10, 100, 10 + cs_w * (i + 1), 100 + cs_h), Scalar(200, 200, 200, 255), 1, LineTypes::LINE_AA);
 
 						// to do //
-						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, 10 + cs_w * i, 100, false, true, 1.f, 15.f, true);
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, 10 + cs_w * i, 100, false, true, 5.f, 5.f, true);
 					}
 				}
 #endif
