@@ -851,7 +851,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 		else if (event == EVENT_LBUTTONUP)
 		{
 			vzm::CameraParameters cam_params;
-			vzm::GetCameraParameters(0, cam_params, 0);
+			vzm::GetCameraParameters(eginfo->scene_id, cam_params, eginfo->cam_id);
 			ofstream fileout(eginfo->ginfo.model_view_preset);
 			if (!fileout.is_open()) return;
 

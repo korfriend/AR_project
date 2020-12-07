@@ -1337,15 +1337,25 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 	cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64FC1);          // output translation vector
 	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
 	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
-	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
+	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_AP3P);
 	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
 
-#define ERR_REPROJ_MAX 2
-
-	Mat inliers_ids;
-	if (pair_pts.size() > 20)
+	float err_proj = 0;
 	{
-		cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, 5, 3.f, 0.8, inliers_ids, SOLVEPNP_ITERATIVE);
+		vector<cv::Point2f> reprojectPoints;
+		cv::projectPoints(Mat(*(vector<Point3f>*)&points_buf_3d_clf), rvec, tvec, cam_mat, cv::noArray(), reprojectPoints);
+		float reproj_err_sum = 0.;
+		reproj_err_sum = cv::norm(Mat(reprojectPoints), Mat(*(vector<Point2f>*)&points_buf_2d)); //  default L2
+		err_proj = sqrt(reproj_err_sum * reproj_err_sum / points_buf_2d.size());
+		//cout << "PnP reprojection error : " << err_proj << " pixels, # of point pairs L " << points_buf_2d.size() << endl;
+	}
+
+#define ERR_REPROJ_MAX 2
+	const float err_criterion = 3.f;
+	Mat inliers_ids;
+	if (pair_pts.size() > 20 && err_proj > err_criterion)
+	{
+		cv::solvePnPRansac(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, 5, err_criterion, 0.8, inliers_ids, SOLVEPNP_ITERATIVE);
 		cout << "# of inliers : " << inliers_ids.rows << endl;
 		if (inliers_ids.rows > 0)
 		{
