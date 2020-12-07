@@ -1608,7 +1608,7 @@ namespace var_settings
 
 			vzm::SceneEnvParameters scn_env_params;
 			vzm::GetSceneEnvParameters(g_info.ws_scene_id, scn_env_params);
-			scn_env_params.is_on_camera = false;
+			//scn_env_params.is_on_camera = false;
 			__cv3__ scn_env_params.pos_light = __cv3__ _rs_cam_params.pos;
 			__cv3__ scn_env_params.dir_light = __cv3__ _rs_cam_params.view;
 			vzm::SetSceneEnvParameters(g_info.ws_scene_id, scn_env_params);
@@ -2214,7 +2214,8 @@ namespace var_settings
 		{
 			using namespace glm;
 
-			if (g_info.is_probe_detected && g_info.is_modelaligned && g_info.guide_lines_target_rbs.size() > 0 && g_info.guide_line_idx >= 0)
+			bool draw_znavi = g_info.is_probe_detected && g_info.is_modelaligned && g_info.guide_lines_target_rbs.size() > 0 && g_info.guide_line_idx >= 0;
+			if (draw_znavi)
 			{
 				vzm::CameraParameters zoom_cam_params;
 
@@ -2236,6 +2237,7 @@ namespace var_settings
 				vzm::RenderScene(g_info.znavi_rs_scene_id, znavi_cam_id);
 				vzm::RenderScene(g_info.znavi_stg_scene_id, znavi_cam_id);
 			}
+			return draw_znavi;
 		};
 
 		auto WorldCamSet = []()
@@ -2256,11 +2258,6 @@ namespace var_settings
 			vzm::SetCameraParameters(g_info.ws_scene_id, cam_param, ov_cam_id);
 		};
 
-		if (g_info.is_modelaligned && g_info.is_probe_detected)
-		{
-			WorldCamSet();
-		}
-
 		if (!g_info.skip_call_render)
 		{
 #define ENABLE_STG
@@ -2271,6 +2268,9 @@ namespace var_settings
 #define SHOW_STG_VIEW
 #ifdef SHOW_WS_VIEW
 			LARGE_INTEGER frq_render_ws = GetPerformanceFreq();
+
+			if (g_info.is_modelaligned && g_info.is_probe_detected)
+				WorldCamSet();
 
 			string tc_calib_info = "# of current 3D pick positions : " + to_string(g_info.otrk_data.calib_3d_pts.size());
 			Show_Window(g_info.window_name_ws_view, g_info.ws_scene_id, ov_cam_id, &tc_calib_info);
@@ -2303,24 +2303,36 @@ namespace var_settings
 					}
 				}
 #ifdef SHOW_RS_VIEW
-				else if (_show_sectional_views && g_info.is_modelaligned)
+				else if (g_info.is_modelaligned)
 				{
-					vzm::RenderScene(g_info.csection_scene_id, 0);
-					vzm::RenderScene(g_info.csection_scene_id, 1);
-
-					for (int i = 0; i < 2; i++)
+					if (_show_sectional_views)
 					{
-						unsigned char* cs_ptr_rgba;
-						float* cs_ptr_zdepth;
-						int cs_w, cs_h;
-						vzm::GetRenderBufferPtrs(g_info.csection_scene_id, &cs_ptr_rgba, &cs_ptr_zdepth, &cs_w, &cs_h, i);
-						cv::Mat cs_cvmat(cs_h, cs_w, CV_8UC4, cs_ptr_rgba);
-						cv::line(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), cv::Point(cs_w / 2, 0), cv::Scalar(255, 255, 0, 255), 2, 2);
-						cv::circle(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), 2, cv::Scalar(255, 0, 0, 255), 2);
-						cv::rectangle(cs_cvmat, Rect(10, 100, 10 + cs_w * (i + 1), 100 + cs_h), Scalar(200, 200, 200, 255), 1, LineTypes::LINE_AA);
+						vzm::RenderScene(g_info.csection_scene_id, 0);
+						vzm::RenderScene(g_info.csection_scene_id, 1);
 
-						// to do //
-						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, 10 + cs_w * i, 100, false, true, 5.f, 5.f, true);
+						for (int i = 0; i < 2; i++)
+						{
+							unsigned char* cs_ptr_rgba;
+							float* cs_ptr_zdepth;
+							int cs_w, cs_h;
+							vzm::GetRenderBufferPtrs(g_info.csection_scene_id, &cs_ptr_rgba, &cs_ptr_zdepth, &cs_w, &cs_h, i);
+							cv::Mat cs_cvmat(cs_h, cs_w, CV_8UC4, cs_ptr_rgba);
+							cv::line(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), cv::Point(cs_w / 2, 0), cv::Scalar(255, 255, 0, 255), 2, LineTypes::LINE_AA);
+							cv::circle(cs_cvmat, cv::Point(cs_w / 2, cs_h / 2), 2, cv::Scalar(255, 0, 0, 255), 2, LineTypes::LINE_AA);
+							//cv::rectangle(cs_cvmat, Rect(10, 100, 10 + cs_w * (i + 1), 100 + cs_h), Scalar(200, 200, 200, 255), 1, LineTypes::LINE_AA);
+
+							copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, cs_ptr_rgba, cs_w, cs_h, 10 + cs_w * i, 100, false, true, 3.f, 5.f, true);
+						}
+					}
+
+					if (RenderToolNavi())
+					{
+						unsigned char* znavi_rs_ptr_rgba;
+						float* znavi_rs_ptr_zdepth;
+						int znavi_rs_w, znavi_rs_h;
+						vzm::GetRenderBufferPtrs(g_info.znavi_rs_scene_id, &znavi_rs_ptr_rgba, &znavi_rs_ptr_zdepth, &znavi_rs_w, &znavi_rs_h, 1);
+						cv::Mat znavi_rs_cvmat(znavi_rs_w, znavi_rs_h, CV_8UC4, znavi_rs_ptr_rgba);
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, znavi_rs_ptr_rgba, znavi_rs_w, znavi_rs_h, 10, 200, false, true, 0.2f, 50.f, false);
 					}
 				}
 #endif
