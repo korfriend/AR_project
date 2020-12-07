@@ -185,9 +185,9 @@ int main()
 	int line_guide_idx = 0;
 	std::string preset_path = var_settings::GetDefaultFilePath();
 	ginfo.custom_pos_file_paths["guide_lines"] = preset_path + "..\\Data\\spine\\spine_pins.txt";
-	//ginfo.custom_pos_file_paths["tool_1"] = preset_path + "..\\Preset\\tool_1_end.txt";
-	//ginfo.custom_pos_file_paths["tool_2"] = preset_path + "..\\Preset\\tool_2_end.txt";
-	//ginfo.custom_pos_file_paths["tool_3"] = preset_path + "..\\Preset\\tool_3_se.txt";
+	ginfo.custom_pos_file_paths["tool_1"] = preset_path + "..\\Preset\\tool_1_end.txt";
+	ginfo.custom_pos_file_paths["tool_2"] = preset_path + "..\\Preset\\tool_2_end.txt";
+	ginfo.custom_pos_file_paths["tool_3"] = preset_path + "..\\Preset\\tool_3_se.txt";
 	var_settings::LoadPresets();
 
 	while (key_pressed != 'q' && key_pressed != 27)

@@ -412,7 +412,6 @@ struct GlobalInfo
 	vector<glm::fvec3> model_ms_pick_pts;
 	vector<glm::fvec3> model_rbs_pick_pts;
 	std::string match_model_rbs_name;
-	int model_ws_pick_spheres_id;
 	int model_ms_pick_spheres_id;
 
 	SS_Tool_Guide_Pts ss_tool_info;

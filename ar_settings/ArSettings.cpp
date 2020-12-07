@@ -911,7 +911,7 @@ namespace var_settings
 					{
 						glm::fvec4 sphere_xyzr = glm::fvec4(g_info.model_ms_pick_pts[i], 0.002);
 						spheres_xyzr.push_back(sphere_xyzr);
-						glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 1);
+						glm::fvec3 sphere_rgb = glm::fvec3(0.2, 0.3, 1);
 						spheres_rgb.push_back(sphere_rgb);
 					}
 					vzm::ObjStates sobj_state;
@@ -1073,7 +1073,6 @@ namespace var_settings
 		g_info.otrk_data.tc_calib_pt_pairs.clear();
 		g_info.is_calib_stg_cam = g_info.is_calib_stg_cam_2 = g_info.is_calib_rs_cam = false;
 		g_info.model_predefined_pts.clear();
-		vzm::DeleteObject(g_info.model_ws_pick_spheres_id);
 		cout << "CLEAR calibration points" << endl;
 	}
 
@@ -1923,19 +1922,33 @@ namespace var_settings
 
 	void SetTargetModelAssets(const std::string& name, const int guide_line_idx)
 	{
-		if (g_info.model_ws_pick_spheres_id != 0)
-		{
-			vzm::ObjStates cstate;
-			vzm::GetSceneObjectState(g_info.rs_scene_id, g_info.model_ws_pick_spheres_id, cstate);
-			cstate.is_visible = g_info.touch_mode == RsTouchMode::Align;
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, g_info.model_ws_pick_spheres_id, cstate);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, g_info.model_ws_pick_spheres_id, cstate);
-			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_pick_spheres_id, cstate);
-		}
-
+		g_info.match_model_rbs_name = name;
 		glm::fmat4x4 mat_matchmodelfrm2ws;
 		bool model_match_rb = g_info.otrk_data.trk_info.GetLFrmInfo(name, mat_matchmodelfrm2ws); 
 		g_info.mat_ws2matchmodelfrm = glm::inverse(mat_matchmodelfrm2ws);	
+		//if (g_info.model_rbs_pick_pts.size() > 0)
+		{
+			static int model_ws_pick_spheres_id = 0;
+			vzm::ObjStates cstate;
+			cstate.is_visible = g_info.touch_mode == RsTouchMode::Align
+				&& g_info.model_rbs_pick_pts.size() > 0;
+			if (cstate.is_visible)
+			{
+				vector<glm::fvec4> spheres_xyzr;
+				vector<glm::fvec3> spheres_rgb;
+				for (int i = 0; i < (int)g_info.model_rbs_pick_pts.size(); i++)
+				{
+					glm::fvec4 sphere_xyzr = glm::fvec4(tr_pt(mat_matchmodelfrm2ws, g_info.model_rbs_pick_pts[i]), 0.005);
+					spheres_xyzr.push_back(sphere_xyzr);
+					glm::fvec3 sphere_rgb = glm::fvec3(0, 1, 0);
+					spheres_rgb.push_back(sphere_rgb);
+				}
+				vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)g_info.model_rbs_pick_pts.size(), model_ws_pick_spheres_id);
+			}
+			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, model_ws_pick_spheres_id, cstate);
+			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, model_ws_pick_spheres_id, cstate);
+			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, model_ws_pick_spheres_id, cstate);
+		}
 
 		if (/*model_match_rb && */g_info.is_modelaligned)
 		{
@@ -2022,6 +2035,28 @@ namespace var_settings
 				{
 					static vector<int> guide_line_obj_ids;
 					static vector<int> guide_cylinder_obj_ids;
+					//for (int i = 0; i < guide_line_obj_ids.size(); i++)
+					//{
+					//	int obj_id = guide_line_obj_ids[i];
+					//	if (obj_id != 0)
+					//	{
+					//		vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, obj_id, guide_obj_state);
+					//		vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, obj_id, guide_obj_state);
+					//		vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, obj_id, guide_obj_state);
+					//		vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, obj_id, guide_obj_state);
+					//		vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, obj_id, guide_obj_state);
+					//	}
+					//
+					//	obj_id = guide_cylinder_obj_ids[i];
+					//	if (obj_id != 0)
+					//	{
+					//		vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, obj_id, guide_obj_state);
+					//		vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, obj_id, guide_obj_state);
+					//		vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, obj_id, guide_obj_state);
+					//		vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, obj_id, guide_obj_state);
+					//		vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, obj_id, guide_obj_state);
+					//	}
+					//}
 
 					glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
 					if (scenario == 0)
@@ -2051,22 +2086,17 @@ namespace var_settings
 					vzm::GenerateCylindersObject(__FP cyl_pos[0], __FP cyl_r, NULL, 1, guide_cyl_id);
 					// 
 
-					cyl_state.is_visible = true;
-
-					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, guide_cyl_id, cyl_state);
-					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, guide_cyl_id, cyl_state);
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, guide_cyl_id, cyl_state);
-
-					line_state.is_visible = true;
-
-					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, guide_line_id, line_state);
-					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, guide_line_id, line_state);
-					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, guide_line_id, line_state);
-
-					SetDashEffectInRendering(g_info.stg_scene_id, 1, guide_line_id, 0.01, false);
-					SetDashEffectInRendering(g_info.stg_scene_id, 2, guide_line_id, 0.01, false);
-					SetDashEffectInRendering(g_info.rs_scene_id, 1, guide_line_id, 0.01, false);
-					SetDashEffectInRendering(g_info.ws_scene_id, 1, guide_line_id, 0.01, false);
+					//cyl_state.is_visible = true;
+					//
+					//vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, guide_cyl_id, cyl_state);
+					//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, guide_cyl_id, cyl_state);
+					//vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, guide_cyl_id, cyl_state);
+					//
+					//line_state.is_visible = true;
+					//
+					//vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, guide_line_id, line_state);
+					//vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, guide_line_id, line_state);
+					//vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, guide_line_id, line_state);
 
 					// show dist line
 					g_info.closest_dist = MakeDistanceLine(-1, g_info.pos_probe_pin, closetPoint, 0.05, closest_dist_line_id, closest_dist_text_id);
@@ -2118,9 +2148,14 @@ namespace var_settings
 						}
 					}
 
+					SetDashEffectInRendering(g_info.stg_scene_id, 1, guide_line_id, 0.01, false);
+					SetDashEffectInRendering(g_info.stg_scene_id, 2, guide_line_id, 0.01, false);
+					SetDashEffectInRendering(g_info.rs_scene_id, 1, guide_line_id, 0.01, false);
+					SetDashEffectInRendering(g_info.ws_scene_id, 1, guide_line_id, 0.01, false);
 					for (int i = 0; i < (int)guide_line_obj_ids.size(); i++)
 					{
 						int line_obj_id = guide_line_obj_ids[i];
+						line_state.is_visible = cyl_state.is_visible = i == guide_line_idx;
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, line_obj_id, line_state);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, line_obj_id, line_state);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, line_obj_id, line_state);
@@ -2151,7 +2186,6 @@ namespace var_settings
 						static int guide_dist_arrow_id = 0;
 						vzm::ObjStates guide_dist_arrow_state;
 						__cv4__ guide_dist_arrow_state.color = glm::fvec4(1, 0.5, 1, 0.5);
-						guide_dist_arrow_state.
 
 						vzm::GenerateArrowObject(__FP g_info.pos_probe_pin, __FP closetPoint, 0.0015f, guide_dist_arrow_id);
 						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, guide_dist_arrow_id, guide_dist_arrow_state);

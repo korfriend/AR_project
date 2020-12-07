@@ -450,28 +450,6 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 					eginfo->ginfo.model_rbs_pick_pts.pop_back();
 			}
 
-			if (eginfo->ginfo.model_rbs_pick_pts.size() > 0)
-			{
-				vector<glm::fvec4> spheres_xyzr;
-				vector<glm::fvec3> spheres_rgb;
-				for (int i = 0; i < (int)eginfo->ginfo.model_rbs_pick_pts.size(); i++)
-				{
-					glm::fvec4 sphere_xyzr = glm::fvec4(tr_pt(mat_rbs2ws, eginfo->ginfo.model_rbs_pick_pts[i]), 0.005);
-					spheres_xyzr.push_back(sphere_xyzr);
-					glm::fvec3 sphere_rgb = glm::fvec3(0, 1, 0);
-					spheres_rgb.push_back(sphere_rgb);
-				}
-				vzm::GenerateSpheresObject(__FP spheres_xyzr[0], __FP spheres_rgb[0], (int)eginfo->ginfo.model_rbs_pick_pts.size(), eginfo->ginfo.model_ws_pick_spheres_id);
-				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.ws_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
-				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.rs_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
-				vzm::ReplaceOrAddSceneObject(eginfo->ginfo.stg_scene_id, eginfo->ginfo.model_ws_pick_spheres_id, sobj_state);
-			}
-			else
-			{
-				vzm::DeleteObject(eginfo->ginfo.model_ws_pick_spheres_id);
-				eginfo->ginfo.model_ws_pick_spheres_id = 0;
-			}
-
 			int num_crrpts = (int)min(eginfo->ginfo.model_ms_pick_pts.size(), eginfo->ginfo.model_rbs_pick_pts.size());
 			if (num_crrpts >= 4)
 			{
