@@ -69,9 +69,6 @@ int brain_ws_obj_id = 0;
 int ventricle_ms_obj_id = 0;
 int ventricle_ws_obj_id = 0;
 
-std::vector<int> guide_line_ids;		// 추후에 global로 들어올 것
-std::vector<glm::fvec3> guide_lines;	// 추후에 global로 들어올 것
-
 void InitializeVarSettings(GlobalInfo& ginfo)
 {
 	var_settings::InitializeVarSettings(0, true, "marker");
@@ -140,41 +137,9 @@ void LoadPresets(GlobalInfo& ginfo, const std::string& probe_specifier_rb_name)
 {
 	std::string preset_path = var_settings::GetDefaultFilePath();
 	ginfo.custom_pos_file_paths[probe_specifier_rb_name] = preset_path + "..\\Preset\\ss_tool_v2_se.txt";
+	ginfo.custom_pos_file_paths["guide_lines"] = preset_path + "..\\Data\\brain_pin.txt";
 
 	var_settings::LoadPresets();
-
-
-	// guide
-	std::string guidefile = preset_path + "..\\Data\\brain_pin.txt";
-	std::ifstream infile(guidefile);
-	string line;
-	if (infile.is_open())
-	{
-		getline(infile, line);
-		std::istringstream iss_num(line);
-
-		int screwcount;
-		iss_num >> screwcount;
-
-		int _line_idx = 0;
-		while (getline(infile, line))
-		{
-			std::istringstream iss(line);
-			float a, b, c, d, e, f, g;
-			if (!(iss >> a >> b >> c >> d >> e >> f)) { break; } // error
-
-			const float line_leng = 10.f;
-			glm::fvec3 p = glm::fvec3(a, b, c);
-			glm::fvec3 dir = glm::normalize(glm::fvec3(d, e, f) - p);
-			int line_id = 0;
-			//vzm::GenerateLinesObject(__FP p, __FP (p + dir * line_leng), 1, line_id);
-			guide_line_ids.push_back(line_id);
-			guide_lines.push_back(p);
-			guide_lines.push_back(dir);
-			_line_idx++;
-		}
-		infile.close();
-	}
 }
 void DeinitializeVarSettings(GlobalInfo& ginfo)
 {
@@ -408,24 +373,21 @@ void UpdateZoomNavigation(GlobalInfo& ginfo)
 		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
 		glm::fvec3 sstool_dir = ginfo.dir_probe_se;
 
-		glm::fvec3 ssguide_p1_ws = guide_lines[0];
-		glm::fvec3 ssguide_p2_ws = guide_lines[1] * 0.2f;
-		glm::fvec3 ssguide_dir = guide_lines[1];
-		{
-			vzm::ObjStates model_ws_obj_state;
-			vzm::GetSceneObjectState(ginfo.ws_scene_id, ginfo.model_ws_obj_id, model_ws_obj_state);
-			glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
-			glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
-			glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
-			tr = tr * mat_t * mat_s;
+		vzm::ObjStates model_ws_obj_state;
+		vzm::GetSceneObjectState(ginfo.ws_scene_id, ginfo.model_ws_obj_id, model_ws_obj_state);
+		glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
+		glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+		glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
+		tr = tr * mat_t * mat_s;
 
-			glm::fvec3 pos_guide_line = tr_pt(tr, guide_lines[2 * guide_line_ids[0] + 0]);
-			glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, guide_lines[2 * guide_line_ids[0] + 1]));
+		std::pair< glm::fvec3, glm::fvec3>& guide_line = ginfo.guide_lines_target_rbs[0];
+		glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
+		glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
 
-			ssguide_p1_ws = pos_guide_line;
-			ssguide_p2_ws = pos_guide_line + dir_guide_line * 0.2f;
-			ssguide_dir = dir_guide_line;
-		}
+		glm::fvec3 ssguide_p1_ws = pos_guide_line;
+		glm::fvec3 ssguide_p2_ws = pos_guide_line + dir_guide_line * 0.2f;
+		glm::fvec3 ssguide_dir = dir_guide_line;
+		
 
 		float fGuideAngle = glm::acos(glm::dot(sstool_dir, ssguide_dir)) * 180 / 3.141592;
 		float fGuideDist = glm::distance(ssguide_p1_ws, sstool_p1_ws);
@@ -628,9 +590,20 @@ void UpdateSectionalImage(GlobalInfo& ginfo)
 		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
 		glm::fvec3 sstool_dir = ginfo.dir_probe_se;
 
-		glm::fvec3 ssguide_p1_ws = guide_lines[0];
-		glm::fvec3 ssguide_p2_ws = guide_lines[1] * 0.2f;
-		glm::fvec3 ssguide_dir = guide_lines[1];
+		vzm::ObjStates model_ws_obj_state;
+		vzm::GetSceneObjectState(ginfo.ws_scene_id, ginfo.model_ws_obj_id, model_ws_obj_state);
+		glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
+		glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+		glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
+		tr = tr * mat_t * mat_s;
+
+		std::pair< glm::fvec3, glm::fvec3>& guide_line = ginfo.guide_lines_target_rbs[0];
+		glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
+		glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
+
+		glm::fvec3 ssguide_p1_ws = pos_guide_line;
+		glm::fvec3 ssguide_p2_ws = pos_guide_line + dir_guide_line * 0.2f;
+		glm::fvec3 ssguide_dir = dir_guide_line;
 
 		vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
 		var_settings::SetSectionalImageAssets(true, __FP sstool_p1_ws, __FP(sstool_p1_ws + ssguide_dir * 0.2f));
@@ -906,7 +879,7 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("ss_head", __FP guide_lines[0], guide_lines.size() / 2, line_guide_idx);
+			var_settings::SetTargetModelAssets("ss_head", line_guide_idx);
 
 			// SS tool custom vis.
 			UpdateModel(ginfo, s, show_mks);							// Skin(head), Brain, Ventricle

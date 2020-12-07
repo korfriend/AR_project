@@ -848,7 +848,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 				Show_Window_with_Info(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo);
 			}
 		}
-		else if (event == EVENT_LBUTTONUP)
+		else if (event == EVENT_LBUTTONUP || event == EVENT_RBUTTONUP)
 		{
 			vzm::CameraParameters cam_params;
 			vzm::GetCameraParameters(0, cam_params, 0);
