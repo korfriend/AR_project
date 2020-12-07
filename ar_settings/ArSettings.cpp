@@ -2130,8 +2130,8 @@ namespace var_settings
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, cyl_obj_id, cyl_state);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, cyl_obj_id, cyl_state);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cyl_obj_id, cyl_state);
-						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, cyl_obj_id, line_state);
-						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, cyl_obj_id, line_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, cyl_obj_id, cyl_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, cyl_obj_id, cyl_state);
 					}
 
 					// zoom navi view //
