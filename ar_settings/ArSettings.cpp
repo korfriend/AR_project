@@ -2335,7 +2335,7 @@ namespace var_settings
 				imshow(g_info.window_name_rs_view, img_rs);
 
 #ifdef __MIRRORS
-			if(scenario != 0)
+			//if(scenario != 0)
 			{
 				cv::Mat img_rs_mirror(g_info.rs_h, g_info.rs_w, CV_8UC3, img_rs.data);
 				imshow("rs mirror", img_rs_mirror);
