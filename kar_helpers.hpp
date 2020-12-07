@@ -423,6 +423,7 @@ struct GlobalInfo
 	int eye_w, eye_h;
 	int ws_w, ws_h;
 	int ms_w, ms_h;
+	int zn_w, zn_h;
 
 	// scene definition
 	int ws_scene_id; // arbitrary integer
@@ -430,7 +431,8 @@ struct GlobalInfo
 	int model_scene_id; // arbitrary integer
 	int csection_scene_id; // arbitrary integer
 	int stg_scene_id; // arbitrary integer
-	int zoom_scene_id;
+	int znavi_rs_scene_id;
+	int znavi_stg_scene_id;
 
 	// cv window name
 	string window_name_rs_view;

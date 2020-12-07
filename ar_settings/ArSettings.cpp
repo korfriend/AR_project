@@ -320,7 +320,7 @@ namespace var_settings
 	int rs_cam_id = 1; // arbitrary integer
 	int stg_cam_id = 1; // arbitrary integer
 	int stg2_cam_id = 2; // arbitrary integer
-	int zoom_cam_id = 1; // arbitrary integer
+	int znavi_cam_id = 1; // arbitrary integer
 	vzm::ObjStates default_obj_state;
 
 	bool is_rsrb_detected = false;
@@ -351,6 +351,8 @@ namespace var_settings
 		g_info.model_scene_id = 3;
 		g_info.csection_scene_id = 4;
 		g_info.stg_scene_id = 5;
+		g_info.znavi_rs_scene_id = 9;
+		g_info.znavi_stg_scene_id = 10;
 
 		g_info.window_name_rs_view = "RealSense VIEW";
 		g_info.window_name_ws_view = "World VIEW";
@@ -455,6 +457,8 @@ namespace var_settings
 		g_info.rs_h = rs_h;
 		g_info.ms_w = 400;
 		g_info.ms_h = 400;
+		g_info.zn_w = 300;
+		g_info.zn_h = 300;
 
 		int volume_obj_id = 0;
 		if (scenario == 0)
@@ -1036,9 +1040,6 @@ namespace var_settings
 		else if (scene_id == g_info.stg_scene_id) {
 			return stg_cam_id;
 		}
-		else if (scene_id == g_info.zoom_scene_id) {
-			return zoom_cam_id;
-		}
 
 		return -1;
 	}
@@ -1163,6 +1164,12 @@ namespace var_settings
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_tip_id, default_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_tip_id, default_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_tip_id, default_obj_state);
+
+
+
+			// zoom navi view //
+			vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, section_probe_tip_id, default_obj_state);
+			vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, section_probe_tip_id, default_obj_state);
 		}
 		else
 		{
@@ -2090,6 +2097,16 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, angle_text_id, angle_text_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_id, angle_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_text_id, angle_text_state);
+
+					// zoom navi view //
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, guide_line_id, line_state);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, guide_cyl_id, cyl_state);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, closest_dist_line_id, closest_dist_line_state);
+					SetDashEffectInRendering(g_info.znavi_rs_scene_id, 1, closest_dist_line_id, 0.01, true);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, guide_line_id, line_state);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, guide_cyl_id, cyl_state);
+					vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, closest_dist_line_id, closest_dist_line_state);
+					SetDashEffectInRendering(g_info.znavi_stg_scene_id, 1, closest_dist_line_id, 0.01, true);
 				}
 			}
 		}
@@ -2099,7 +2116,7 @@ namespace var_settings
 	{
 		// after calling SetTargetModelAssets
 		_show_sectional_views = show_sectional_views;
-		if (show_sectional_views && _pos_tip && _pos_end)
+		if (show_sectional_views && _pos_tip && _pos_end && g_info.is_modelaligned)
 		{
 			// ws
 			glm::fvec3 pos_tip = __cv3__ _pos_tip;
@@ -2165,6 +2182,57 @@ namespace var_settings
 			QueryPerformanceCounter(&lIntCntFreq);
 			return lIntCntFreq;
 		};
+
+		auto RenderToolNavi = []()
+		{
+			using namespace glm;
+
+			if (g_info.is_probe_detected && g_info.is_modelaligned && g_info.guide_lines_target_rbs.size() > 0)
+			{
+				vzm::CameraParameters zoom_cam_params;
+
+				zoom_cam_params.fov_y = 3.141592654f / 4.f;
+				zoom_cam_params.aspect_ratio = (float)g_info.zn_w / (float)g_info.zn_h;
+				zoom_cam_params.projection_mode = 2;
+				zoom_cam_params.w = g_info.zn_w;
+				zoom_cam_params.h = g_info.zn_h;
+				zoom_cam_params.np = 0.01f;
+				zoom_cam_params.fp = 10.0f;
+				__cv3__ zoom_cam_params.pos = g_info.pos_probe_pin + g_info.dir_probe_se * 0.1f;
+				__cv3__ zoom_cam_params.view = -g_info.dir_probe_se;
+				glm::fvec3 right = glm::normalize(glm::cross(-g_info.dir_probe_se, glm::fvec3(0, 1, 0)));
+				__cv3__ zoom_cam_params.up = glm::normalize(glm::cross(right, -g_info.dir_probe_se));
+
+				vzm::SetCameraParameters(g_info.znavi_rs_scene_id, zoom_cam_params, znavi_cam_id);
+				vzm::SetCameraParameters(g_info.znavi_stg_scene_id, zoom_cam_params, znavi_cam_id);
+
+				vzm::RenderScene(g_info.znavi_rs_scene_id, znavi_cam_id);
+				vzm::RenderScene(g_info.znavi_stg_scene_id, znavi_cam_id);
+			}
+		};
+
+		auto WorldCamSet = []()
+		{
+			using namespace glm;
+			fvec3 up = fvec3(0, 1, 0);
+			fvec3 view = -g_info.dir_probe_se;
+			fvec3 right = normalize(cross(up, view));
+			fvec3 pos_lookat = g_info.pos_probe_pin + g_info.dir_probe_se * 0.1f;
+
+			vzm::CameraParameters cam_param;
+			vzm::GetCameraParameters(g_info.ws_scene_id, cam_param, ov_cam_id);
+
+			__cv3__ cam_param.pos = pos_lookat + right * 0.3f;
+			__cv3__ cam_param.up = up;
+			__cv3__ cam_param.view = right;
+
+			vzm::SetCameraParameters(g_info.ws_scene_id, cam_param, ov_cam_id);
+		};
+
+		if (g_info.is_modelaligned && g_info.is_probe_detected)
+		{
+			WorldCamSet();
+		}
 
 		if (!g_info.skip_call_render)
 		{
