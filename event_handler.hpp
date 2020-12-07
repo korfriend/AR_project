@@ -728,7 +728,7 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 					{
 						glm::fvec4 sphere_xyzr = glm::fvec4(eginfo->ginfo.model_ms_pick_pts[i], 0.002);
 						spheres_xyzr.push_back(sphere_xyzr);
-						glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 0);
+						glm::fvec3 sphere_rgb = glm::fvec3(1, 0, 1);
 						spheres_rgb.push_back(sphere_rgb);
 					}
 					vzm::ObjStates sobj_state;
