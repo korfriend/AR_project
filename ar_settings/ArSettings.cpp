@@ -2151,6 +2151,7 @@ namespace var_settings
 						static int guide_dist_arrow_id = 0;
 						vzm::ObjStates guide_dist_arrow_state;
 						__cv4__ guide_dist_arrow_state.color = glm::fvec4(1, 0.5, 1, 0.5);
+						guide_dist_arrow_state.
 
 						vzm::GenerateArrowObject(__FP g_info.pos_probe_pin, __FP closetPoint, 0.0015f, guide_dist_arrow_id);
 						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, guide_dist_arrow_id, guide_dist_arrow_state);
