@@ -587,10 +587,12 @@ void UpdateSectionalImage(GlobalInfo& ginfo)
 	if (ginfo.is_modelaligned) {
 		vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(ginfo.pos_probe_pin), sizeof(glm::dvec3), -1, -1);
 
-		glm::fvec3 dir_probe = glm::normalize(tr_vec(ginfo.mat_probe2ws, glm::fvec3(0, 0, 1)));
+		//glm::fvec3 dir_probe = glm::normalize(tr_vec(ginfo.mat_probe2ws, glm::fvec3(0, 0, 1)));
+		glm::fvec3 dir_probe = ginfo.dir_probe_se;
 		var_settings::SetSectionalImageAssets(true, __FP ginfo.pos_probe_pin, __FP(ginfo.pos_probe_pin + dir_probe * 0.2f));
 	}
 	else {
+		/*
 		glm::fvec3 sstool_p1_ws = ginfo.pos_probe_pin;
 		glm::fvec3 sstool_p2_ws = ginfo.dir_probe_se * 0.2f;
 		glm::fvec3 sstool_dir = ginfo.dir_probe_se;
@@ -612,6 +614,7 @@ void UpdateSectionalImage(GlobalInfo& ginfo)
 
 		vzm::SetRenderTestParam("_double3_3DTipPos", glm::dvec3(sstool_p1_ws), sizeof(glm::dvec3), -1, -1);
 		var_settings::SetSectionalImageAssets(true, __FP sstool_p1_ws, __FP(sstool_p1_ws + ssguide_dir * 0.2f));
+		*/
 	}
 }
 

@@ -394,6 +394,7 @@ struct GlobalInfo
 
 	// guide lines w.r.t. target asset coord.
 	vector<std::pair<glm::fvec3, glm::fvec3>> guide_lines_target_rbs;
+	int guide_line_idx;
 	
 	// model related
 	bool is_modelaligned;
@@ -472,6 +473,7 @@ struct GlobalInfo
 		stg_display_num = 1;
 
 		scenario = 0;
+		guide_line_idx = -1;
 	}
 };
 
