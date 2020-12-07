@@ -1150,7 +1150,7 @@ void Show_Window_with_Info(const std::string& title, const int scene_id, const i
 			for (int i = 0; i < (int)ginfo.model_ms_pick_pts.size(); i++)
 			{
 				glm::fvec3 pos_ss = tr_pt(mat_ws2ss, ginfo.model_ms_pick_pts[i]);
-				cv::putText(cvmat, to_string(i), cv::Point(pos_ss.x, pos_ss.y), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(30, 10, 255), 1, LineTypes::LINE_AA);
+				cv::putText(cvmat, to_string(i), cv::Point(pos_ss.x, pos_ss.y), cv::FONT_HERSHEY_DUPLEX, 0.5, Scalar(0, 255, 0, 255), 1, LineTypes::LINE_AA);
 			}
 		}
 
@@ -1213,10 +1213,11 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 
 void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned char* data_render_bf, int w_bf, int h_bf, int offset_x, int offset_y, bool v_flib, bool smooth_mask)
 {
-	auto alpha_mask = [](float r) -> float
+	auto alpha_mask = [&smooth_mask](float r) -> float
 	{
-		const float _a = 0.7;
-		return min(max(atan(_a * (r - 10.f)) + atan(_a * 10.f) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f);
+		if (!smooth_mask) return 1.f;
+		const float _a = 0.2;
+		return min(max((atan(_a * (r - 50.f)) + atan(_a * 100.f)) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f) * 0.8f;
 	};
 	// cpu mem ==> dataPtr
 	int width_uibuf_pitch = w * 3;
@@ -1254,9 +1255,11 @@ void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned ch
 				unsigned char _g = (rgb >> 8) & 0xFF;
 				unsigned char _b = (rgb >> 16) & 0xFF;
 
-				float _a = alpha_mask(glm::length(_c - glm::fvec2(j, i)));
-				if (i % 20 == 1 && j % 20 == 1)
-					cout << _a << ", ";
+				//float _a = alpha_mask(glm::length(_c - glm::fvec2(j, i)));
+				int _x = min(min(i, j), min(w_bf - j, h_bf - i));
+				float _a = alpha_mask((float)_x);
+				//if (i % 20 == 1 && j % 20 == 1)
+				//	cout << _a << ", ";
 				float fa = (float)a / 255.f * _a;
 				float fr = (1.f - fa) * (float)_r + (float)r * fa;
 				float fg = (1.f - fa) * (float)_g + (float)g * fa;
@@ -1476,9 +1479,9 @@ void Make_Buttons(const int screen_w, const int screen_h, std::map<RsTouchMode, 
 	// create main buttons
 	for (int i = 0; i < (int)btns_mode.size(); i++)
 	{
-		buttons[btns_mode[i]] = ButtonState(btns_mode[i], Rect(bw * i, 0, bw, bh), 0, true, EtoString(btns_mode[i]), false, Scalar(50, 50, 150));
+		buttons[btns_mode[i]] = ButtonState(btns_mode[i], Rect(bw * i, 0, bw, bh), 0, true, EtoString(btns_mode[i]), false, Scalar(50, 50, 150, 200));
 	}
-#define ADD_SUBBTNS(MODE, RECT_INFO) buttons[MODE] = ButtonState(MODE, RECT_INFO, 0, false, EtoString(MODE), true, Scalar(150, 250, 150))
+#define ADD_SUBBTNS(MODE, RECT_INFO) buttons[MODE] = ButtonState(MODE, RECT_INFO, 0, false, EtoString(MODE), true, Scalar(150, 250, 150, 200))
 	ADD_SUBBTNS(RsTouchMode::AR_Marker, Rect(bw * 1, bh, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::DST_TOOL_E0, Rect(bw * 1, bh * 2, bw, bh));
 	ADD_SUBBTNS(RsTouchMode::DST_TOOL_SE0, Rect(bw * 1, bh * 3, bw, bh));
@@ -1498,11 +1501,11 @@ void Draw_TouchButtons(cv::Mat img, const std::map<RsTouchMode, ButtonState>& bu
 		const ButtonState& btn = it->second;
 		if (btn.is_activated)
 		{
-			Scalar bg = Scalar(150, 150, 150);
+			Scalar bg = Scalar(150, 150, 150, 200);
 			if (it->first == touch_mode) bg = btn.activated_bg;
 			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), bg, -1);
-			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), Scalar(0, 0, 0), 1, LineTypes::LINE_AA);
-			putText(img(btn.rect), btn.name, Point(btn.rect.width*0.1, btn.rect.height*0.4), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0), 1, LineTypes::LINE_AA);
+			rectangle(img(btn.rect), Rect(0, 0, btn.rect.width, btn.rect.height), Scalar(0, 0, 0, 255), 2, LineTypes::LINE_AA);
+			putText(img(btn.rect), btn.name, Point(btn.rect.width*0.1, btn.rect.height*0.4), FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 0, 255), 1, LineTypes::LINE_AA);
 		}
 	}
 }
