@@ -1151,12 +1151,61 @@ namespace var_settings
 			glm::fvec3 cyl_p01[2] = { probe_tip, probe_tip + probe_dir_se * 0.2f };
 			float cyl_r = 0.002f;
 			glm::fvec3 cyl_rgb = glm::fvec3(0, 1, 1);
-			vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
-			vzm::GenerateSpheresObject(__FP glm::fvec4(probe_tip, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_tip_id);
 
-			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, default_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, default_obj_state);
-			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, default_obj_state);
+			if (g_info.is_modelaligned && g_info.guide_line_idx != -1)
+			{
+				vzm::ObjStates model_ws_obj_state;
+				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
+				glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
+				if (scenario == 0)
+				{
+					glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+					glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
+					tr = tr * mat_t * mat_s;
+				}
+
+				const pair< glm::fvec3, glm::fvec3>& guide_line = g_info.guide_lines_target_rbs[g_info.guide_line_idx];
+				glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
+				glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
+
+				glm::fvec3 closetPoint;
+				ComputeClosestPointBetweenLineAndPoint(pos_guide_line, dir_guide_line, g_info.pos_probe_pin, closetPoint);
+
+				// color coding w.r.t. distance and angle. //
+				float length = glm::length(g_info.pos_probe_pin - closetPoint);
+				if (length <= cyl_r) {
+					float r = 0 / 255.0;
+					float g = 255 / 255.0;
+					float b = 0 / 255.0;
+					float o = 1.0;
+					glm::fvec4 color = glm::fvec4(r, g, b, o);
+					memcpy(default_obj_state.color, (float*)&color, sizeof(float) * 4);
+				}
+				else {
+					float r = 255 / 255.0;
+					float g = 0 / 255.0;
+					float b = 0 / 255.0;
+					float o = 1.0;
+					glm::fvec4 color = glm::fvec4(r, g, b, o);
+					memcpy(default_obj_state.color, (float*)&color, sizeof(float) * 4);
+				}
+
+				// probe cylinder visible false
+				vzm::ObjStates probe_line_state;
+				vzm::GetSceneObjectState(g_info.ws_scene_id, section_probe_line_id, probe_line_state);
+				probe_line_state.is_visible = false;
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, probe_line_state);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, probe_line_state);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, probe_line_state);
+			}
+			else {
+				vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, __FP cyl_rgb, 1, section_probe_line_id);
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_line_id, default_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_line_id, default_obj_state);
+				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_line_id, default_obj_state);
+			}
+
+			vzm::GenerateSpheresObject(__FP glm::fvec4(probe_tip, 0.0045f), __FP glm::fvec3(1, 1, 1), 1, section_probe_tip_id);
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, section_probe_tip_id, default_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, section_probe_tip_id, default_obj_state);
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, section_probe_tip_id, default_obj_state);
@@ -1980,6 +2029,7 @@ namespace var_settings
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			}
 			// guide lines
+			g_info.guide_line_idx = guide_line_idx;
 			if(g_info.guide_lines_target_rbs.size() > 0 && guide_line_idx >= 0)
 			{
 				vzm::ObjStates line_state, cyl_state;
