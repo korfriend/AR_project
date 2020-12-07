@@ -400,13 +400,15 @@ namespace var_settings
 			g_info.model_path = preset_path + "..\\Data\\skin.obj";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points.txt";
 			//g_info.volume_model_path = "C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\head\\head.x3d";
-			g_info.volume_model_path = preset_path + "..\\Data\\head_phantom\\head_phantom.x3d";
+			g_info.volume_model_path = preset_path + "..\\..\\LargeData\\head_phantom_kar\\head_phantom_kar.x3d";
+			g_info.model_view_preset = preset_path + "..\\Preset\\mv_preset(head).txt";
 		}
 		else if (scenario == 1)
 		{
 			g_info.model_path = preset_path + "..\\Data\\breast\\chest_front_points(nrl)_simple1.ply";
 			g_info.volume_model_path = preset_path + "..\\Data\\breast\\chest_x3d.x3d";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(breast).txt";
+			g_info.model_view_preset = preset_path + "..\\Preset\\mv_preset(breast).txt";
 		}
 		else if (scenario == 2)
 		{
@@ -416,6 +418,7 @@ namespace var_settings
 			//g_info.volume_model_path = preset_path + "..\\..\\LargeData\\201120_den\\201120_den.x3d";
 			//g_info.volume_model_path = preset_path + "..\\Data\\spine\\chest_x3d.x3d";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(spine).txt";
+			g_info.model_view_preset = preset_path + "..\\Preset\\mv_preset(spine).txt";
 			//g_info.model_predefined_pts = preset_path + "..\\..\\LargeData\\";
 		}
 
@@ -950,6 +953,66 @@ namespace var_settings
 				line_idx++;
 			}
 			infile.close();
+		}
+
+		infile = std::ifstream(g_info.model_view_preset);
+		if (infile.is_open())
+		{
+			vzm::CameraParameters cam_params;
+			vzm::GetCameraParameters(g_info.model_scene_id, cam_params, 1);
+			int cam_loaded = 0;
+			while (getline(infile, line))
+			{
+				istringstream iss(line);
+				string param_name;
+				iss >> param_name;
+#define SET_CAM(A) A[0] >> A[1] >> A[2]
+
+				if (param_name == "cam_pos")
+				{
+					cam_loaded++;
+					iss >> SET_CAM(cam_params.pos);
+				}
+				else if (param_name == "cam_up")
+				{
+					cam_loaded++;
+					iss >> SET_CAM(cam_params.up);
+				}
+				else if (param_name == "cam_view")
+				{
+					cam_loaded++;
+					iss >> SET_CAM(cam_params.view);
+				}
+			}
+			if (cam_loaded == 3)
+				vzm::SetCameraParameters(g_info.model_scene_id, cam_params, 1);
+		}
+
+		infile = std::ifstream(g_info.custom_pos_file_paths["guide_lines"]);
+		if (infile.is_open())
+		{
+			getline(infile, line);
+			std::istringstream iss_num(line);
+
+			int screwcount;
+			iss_num >> screwcount;
+
+			while (getline(infile, line))
+			{
+				std::istringstream iss(line);
+				float a, b, c, d, e, f, g;
+				if (!(iss >> a >> b >> c >> d >> e >> f)) { break; } // error
+
+				const float line_leng = 10.f;
+				glm::fvec3 p = glm::fvec3(a, b, c);
+				glm::fvec3 dir = glm::normalize(glm::fvec3(d, e, f) - p);
+
+				g_info.guide_lines_target_rbs.push_back(std::pair<glm::fvec3, glm::fvec3>(p, dir));
+			}
+			infile.close();
+
+			//vzm::GenerateCylindersObject((float*)&needles_pos[0], &needles_radii[0], (float*)&needles_clr[0], screwcount, needles_guide_id);
+
 		}
 	}
 
@@ -1848,7 +1911,7 @@ namespace var_settings
 		}
 	}
 
-	void SetTargetModelAssets(const std::string& name, const float* guide_posdir_lines_ptr, const int num_guide_lines, const int guide_line_idx)
+	void SetTargetModelAssets(const std::string& name, const int guide_line_idx)
 	{
 		if (g_info.model_ws_pick_spheres_id != 0)
 		{
@@ -1902,13 +1965,14 @@ namespace var_settings
 				if (g_info.touch_mode == RsTouchMode::Align)
 				{
 					model_ws_obj_state.color[3] = 0.7f;
-					//model_ws_obj_state.
+					model_ws_obj_state.show_outline = true;
 					vzm::SetRenderTestParam("_bool_IsGhostSurface", false, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 					vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", false, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 				}
 				else
 				{
 					model_ws_obj_state.color[3] = 1.f;
+					model_ws_obj_state.show_outline = false;
 					vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 					vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 				}
@@ -1920,9 +1984,8 @@ namespace var_settings
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 			}
 			// guide lines
-			if(guide_posdir_lines_ptr != NULL && guide_line_idx >= 0)
+			if(g_info.guide_lines_target_rbs.size() > 0 && guide_line_idx >= 0)
 			{
-				glm::fvec3* guide_posdir_lines = (glm::fvec3*)guide_posdir_lines_ptr;
 				vzm::ObjStates line_state, cyl_state;
 				line_state.line_thickness = 5;
 				line_state.is_visible = false;
@@ -1955,6 +2018,7 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cyl_obj_id, cyl_state);
 				}
 
+				int num_guide_lines = (int)g_info.guide_lines_target_rbs.size();
 				if (guide_line_idx < num_guide_lines)
 				{
 					glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
@@ -1964,8 +2028,9 @@ namespace var_settings
 						glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
 						tr = tr * mat_t * mat_s;
 					}
-					glm::fvec3 pos_guide_line = tr_pt(tr, guide_posdir_lines[2 * guide_line_idx + 0]);
-					glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, guide_posdir_lines[2 * guide_line_idx + 1]));
+					const pair< glm::fvec3, glm::fvec3>& guide_line = g_info.guide_lines_target_rbs[guide_line_idx];
+					glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
+					glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
 
 					glm::fvec3 closetPoint;
 					ComputeClosestPointBetweenLineAndPoint(pos_guide_line, dir_guide_line, g_info.pos_probe_pin, closetPoint);

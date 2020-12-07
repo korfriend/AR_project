@@ -51,44 +51,6 @@ using namespace cv;
 #include <librealsense2/rs.hpp> // Include RealSense Cross Platform API
 #include <librealsense2/rsutil.h>
 
-bool loadScrewGuideLines(const std::string& screwfile, std::vector<int>& line_ids, std::vector<glm::fvec3>& guide_lines)
-{
-	std::ifstream infile(screwfile);
-	string line;
-	if (infile.is_open())
-	{
-		getline(infile, line);
-		std::istringstream iss_num(line);
-
-		int screwcount;
-		iss_num >> screwcount;
-
-		int _line_idx = 0;
-		while (getline(infile, line))
-		{
-			std::istringstream iss(line);
-			float a, b, c, d, e, f, g;
-			if (!(iss >> a >> b >> c >> d >> e >> f)) { break; } // error
-
-			const float line_leng = 10.f;
-			glm::fvec3 p = glm::fvec3(a, b, c);
-			glm::fvec3 dir = glm::normalize(glm::fvec3(d, e, f) - p);
-			int line_id = 0;
-			//vzm::GenerateLinesObject(__FP p, __FP (p + dir * line_leng), 1, line_id);
-			line_ids.push_back(line_id);
-			guide_lines.push_back(p);
-			guide_lines.push_back(dir);
-			_line_idx++;
-		}
-		infile.close();
-
-		//vzm::GenerateCylindersObject((float*)&needles_pos[0], &needles_radii[0], (float*)&needles_clr[0], screwcount, needles_guide_id);
-
-	}
-
-	return true;
-}
-
 int main()
 {
 
@@ -133,11 +95,6 @@ int main()
 	var_settings::InitializeVarSettings(2, 2, "marker");
 	var_settings::SetCvWindows();
 	var_settings::SetPreoperations(rs_w, rs_h, ws_w, ws_h, stg_w, stg_h, eye_w, eye_h);
-
-	std::vector<int> guide_line_ids;
-	std::vector<glm::fvec3> guide_lines;
-	//loadScrewGuideLines("C:\\Users\\User\\source\\repos\\korfriend\\LargeData\\spine_pins.txt", guide_line_ids, guide_lines);
-	loadScrewGuideLines("C:\\Users\\User\\source\\repos\\korfriend\\AR_project\\Data\\spine\\spine_pins.txt", guide_line_ids, guide_lines);
 
 	//optitrk::SetRigidBodyPropertyByName("rs_cam", 0.1f, 1);
 	//optitrk::SetRigidBodyPropertyByName("probe", 0.1f, 1);
@@ -227,6 +184,7 @@ int main()
 
 	int line_guide_idx = 0;
 	std::string preset_path = var_settings::GetDefaultFilePath();
+	ginfo.custom_pos_file_paths["guide_lines"] = preset_path + "..\\Data\\spine\\spine_pins.txt";
 	//ginfo.custom_pos_file_paths["tool_1"] = preset_path + "..\\Preset\\tool_1_end.txt";
 	//ginfo.custom_pos_file_paths["tool_2"] = preset_path + "..\\Preset\\tool_2_end.txt";
 	//ginfo.custom_pos_file_paths["tool_3"] = preset_path + "..\\Preset\\tool_3_se.txt";
@@ -317,7 +275,7 @@ int main()
 			ginfo.src_tool_name = "tool_1";
 			break; 
 		case ',': line_guide_idx = max(line_guide_idx - 1, 0); break;
-		case '.': line_guide_idx = min(line_guide_idx + 1, (int)guide_line_ids.size() - 1); break;
+		case '.': line_guide_idx = min(line_guide_idx + 1, (int)ginfo.guide_lines_target_rbs.size() - 1); break;
 		//case 'i': insert = true; break;
 		}
 		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
@@ -366,7 +324,7 @@ int main()
 			rs2::depth_frame depth_frame = current_filtered_frame;
 			var_settings::SetDepthMapPC(show_pc, depth_frame, current_color_frame);
 
-			var_settings::SetTargetModelAssets("spine", __FP guide_lines[0], guide_lines.size() / 2, line_guide_idx);
+			var_settings::SetTargetModelAssets("spine", line_guide_idx);
 
 			var_settings::SetSectionalImageAssets(ginfo.is_modelaligned, __FP ginfo.pos_probe_pin, __FP(ginfo.pos_probe_pin + ginfo.dir_probe_se * 0.2f));
 

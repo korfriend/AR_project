@@ -848,6 +848,18 @@ void CallBackFunc_ModelMouse(int event, int x, int y, int flags, void* userdata)
 				Show_Window_with_Info(eginfo->ginfo.window_name_ms_view, eginfo->scene_id, eginfo->cam_id, eginfo->ginfo);
 			}
 		}
+		else if (event == EVENT_LBUTTONUP)
+		{
+			vzm::CameraParameters cam_params;
+			vzm::GetCameraParameters(0, cam_params, 0);
+			ofstream fileout(eginfo->ginfo.model_view_preset);
+			if (!fileout.is_open()) return;
+
+			fileout << "cam_pos " << __PR(cam_params.pos, " ") << endl;
+			fileout << "cam_up " << __PR(cam_params.up, " ") << endl;
+			fileout << "cam_view " << __PR(cam_params.view, " ") << endl;
+			fileout.close();
+		}
 	}
 
 	//int key_pressed = cv::waitKey(10);
