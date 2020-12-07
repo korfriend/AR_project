@@ -1216,13 +1216,13 @@ void copy_back_ui_buffer(unsigned char* data_ui, unsigned char* data_render_bf, 
 		}
 };
 
-void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned char* data_render_bf, int w_bf, int h_bf, int offset_x, int offset_y, bool v_flib, bool smooth_mask)
+void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned char* data_render_bf, int w_bf, int h_bf, int offset_x, int offset_y, bool v_flib, bool smooth_mask, float _a, float _b, bool opaque_bg)
 {
-	auto alpha_mask = [&smooth_mask](float r) -> float
+	auto alpha_mask = [&smooth_mask, &_a, &_b](float r) -> float
 	{
 		if (!smooth_mask) return 1.f;
-		const float _a = 0.2;
-		return min(max((atan(_a * (r - 50.f)) + atan(_a * 100.f)) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f) * 0.8f;
+		//const float _a = 0.2;
+		return min(max((atan(_a * (r - _b)) + atan(_a * 100.f)) / (atan(_a * 1000.f) * 2.f), 0.f), 1.f) * 0.8f;
 	};
 	// cpu mem ==> dataPtr
 	int width_uibuf_pitch = w * 3;
@@ -1243,7 +1243,7 @@ void copy_back_ui_buffer_local(unsigned char* data_ui, int w, int h, unsigned ch
 			unsigned char r = rgba & 0xFF;
 			unsigned char g = (rgba >> 8) & 0xFF;
 			unsigned char b = (rgba >> 16) & 0xFF;
-			unsigned char a = (rgba >> 24) & 0xFF;
+			unsigned char a = opaque_bg? 255 : (rgba >> 24) & 0xFF;
 
 			if ((a > 0) && (j + offset_y < w) && (i + offset_y < h))
 			{
@@ -1352,7 +1352,9 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 
 	const float err_criterion = 3.f;
 	Mat inliers_ids;
-	if (pair_pts.size() > 20 && err_proj > err_criterion)
+	if ((pair_pts.size() > 20 && err_proj > err_criterion)
+		|| (pair_pts.size() > 50 && err_proj > 2.f)
+		|| (pair_pts.size() > 100 && err_proj > 1.f))
 	{
 		float confidence = 0.9f;
 		if (pair_pts.size() >= 100) confidence = 0.8f;
