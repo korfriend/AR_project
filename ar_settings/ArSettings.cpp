@@ -540,6 +540,10 @@ namespace var_settings
 		vzm::SceneEnvParameters stg_scn_env_params = scn_env_params;
 		vzm::SetSceneEnvParameters(g_info.stg_scene_id, stg_scn_env_params);
 
+		vzm::SceneEnvParameters znavi_scn_env_params = scn_env_params;
+		vzm::SetSceneEnvParameters(g_info.znavi_rs_scene_id, znavi_scn_env_params);
+		vzm::SetSceneEnvParameters(g_info.znavi_stg_scene_id, znavi_scn_env_params);
+
 		vzm::ObjStates obj_state;
 		obj_state.emission = 0.4f;
 		obj_state.diffusion = 0.6f;
@@ -2221,6 +2225,7 @@ namespace var_settings
 
 				zoom_cam_params.fov_y = 3.141592654f / 4.f;
 				zoom_cam_params.aspect_ratio = (float)g_info.zn_w / (float)g_info.zn_h;
+				cout << g_info.zn_w << ", " << g_info.zn_h << endl;
 				zoom_cam_params.projection_mode = 2;
 				zoom_cam_params.w = g_info.zn_w;
 				zoom_cam_params.h = g_info.zn_h;
