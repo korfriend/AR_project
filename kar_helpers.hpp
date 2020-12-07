@@ -415,8 +415,6 @@ struct GlobalInfo
 
 	SS_Tool_Guide_Pts ss_tool_info;
 	vector<glm::fvec3> tool_guide_pos_os;
-	int brain_ms_obj_id, ventricle_ms_obj_id;
-	int brain_ws_obj_id, ventricle_ws_obj_id;
 
 	int rs_w, rs_h;
 	int stg_w, stg_h;
@@ -474,12 +472,6 @@ struct GlobalInfo
 		model_volume_id = 0;
 		is_probe_detected = false;
 		stg_display_num = 1;
-
-		// SSU
-		brain_ms_obj_id = 0;
-		brain_ws_obj_id = 0;
-		ventricle_ms_obj_id = 0;
-		ventricle_ws_obj_id = 0;
 
 		scenario = 0;
 	}
@@ -1157,7 +1149,7 @@ void Show_Window_with_Info(const std::string& title, const int scene_id, const i
 			for (int i = 0; i < (int)ginfo.model_ms_pick_pts.size(); i++)
 			{
 				glm::fvec3 pos_ss = tr_pt(mat_ws2ss, ginfo.model_ms_pick_pts[i]);
-				cv::putText(cvmat, to_string(i), cv::Point(pos_ss.x, pos_ss.y), cv::FONT_HERSHEY_DUPLEX, 0.5, Scalar(0, 255, 0, 255), 1, LineTypes::LINE_AA);
+				cv::putText(cvmat, to_string(i), cv::Point(pos_ss.x, pos_ss.y), cv::FONT_HERSHEY_DUPLEX, 0.7, Scalar(30, 55, 255, 255), 1, LineTypes::LINE_AA);
 			}
 		}
 
@@ -1339,7 +1331,7 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 	cv::Mat tvec = cv::Mat::zeros(3, 1, CV_64FC1);          // output translation vector
 	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
 	//cv::solvePnP(Mat(*(vector<Point3f>*)&points_buf_3d_clf), Mat(*(vector<Point2f>*)&points_buf_2d), cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
-	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_AP3P);
+	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, false, SOLVEPNP_DLS);
 	cv::solvePnP(points_buf_3d_clf, points_buf_2d, cam_mat, distCoeffs, rvec, tvec, true, SOLVEPNP_ITERATIVE);
 
 	float err_proj = 0;

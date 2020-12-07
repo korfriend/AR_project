@@ -91,7 +91,7 @@ void SetCvWindows(GlobalInfo& ginfo)
 	//var_settings::GetVarInfo(&ginfo);
 
 	// SSU //////////////////////////////////////////////////////////////////
-	cv::namedWindow(window_name_zs_view, WINDOW_AUTOSIZE);
+	//cv::namedWindow(window_name_zs_view, WINDOW_AUTOSIZE);
 	//cv::namedWindow("zs_mirror", WINDOW_NORMAL);
 	//Show_Window(window_name_zs_view, zoom_scene_id, zoom_cam_id);
 }
@@ -227,7 +227,8 @@ void UpdateModel(GlobalInfo& ginfo, Simulation& s, bool bDrawWireFrame)
 		ventricle_rs_states.wire_color[0] = 0.9;	ventricle_rs_states.wire_color[1] = 0.5;	ventricle_rs_states.wire_color[2] = 0.5; ventricle_rs_states.wire_color[3] = 1.0;
 		ventricle_rs_states.color[0] = 1.0; ventricle_rs_states.color[1] = 0; ventricle_rs_states.color[2] = 0; ventricle_rs_states.color[3] = 1.0;
 
-		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ginfo.model_ws_obj_id, model_rs_states);
+		// realsense scene
+		//vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ginfo.model_ws_obj_id, model_rs_states);
 		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, brain_ws_obj_id, brain_rs_states);
 		vzm::ReplaceOrAddSceneObject(ginfo.rs_scene_id, ventricle_ws_obj_id, ventricle_rs_states);
 
@@ -289,6 +290,7 @@ void UpdateModel(GlobalInfo& ginfo, Simulation& s, bool bDrawWireFrame)
 		vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ventricle_ws_obj_id, ventricle_ws_states);
 
 		// model scene
+		/*
 		vzm::ObjStates model_ms_states, ventricle_ms_states;
 		vzm::GetSceneObjectState(ginfo.model_scene_id, ginfo.model_ms_obj_id, model_ms_states);
 		model_ms_states.color[3] = 0.1;
@@ -297,8 +299,10 @@ void UpdateModel(GlobalInfo& ginfo, Simulation& s, bool bDrawWireFrame)
 		vzm::GetSceneObjectState(ginfo.model_scene_id, ventricle_ms_obj_id, ventricle_ms_states);
 		ventricle_ms_states.color[0] = 1.0; ventricle_ms_states.color[1] = 0; ventricle_ms_states.color[2] = 0; ventricle_ms_states.color[3] = 0.7;
 		vzm::ReplaceOrAddSceneObject(ginfo.model_scene_id, ventricle_ms_obj_id, ventricle_ms_states);
+		*/
 	}
 	else {
+		/*
 		// object state setting
 		vzm::ObjStates model_states, brain_states, ventricle_states;
 		vzm::GetSceneObjectState(ginfo.model_scene_id, ginfo.model_ms_obj_id, model_states);
@@ -310,10 +314,11 @@ void UpdateModel(GlobalInfo& ginfo, Simulation& s, bool bDrawWireFrame)
 		brain_states.color[0] = 0.5; brain_states.color[1] = 0.5; brain_states.color[2] = 0.5; brain_states.color[3] = 0.3;
 		ventricle_states.color[0] = 1.0; ventricle_states.color[1] = 0; ventricle_states.color[2] = 0; ventricle_states.color[3] = 1.0;
 
-		// generate scene
+		// model scene
 		vzm::ReplaceOrAddSceneObject(ginfo.model_scene_id, ginfo.model_ms_obj_id, model_states);
 		vzm::ReplaceOrAddSceneObject(ginfo.model_scene_id, brain_ms_obj_id, brain_states);
 		vzm::ReplaceOrAddSceneObject(ginfo.model_scene_id, ventricle_ms_obj_id, ventricle_states);
+		*/
 	}
 }
 void UpdateTool(GlobalInfo& ginfo, track_info& trk_info, const std::string& probe_specifier_rb_name, int _probe_mode, Simulation& s)
@@ -781,14 +786,24 @@ int main()
 	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(0.0002, 0.5, 1.5), sizeof(glm::dvec3), -1, -1);
 	vzm::SetRenderTestParam("_double_InDepthVis", 0.01, sizeof(double), -1, -1);
 	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
-	//vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.model_ws_obj_id);
-	//vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.brain_ws_obj_id);
-	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.brain_ws_obj_id);
-	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.ventricle_ws_obj_id);
-	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
-	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.brain_ws_obj_id);
-	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.ventricle_ws_obj_id);
-	//vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.model_ws_obj_id);
+
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ventricle_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
+
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.model_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.stg_scene_id, 1, brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ventricle_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 1, ginfo.model_ws_obj_id);
+
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.stg_scene_id, 2, ginfo.model_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.stg_scene_id, 2, brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 2, brain_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 2, ventricle_ws_obj_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.stg_scene_id, 2, ginfo.model_ws_obj_id);
 
 	std::string probe_name = "probe";
 	PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
@@ -799,15 +814,6 @@ int main()
 	while (key_pressed != 'q' && key_pressed != 27)
 	{
 		LARGE_INTEGER frq_begin = GetPerformanceFreq();
-
-		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
-		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.brain_ws_obj_id);
-		vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, brain_ws_obj_id);
-		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.brain_ws_obj_id);
-		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.ventricle_ws_obj_id);
-		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ventricle_ws_obj_id);
-		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, brain_ws_obj_id);
-		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, ginfo.model_ws_obj_id);
 
 		bool load_calib_info = false;
 		bool load_stg_calib_info = false;
