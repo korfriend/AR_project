@@ -1664,16 +1664,17 @@ namespace var_settings
 
 				vector<Point2f> point2d;
 				vector<Point3f> point3d;
-				for (int i = 0; i < num_stg_calib_pairs; i++)
+				const glm::fvec3 color_pick_mks = color_pick[i];
+				for (int j = 0; j < num_stg_calib_pairs; j++)
 				{
-					pair<Point2f, Point3f>& pr = stg_calib_pt_pairs[i];
+					pair<Point2f, Point3f>& pr = stg_calib_pt_pairs[j];
 					point2d.push_back(get<0>(pr));
 					Point3f pos_pt = get<1>(pr);
 					point3d.push_back(pos_pt);
 
 					glm::fvec3 pos_mk_ws = tr_pt(mat_clf2ws, __cv3__ &pos_pt);
 					ws_mk_spheres_xyzr.push_back(glm::fvec4(pos_mk_ws, 0.007));
-					ws_mk_spheres_rgb.push_back(color_pick[i]);
+					ws_mk_spheres_rgb.push_back(color_pick_mks);
 				}
 
 				int& __last_calib_pair = i == 0 ? last_calib_pair : last_calib_pair_2;
@@ -1731,7 +1732,10 @@ namespace var_settings
 			}
 			else
 			{
-				vzm::DeleteObject(clf_mk_stg_calib_spheres_id);
+				vzm::ObjStates cstate = default_obj_state;
+				cstate.is_visible = false;
+				vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, clf_mk_stg_calib_spheres_id, cstate);
+				vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, clf_mk_stg_calib_spheres_id, cstate);
 			}
 		}
 		else

@@ -364,7 +364,9 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 						glm::fvec3 mk_pt_clf = tr_pt(mat_ws2clf, mk_pt);
 
 						cout << "Add a STG calib marker!! ==> " << (eginfo->ginfo.touch_mode == RsTouchMode::Calib_STG ? "Display 1"  : "Display 2") << endl;
-						stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(pos_2d_rs[stg_calib_pt_pairs.size() + (eginfo->ginfo.touch_mode == RsTouchMode::Calib_STG? 0 : 15)], Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
+						Point2f mk_pt_2d = eginfo->ginfo.touch_mode == RsTouchMode::Calib_STG ? pos_2d_rs[stg_calib_pt_pairs.size()] :
+							pos_2d_rs[stg_calib_pt_pairs.size() + 15] - Point2f(w, 0);
+						stg_calib_pt_pairs.push_back(pair<Point2f, Point3f>(mk_pt_2d, Point3f(mk_pt_clf.x, mk_pt_clf.y, mk_pt_clf.z)));
 					}
 				}
 				else
@@ -530,6 +532,7 @@ void CallBackFunc_RsMouse(int event, int x, int y, int flags, void* userdata)
 		case RsTouchMode::STG_Pair_Clear:
 		{
 			eginfo->ginfo.otrk_data.stg_calib_pt_pairs.clear();
+			eginfo->ginfo.otrk_data.stg_calib_pt_pairs_2.clear();
 			cout << "Clear STG point pairs!!" << endl;
 		} break;
 		case RsTouchMode::Capture:
