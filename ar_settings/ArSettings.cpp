@@ -1159,7 +1159,7 @@ namespace var_settings
 			g_info.dir_probe_se = probe_dir_se;
 
 			glm::fvec3 cyl_p01[2] = { probe_tip, probe_tip + probe_dir_se * 0.2f };
-			float cyl_r = 0.002f;
+			float cyl_r = 0.0015f;	// 0.002f
 			vzm::GenerateCylindersObject((float*)cyl_p01, &cyl_r, NULL, 1, probe_line_id);
 			vzm::ObjStates probe_state = default_obj_state;
 			__cv4__ probe_state.color = glm::fvec4(0, 1, 1, 1);
@@ -1169,6 +1169,7 @@ namespace var_settings
 
 			vzm::GenerateSpheresObject(__FP glm::fvec4(probe_tip, 0.0045f), NULL, 1, probe_tip_id);
 			__cv4__ probe_state.color = glm::fvec4(1, 1, 1, 1);
+
 			vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, probe_tip_id, probe_state);
 			vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, probe_tip_id, probe_state);
 			vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, probe_tip_id, probe_state);
@@ -2084,6 +2085,11 @@ namespace var_settings
 					float cyl_r = 0.004;
 					int& guide_cyl_id = guide_cylinder_obj_ids[guide_line_idx];
 					vzm::GenerateCylindersObject(__FP cyl_pos[0], __FP cyl_r, NULL, 1, guide_cyl_id);
+
+					static int guide_cyl_zoom_id = 0;
+					//cyl_r = 0.0015;
+					vzm::GenerateCylindersObject(__FP cyl_pos[0], __FP cyl_r, NULL, 1, guide_cyl_zoom_id);
+					
 					// 
 
 					//cyl_state.is_visible = true;
@@ -2100,6 +2106,7 @@ namespace var_settings
 
 					// show dist line
 					g_info.closest_dist = MakeDistanceLine(-1, g_info.pos_probe_pin, closetPoint, 0.05, closest_dist_line_id, closest_dist_text_id);
+					g_info.guide_probe_closest_point = closetPoint;
 					vzm::ObjStates closest_dist_line_state;
 					closest_dist_line_state.line_thickness = 5;
 					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, closest_dist_line_id, closest_dist_line_state);
@@ -2128,25 +2135,60 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_id, angle_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_text_id, angle_text_state);
 
-					{
-						// color coding w.r.t. distance and angle. //
-						if (g_info.closest_dist <= cyl_r) {
-							cyl_state.color[3] = 0.15;
-							float r = 0 / 255.0;
-							float g = 255 / 255.0;
-							float b = 0 / 255.0;
-							float o = 1.0;
-							__cv4__ line_state.color = glm::fvec4(r, g, b, o);
-						}
-						else {
-							//cyl_state.is_visible = false;
-							float r = 255 / 255.0;
-							float g = 127 / 255.0;
-							float b = 39 / 255.0;
-							float o = 1.0;
-							__cv4__ line_state.color = glm::fvec4(r, g, b, o);
-						}
+					// show distance distance
+					
+
+					
+					// color coding w.r.t. distance and angle. //
+					// guide
+					//if (g_info.closest_dist <= cyl_r) {
+					if (g_info.angle * 180.f / glm::pi<float>() <= 5) {
+						cyl_state.color[3] = 0.15;
+						float r = 0 / 255.0;
+						float g = 255 / 255.0;
+						float b = 0 / 255.0;
+						float o = 0.5;
+						__cv4__ line_state.color = glm::fvec4(r, g, b, o);
+						__cv4__ cyl_state.color = glm::fvec4(r, g, b, o);
+						cyl_state.color[3] = o;
+			
 					}
+					else {
+						//cyl_state.is_visible = false;
+						float r = 255 / 255.0;
+						float g = 127 / 255.0;
+						float b = 39 / 255.0;
+						float o = 0.5;
+						__cv4__ line_state.color = glm::fvec4(r, g, b, o);
+						__cv4__ cyl_state.color = glm::fvec4(r, g, b, o);
+						cyl_state.color[3] = o;
+					}
+
+					// tool tip
+					vzm::ObjStates tooltipState;
+					//cout << probe_tip_id << endl;
+					vzm::GetSceneObjectState(g_info.ws_scene_id, probe_tip_id, tooltipState);
+
+					if (g_info.closest_dist <= 0.004) {
+						float r = 0 / 255.0;
+						float g = 255 / 255.0;
+						float b = 0 / 255.0;
+						float o = 0.8;
+						__cv3__ tooltipState.color = glm::fvec3(r, g, b);
+						tooltipState.color[3] = o;
+					}
+					else {
+						float r = 255 / 255.0;
+						float g = 127 / 255.0;
+						float b = 39 / 255.0;
+						float o = 0.8;
+						__cv3__ tooltipState.color = glm::fvec3(r, g, b);
+						tooltipState.color[3] =o;
+					}
+					vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, probe_tip_id, tooltipState);
+					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, probe_tip_id, tooltipState);
+					vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, probe_tip_id, tooltipState);
+					
 
 					SetDashEffectInRendering(g_info.stg_scene_id, 1, guide_line_id, 0.01, false);
 					SetDashEffectInRendering(g_info.stg_scene_id, 2, guide_line_id, 0.01, false);
@@ -2159,22 +2201,26 @@ namespace var_settings
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, line_obj_id, line_state);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, line_obj_id, line_state);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, line_obj_id, line_state);
-						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, line_obj_id, line_state);
-						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, line_obj_id, line_state);
+						//vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, line_obj_id, line_state);
+						//vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, line_obj_id, line_state);
+
 						int cyl_obj_id = guide_cylinder_obj_ids[i];
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, cyl_obj_id, cyl_state);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, cyl_obj_id, cyl_state);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cyl_obj_id, cyl_state);
-						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, cyl_obj_id, cyl_state);
-						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, cyl_obj_id, cyl_state);
+						//vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, cyl_obj_id, cyl_state);
+						//vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, cyl_obj_id, cyl_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, guide_cyl_zoom_id, cyl_state);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, guide_cyl_zoom_id, cyl_state);
 					}
 
 					// zoom navi view //
 					{
-						vzm::ObjStates probe_state = default_obj_state;
-						__cv4__ probe_state.color = glm::fvec4(1);
-						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, probe_tip_id, probe_state);
-						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, probe_tip_id, probe_state);
+						//vzm::ObjStates probe_state = default_obj_state;
+						//__cv4__ probe_state.color = glm::fvec4(1);
+						
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, probe_tip_id, tooltipState);
+						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, probe_tip_id, tooltipState);
 
 						//vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, closest_dist_line_id, closest_dist_line_state);
 						//vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, closest_dist_line_id, closest_dist_line_state);
@@ -2390,7 +2436,37 @@ namespace var_settings
 						int znavi_rs_w, znavi_rs_h;
 						vzm::GetRenderBufferPtrs(g_info.znavi_rs_scene_id, &znavi_rs_ptr_rgba, &znavi_rs_ptr_zdepth, &znavi_rs_w, &znavi_rs_h, 1);
 						cv::Mat znavi_rs_cvmat(znavi_rs_w, znavi_rs_h, CV_8UC4, znavi_rs_ptr_rgba);
-						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, znavi_rs_ptr_rgba, znavi_rs_w, znavi_rs_h, 10, 200, false, true, 0.2f, 50.f, false);
+
+						glm::fmat4x4 mat_matchmodelfrm2ws;
+						g_info.otrk_data.trk_info.GetLFrmInfo(g_info.match_model_rbs_name, mat_matchmodelfrm2ws);
+						glm::fmat4x4 tr = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
+						if (scenario == 0)
+						{
+							glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+							glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
+							tr = tr * mat_t * mat_s;
+						}
+						const pair< glm::fvec3, glm::fvec3>& guide_line = g_info.guide_lines_target_rbs[g_info.guide_line_idx];
+						glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
+						glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
+
+						glm::fvec3 guide_probe_closest_point = g_info.guide_probe_closest_point;
+
+						float maxDistance = 100;
+						float currentDistance = glm::length(guide_probe_closest_point - pos_guide_line) * 1000;
+						if (currentDistance >= maxDistance) { currentDistance = maxDistance; }
+
+						int barX = 10, barY = 10, textOffset = 5;
+						float barMaxLength = 200;
+						float currentBarLength = (currentDistance / maxDistance) * barMaxLength;
+
+						cv::line(znavi_rs_cvmat, cv::Point(barX, barY), cv::Point(barX, barY + barMaxLength), cv::Scalar(125, 125, 125, 255), 10, LineTypes::LINE_AA);
+						cv::line(znavi_rs_cvmat, cv::Point(barX, barY), cv::Point(barX, barMaxLength - (barY + currentBarLength)), cv::Scalar(255, 255, 0, 255), 10, LineTypes::LINE_AA);
+
+						string distanceText = to_string_with_precision(currentDistance, 2) + " mm";
+						cv::putText(znavi_rs_cvmat, distanceText, cv::Point(barX + textOffset, barMaxLength - (barY + currentBarLength)), cv::FONT_HERSHEY_DUPLEX, 0.7, Scalar(255, 255, 255, 255), 1, LineTypes::LINE_AA);
+
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, znavi_rs_ptr_rgba, znavi_rs_w, znavi_rs_h, 10, 200, false, false, 0.2f, 50.f, false);
 					}
 				}
 #endif

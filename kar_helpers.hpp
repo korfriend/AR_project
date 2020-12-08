@@ -396,6 +396,7 @@ struct GlobalInfo
 	vector<std::pair<glm::fvec3, glm::fvec3>> guide_lines_target_rbs;
 	int guide_line_idx;
 	float closest_dist, angle;
+	glm::fvec3 guide_probe_closest_point;
 	
 	// model related
 	bool is_modelaligned;

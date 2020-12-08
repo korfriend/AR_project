@@ -324,7 +324,7 @@ void UpdateModel(GlobalInfo& ginfo, Simulation& s, bool bDrawWireFrame)
 void UpdateTool(GlobalInfo& ginfo, track_info& trk_info, const std::string& probe_specifier_rb_name, int _probe_mode, Simulation& s)
 {
 	// (realsense, world, smartglass) scene
-	var_settings::UpdateTrackInfo(&trk_info, probe_specifier_rb_name, _probe_mode);
+	//var_settings::UpdateTrackInfo(&trk_info, probe_specifier_rb_name, _probe_mode);
 
 	if (ginfo.is_modelaligned) {
 		static int tool_ms_line_id = 0, tool_end_id = 0;
@@ -863,7 +863,15 @@ int main()
 		if (trk_info.is_updated && current_frameset)
 		{
 			//DisplayTimes(frq_begin, "device_stream_load");
-
+			/*
+			if (ginfo.is_modelaligned) {
+				probe_name = pin_tool_name;
+				var_settings::UpdateTrackInfo(&trk_info, probe_name, );
+			}
+			else {
+				var_settings::UpdateTrackInfo(&trk_info);
+			}
+			*/
 			var_settings::UpdateTrackInfo(&trk_info);
 
 			auto current_color_frame = current_frameset.get_color_frame();
