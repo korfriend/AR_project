@@ -451,7 +451,7 @@ namespace var_settings
 		g_info.eye_w = eye_w;
 		g_info.eye_h = eye_h;
 		g_info.ws_w = ws_w;
-		g_info.ws_h = ws_h;
+		g_info.ws_h = rs_h;// ws_h;
 		g_info.stg_w = stg_w;
 		g_info.stg_h = stg_h;
 		g_info.rs_w = rs_w;
@@ -2202,6 +2202,7 @@ namespace var_settings
 					{
 						int line_obj_id = guide_line_obj_ids[i];
 						line_state.is_visible = cyl_state.is_visible = i == guide_line_idx;
+	
 						vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, line_obj_id, line_state);
 						vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, line_obj_id, line_state);
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, line_obj_id, line_state);
@@ -2214,6 +2215,9 @@ namespace var_settings
 						vzm::ReplaceOrAddSceneObject(g_info.ws_scene_id, cyl_obj_id, cyl_state);
 						//vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, cyl_obj_id, cyl_state);
 						//vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, cyl_obj_id, cyl_state);
+
+						line_state.is_visible = true;
+						cyl_state.is_visible = true;
 						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, guide_cyl_zoom_id, cyl_state);
 						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, guide_cyl_zoom_id, cyl_state);
 					}
@@ -2237,7 +2241,7 @@ namespace var_settings
 						vzm::ObjStates guide_dist_arrow_state;
 						__cv4__ guide_dist_arrow_state.color = glm::fvec4(1, 0.5, 1, 0.5);
 
-						vzm::GenerateArrowObject(__FP g_info.pos_probe_pin, __FP closetPoint, 0.0015f, guide_dist_arrow_id);
+						vzm::GenerateArrowObject(__FP g_info.pos_probe_pin, __FP closetPoint, 0.0015f, 0.003f, guide_dist_arrow_id);
 						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, guide_dist_arrow_id, guide_dist_arrow_state);
 						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, guide_dist_arrow_id, guide_dist_arrow_state);
 					}
@@ -2636,13 +2640,13 @@ namespace var_settings
 		{
 			once_prob_set = false;
 			cv::moveWindow(g_info.window_name_rs_view, 0, 0);
-			cv::waitKey(1);
+			cv::waitKey(100);
 			cv::moveWindow(g_info.window_name_stg_view, 0, g_info.rs_h + 5);
-			cv::waitKey(1);
+			cv::waitKey(100);
 			cv::moveWindow(g_info.window_name_ws_view, g_info.rs_w + 5, 0);
-			cv::waitKey(1);
+			cv::waitKey(100);
 			cv::moveWindow(g_info.window_name_ms_view, g_info.rs_w + 5, g_info.rs_h + 5);
-			cv::waitKey(1);
+			cv::waitKey(100);
 
 			const int display1_w = 1680 + 2;// 1920;
 			const int display2_w = 2000 + 2;
@@ -2655,13 +2659,13 @@ namespace var_settings
 			cv::setWindowProperty("stg mirror", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN);
 #endif
 			cv::resizeWindow(g_info.window_name_rs_view, cv::Size(g_info.rs_w, g_info.rs_h));
-			cv::waitKey(1);
+			cv::waitKey(10);
 			cv::resizeWindow(g_info.window_name_stg_view, cv::Size(g_info.stg_w, g_info.stg_h));
-			cv::waitKey(1);
+			cv::waitKey(10);
 			cv::resizeWindow(g_info.window_name_ws_view, cv::Size(g_info.ws_w, g_info.ws_h));
-			cv::waitKey(1);
+			cv::waitKey(10);
 			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(g_info.ms_w, g_info.ms_h));
-			cv::waitKey(1);
+			cv::waitKey(10);
 		}
 	}
 

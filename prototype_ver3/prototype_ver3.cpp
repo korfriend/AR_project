@@ -81,7 +81,7 @@ int main()
 	const int rs_h = 540;
 
 	int breast_bone_id = 0;
-	string breast_bone_path = "..\\Data\\breast\\breast_bone.stl";
+	string breast_bone_path = "..\\Data\\breast\\inner_organs_bone2\\inner_organs_bone2.stl";
 	vzm::LoadModelFile(breast_bone_path, breast_bone_id);
 
 	rs_settings::InitializeRealsense(true, false, rs_w, rs_h, eye_w, eye_h);
@@ -178,8 +178,8 @@ int main()
 
 	vzm::SetRenderTestParam("_bool_GhostEffect", true, sizeof(bool), ginfo.rs_scene_id, 1);
 	vzm::SetRenderTestParam("_bool_UseMask3DTip", true, sizeof(bool), -1, -1);
-	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 0.1, 0.5), sizeof(glm::dvec4), -1, -1);
-	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(0.002, 0.8, 2.0), sizeof(glm::dvec3), -1, -1);
+	vzm::SetRenderTestParam("_double4_MaskCenterRadius0", glm::dvec4(-100, -100, 0.07, 0.5), sizeof(glm::dvec4), -1, -1);
+	vzm::SetRenderTestParam("_double3_HotspotParamsTKtKs0", glm::dvec3(0.0002, 0.5, 1.0), sizeof(glm::dvec3), -1, -1);
 	vzm::SetRenderTestParam("_double_InDepthVis", 0.10, sizeof(double), -1, -1);
 	vzm::SetRenderTestParam("_int_OitMode", (int)0, sizeof(int), -1, -1);
 
@@ -188,8 +188,10 @@ int main()
 
 	int tumor_id = 0;
 	vzm::LoadModelFile(var_settings::GetDefaultFilePath() + "..\\Data\\tumor_2\\tumor_2.stl", tumor_id);
-	vzm::SetRenderTestParam("_bool_IsGhostSurface", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", false, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+	vzm::SetRenderTestParam("_bool_IsGhostSurface", false, sizeof(bool), ginfo.rs_scene_id, 1, breast_bone_id);
 	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
+	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, breast_bone_id);
 
 	int line_guide_idx = 0;
 	int operation_step = 0;
@@ -200,9 +202,6 @@ int main()
 
 	std::string probe_name = "probe";
 	PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
-
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, breast_bone_id);
-	vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), ginfo.rs_scene_id, 1, tumor_id);
 
 	while (key_pressed != 'q' && key_pressed != 27)
 	{

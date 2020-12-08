@@ -464,7 +464,7 @@ void UpdateZoomNavigation(GlobalInfo& ginfo)
 			__cm4__ angleArrowState.os2ws = glm::fmat4(1.f);
 			__cv4__ angleArrowState.color = color;
 
-			vzm::GenerateArrowObject((float*)&sstool_p1_ws, (float*)&closetPoint, 0.001f, ssu_tool_guide_angleArrow_id);
+			vzm::GenerateArrowObject((float*)&sstool_p1_ws, (float*)&closetPoint, 0.001f, 0.002f, ssu_tool_guide_angleArrow_id);
 			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_angleArrow_id, angleArrowState);
 			vzm::ReplaceOrAddSceneObject(zoom_scene_stg_id, ssu_tool_guide_angleArrow_id, angleArrowState);
 
@@ -532,8 +532,8 @@ void UpdateZoomNavigation(GlobalInfo& ginfo)
 			glm::fvec4 color = glm::fvec4(1, 0.5, 1, 0.5);
 			__cm4__ distanceArrowState.os2ws = glm::fmat4(1.f);
 			__cv4__ distanceArrowState.color = color;
-			vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[1], 0.001f, ssu_tool_guide_distance_arrow1_id);
-			vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[3], 0.001f, ssu_tool_guide_distance_arrow2_id);
+			vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[1], 0.001f, 0.002f, ssu_tool_guide_distance_arrow1_id);
+			vzm::GenerateArrowObject((float*)&pos_lines[0], (float*)&pos_lines[3], 0.001f, 0.002f, ssu_tool_guide_distance_arrow2_id);
 			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow1_id, distanceArrowState);
 			vzm::ReplaceOrAddSceneObject(zoom_scene_id, ssu_tool_guide_distance_arrow2_id, distanceArrowState);
 

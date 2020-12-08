@@ -79,12 +79,12 @@ int main()
 
 	const int eye_w = 640;
 	const int eye_h = 480;
-	const int ws_w = 640;
-	const int ws_h = 480;
 	const int stg_w = 640;
 	const int stg_h = 480;
 	const int rs_w = 960;
 	const int rs_h = 540;
+	const int ws_w = 640;
+	const int ws_h = 480;
 
 	rs_settings::InitializeRealsense(true, false, rs_w, rs_h, eye_w, eye_h);
 	rs_settings::RunRsThread(original_data, filtered_data, eye_data);
