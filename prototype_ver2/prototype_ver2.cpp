@@ -811,6 +811,7 @@ int main()
 	std::string probe_name = "probe";
 	PROBE_MODE probe_mode = PROBE_MODE::DEFAULT;
 	int line_guide_idx = 0;
+	int operation_step = 0;
 
 	//optitrk::SetCameraSettings(0, 2, 50, 150);
 	//optitrk::SetCameraSettings(1, 2, 50, 150);
@@ -841,6 +842,20 @@ int main()
 			case 'f': show_workload = !show_workload; break;
 			case 'c': is_ws_pick = !is_ws_pick; break;
 			case 'o': vzm::SetRenderTestParam("_bool_UseSpinLock", false, sizeof(bool), -1, -1); break;
+			case '1': operation_step = 1; probe_name = "probe"; probe_mode = PROBE_MODE::DEFAULT;
+				optitrk::SetRigidBodyEnabledbyName("probe", true);
+				optitrk::SetRigidBodyEnabledbyName(pin_tool_name, false);
+				break;
+			case '2': operation_step = 2; probe_name = pin_tool_name; probe_mode = PROBE_MODE::ONLY_RBFRAME;
+				optitrk::SetRigidBodyEnabledbyName("probe", false);
+				optitrk::SetRigidBodyEnabledbyName(pin_tool_name, true);
+				break;
+			case '7': operation_step = 7; probe_name = "probe"; probe_mode = PROBE_MODE::DEFAULT;
+				optitrk::SetRigidBodyEnabledbyName("probe", true);
+				optitrk::SetRigidBodyEnabledbyName(pin_tool_name, true);
+				ginfo.dst_tool_name = pin_tool_name;
+				ginfo.src_tool_name = "probe";
+				break;
 		}
 		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", show_apis_console, sizeof(bool), -1, -1);
@@ -872,7 +887,8 @@ int main()
 				var_settings::UpdateTrackInfo(&trk_info);
 			}
 			*/
-			var_settings::UpdateTrackInfo(&trk_info);
+			//var_settings::UpdateTrackInfo(&trk_info);
+			var_settings::UpdateTrackInfo(&trk_info, probe_name, probe_mode);
 
 			auto current_color_frame = current_frameset.get_color_frame();
 			//auto colorized_depth = current_frameset.first(RS2_STREAM_DEPTH, RS2_FORMAT_RGB8);
