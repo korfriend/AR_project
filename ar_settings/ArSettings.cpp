@@ -815,8 +815,9 @@ namespace var_settings
 		cv::setMouseCallback(g_info.window_name_ms_view, CallBackFunc_ModelMouse, &rg_info_model);
 
 		static EventGlobalInfo rg_info_rs(g_info, g_info.rs_scene_id, rs_cam_id);
-		cv::setMouseCallback(g_info.window_name_rs_view, CallBackFunc_RsMouse, &rg_info_rs);
-		//cv::setMouseCallback("rs mirror", CallBackFunc_RsMouse, &rg_info_rs);
+		//cv::setMouseCallback(g_info.window_name_rs_view, CallBackFunc_RsMouse, &rg_info_rs);
+		cv::setMouseCallback("rs mirror", CallBackFunc_RsMouse, &rg_info_rs);
+		
 		//static EventGlobalInfo rg_info_stg(g_info, 0, 0);
 		//cv::setMouseCallback(g_info.window_name_stg_view, CallBackFunc_StgMouse, &rg_info_stg);
 	}
