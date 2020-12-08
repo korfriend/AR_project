@@ -407,7 +407,8 @@ namespace var_settings
 		}
 		else if (scenario == 1)
 		{
-			g_info.model_path = preset_path + "..\\Data\\breast\\chest_front_points(nrl)_simple1.ply";
+			//g_info.model_path = preset_path + "..\\Data\\breast\\chest_front_points(nrl)_simple1.ply";
+			g_info.model_path = preset_path + "..\\Data\\breast\\chest_front_surf_simple1.stl";
 			g_info.volume_model_path = preset_path + "..\\Data\\breast\\chest_x3d.x3d";
 			g_info.model_predefined_pts = preset_path + "..\\Preset\\mode_predefined_points(breast).txt";
 			g_info.model_view_preset = preset_path + "..\\Preset\\mv_preset(breast).txt";
@@ -573,6 +574,9 @@ namespace var_settings
 		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.rs_scene_id, 1, g_info.model_ws_obj_id);
 		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 1, g_info.model_ws_obj_id);
 		vzm::SetRenderTestParam("_bool_IsOnlyHotSpotVisible", true, sizeof(bool), g_info.stg_scene_id, 2, g_info.model_ws_obj_id);
+
+		if(scenario == 2)
+			vzm::SetRenderTestParam("_bool_OnlyForemostSurfaces", true, sizeof(bool), -1, -1, g_info.model_ws_obj_id);
 
 		//double vz = 0.0;
 		//vzm::SetRenderTestParam("_double_VZThickness", vz, sizeof(double), -1, -1);
