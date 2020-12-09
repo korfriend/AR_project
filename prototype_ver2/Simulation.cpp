@@ -89,9 +89,9 @@ CiSoftBody* Simulation::initSoftBody(const char* pcDataRoot)
 
 	//
 	float fMassg[] = { 1.5, 0.1 };			// mass
-	float kLSTg[] = { 0.01, 0.01 };			// 0.7, 0.01
+	float kLSTg[] = { 0.05, 0.01 };			// 0.7, 0.01
 	float kASTg[] = { 0.01, 0.01 };			// 0.8, 0.01
-	float kVSTg[] = { 0.01, 0.01 };			// 1.0, 0.01
+	float kVSTg[] = { 0.05, 0.01 };			// 1.0, 0.01
 	float kESTg[] = { 0, 0 };
 	float kYoungsModulus[] = { 30, 1.1 };	// young's modulus (CSf: 0.00016, Pia meter: 1.1)
 	float kPoissonRatio[] = { 0, 0 };		// poisson ratio (0.45~0.49)
