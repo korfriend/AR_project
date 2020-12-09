@@ -2472,17 +2472,23 @@ namespace var_settings
 						float currentDistance = glm::length(guide_probe_closest_point - pos_guide_line) * 1000;
 						if (currentDistance >= maxDistance) { currentDistance = maxDistance; }
 
-						int barX = 10, barY = 10, textOffset = 5;
+						int znavi_x_pos = 10;
+						int znavi_y_pos = 200;
+						int barX = 10 + znavi_x_pos, barY = 10 + znavi_y_pos, textOffset = 5;
 						float barMaxLength = 200;
 						float currentBarLength = (currentDistance / maxDistance) * barMaxLength;
 
-						cv::line(znavi_rs_cvmat, cv::Point(barX, barY), cv::Point(barX, barY + barMaxLength), cv::Scalar(125, 125, 125, 255), 10, LineTypes::LINE_AA);
-						cv::line(znavi_rs_cvmat, cv::Point(barX, barY), cv::Point(barX, barMaxLength - (barY + currentBarLength)), cv::Scalar(255, 255, 0, 255), 10, LineTypes::LINE_AA);
+						//cv::line(znavi_rs_cvmat, cv::Point(barX, barY), cv::Point(barX, barY + barMaxLength), cv::Scalar(125, 125, 125, 255), 10, LineTypes::LINE_AA);
+						//cv::line(znavi_rs_cvmat, cv::Point(barX, barY), cv::Point(barX, barMaxLength - (barY + currentBarLength)), cv::Scalar(255, 255, 0, 255), 10, LineTypes::LINE_AA);
+						//string distanceText = to_string_with_precision(currentDistance, 2) + " mm";
+						//cv::putText(znavi_rs_cvmat, distanceText, cv::Point(barX + textOffset, barMaxLength - (barY + currentBarLength)), cv::FONT_HERSHEY_DUPLEX, 0.7, Scalar(255, 255, 255, 255), 1, LineTypes::LINE_AA);
 
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, znavi_rs_ptr_rgba, znavi_rs_w, znavi_rs_h, znavi_x_pos, znavi_y_pos, false, false, 0.4f, 20.f, true);
+
+						cv::line(img_rs, cv::Point(barX, barY), cv::Point(barX, barY + barMaxLength), cv::Scalar(125, 125, 125, 255), 10, LineTypes::LINE_AA);
+						cv::line(img_rs, cv::Point(barX, barY), cv::Point(barX, barMaxLength - (barY + currentBarLength)), cv::Scalar(255, 255, 0, 255), 10, LineTypes::LINE_AA);
 						string distanceText = to_string_with_precision(currentDistance, 2) + " mm";
-						cv::putText(znavi_rs_cvmat, distanceText, cv::Point(barX + textOffset, barMaxLength - (barY + currentBarLength)), cv::FONT_HERSHEY_DUPLEX, 0.7, Scalar(255, 255, 255, 255), 1, LineTypes::LINE_AA);
-
-						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, znavi_rs_ptr_rgba, znavi_rs_w, znavi_rs_h, 10, 200, false, false, 0.2f, 50.f, false);
+						cv::putText(img_rs, distanceText, cv::Point(barX + textOffset, barMaxLength - (barY + currentBarLength)), cv::FONT_HERSHEY_DUPLEX, 0.7, Scalar(255, 255, 255, 255), 1, LineTypes::LINE_AA);
 					}
 				}
 #endif
@@ -2596,8 +2602,8 @@ namespace var_settings
 							memcpy(&rgba_fb[row * g_info.stg_w * 4 + _stg_w[0] * 4], &ptr_rgba[1][row * _stg_w[1] * 4], sizeof(int) * _stg_w[1]);
 						}
 
-						cv::drawMarker(image_stg, Point(_stg_w[0] / 2, g_info.stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
-						cv::drawMarker(image_stg, Point(_stg_w[0] + _stg_w[1] / 2, g_info.stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
+						cv::drawMarker(image_stg, Point(_stg_w[0] / 2 + g_info.stg_focus_offset_w, g_info.stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
+						cv::drawMarker(image_stg, Point(_stg_w[0] + _stg_w[1] / 2 - g_info.stg_focus_offset_w, g_info.stg_h / 2), Scalar(255, 255, 255), MARKER_CROSS, 30, 3);
 
 						cv::rectangle(image_stg, Point(2, 2), Point(_stg_w[0] - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);
 						cv::rectangle(image_stg, Point(_stg_w[0] + 2, 2), Point(_stg_w[0] + _stg_w[1] - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);

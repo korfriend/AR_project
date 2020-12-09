@@ -384,7 +384,7 @@ struct GlobalInfo
 	bool is_calib_stg_cam;
 	bool is_calib_stg_cam_2;
 	int stg_display_num;
-	int stg_focus_offset;
+	int stg_focus_offset_w;
 
 	string probe_rb_name;
 	bool is_probe_detected;
