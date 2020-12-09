@@ -2473,7 +2473,7 @@ namespace var_settings
 						if (currentDistance >= maxDistance) { currentDistance = maxDistance; }
 
 						int znavi_x_pos = 10;
-						int znavi_y_pos = 200;
+						int znavi_y_pos = 250;
 						int barX = 10 + znavi_x_pos, barY = 10 + znavi_y_pos, textOffset = 5;
 						float barMaxLength = 200;
 						float currentBarLength = (currentDistance / maxDistance) * barMaxLength;
@@ -2483,12 +2483,12 @@ namespace var_settings
 						//string distanceText = to_string_with_precision(currentDistance, 2) + " mm";
 						//cv::putText(znavi_rs_cvmat, distanceText, cv::Point(barX + textOffset, barMaxLength - (barY + currentBarLength)), cv::FONT_HERSHEY_DUPLEX, 0.7, Scalar(255, 255, 255, 255), 1, LineTypes::LINE_AA);
 
-						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, znavi_rs_ptr_rgba, znavi_rs_w, znavi_rs_h, znavi_x_pos, znavi_y_pos, false, false, 0.4f, 20.f, true);
+						copy_back_ui_buffer_local(img_rs.data, rs_w, rs_h, znavi_rs_ptr_rgba, znavi_rs_w, znavi_rs_h, znavi_x_pos, znavi_y_pos, false, true, 0.4f, 20.f, false);
 
 						cv::line(img_rs, cv::Point(barX, barY), cv::Point(barX, barY + barMaxLength), cv::Scalar(125, 125, 125, 255), 10, LineTypes::LINE_AA);
-						cv::line(img_rs, cv::Point(barX, barY), cv::Point(barX, barMaxLength - (barY + currentBarLength)), cv::Scalar(255, 255, 0, 255), 10, LineTypes::LINE_AA);
+						cv::line(img_rs, cv::Point(barX, barY), cv::Point(barX, barY + barMaxLength - currentBarLength), cv::Scalar(255, 255, 0, 255), 10, LineTypes::LINE_AA);
 						string distanceText = to_string_with_precision(currentDistance, 2) + " mm";
-						cv::putText(img_rs, distanceText, cv::Point(barX + textOffset, barMaxLength - (barY + currentBarLength)), cv::FONT_HERSHEY_DUPLEX, 0.7, Scalar(255, 255, 255, 255), 1, LineTypes::LINE_AA);
+						cv::putText(img_rs, distanceText, cv::Point(barX + textOffset, barY + barMaxLength - currentBarLength), cv::FONT_HERSHEY_DUPLEX, 0.7, Scalar(255, 255, 255, 255), 1, LineTypes::LINE_AA);
 					}
 				}
 #endif
