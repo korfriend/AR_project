@@ -313,6 +313,12 @@ namespace var_settings
 	}
 
 	int scenario = 0;
+	float dicom_tr_x = 128;
+	float dicom_tr_y = 128;
+	float dicom_tr_z = 108.5;
+	int dicom_flip_x = -1;
+	int dicom_flip_y = -1;
+	int dicom_flip_z = 1;
 	
 	bool _show_sectional_views = false;
 	int ov_cam_id = 1; // arbitrary integer
@@ -497,7 +503,7 @@ namespace var_settings
 		cam_params_model.fp = 10.0f;
 		if (scenario == 0)
 		{
-			__cv3__ cam_params_model.pos = glm::fvec3(0.4f, 0, 0) + glm::fvec3(112.896, 112.896, 91.5) * 0.001f;
+			__cv3__ cam_params_model.pos = glm::fvec3(0.4f, 0, 0) + glm::fvec3(dicom_tr_x, dicom_tr_y, dicom_tr_z) * 0.001f;
 			__cv3__ cam_params_model.up = glm::fvec3(0, 0.f, 1.f);
 			__cv3__ cam_params_model.view = glm::fvec3(-1.f, 0, 0.f);
 
@@ -815,7 +821,7 @@ namespace var_settings
 		cv::setMouseCallback(g_info.window_name_ms_view, CallBackFunc_ModelMouse, &rg_info_model);
 
 		static EventGlobalInfo rg_info_rs(g_info, g_info.rs_scene_id, rs_cam_id);
-		//cv::setMouseCallback(g_info.window_name_rs_view, CallBackFunc_RsMouse, &rg_info_rs);
+		cv::setMouseCallback(g_info.window_name_rs_view, CallBackFunc_RsMouse, &rg_info_rs);
 		cv::setMouseCallback("rs mirror", CallBackFunc_RsMouse, &rg_info_rs);
 		
 		//static EventGlobalInfo rg_info_stg(g_info, 0, 0);
@@ -1964,20 +1970,20 @@ namespace var_settings
 		{
 			// model
 			vzm::ObjStates model_ws_obj_state;
+			vzm::ObjStates volume_ws_obj_state;
 			{
 				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_ws_obj_id, model_ws_obj_state);
 
 				__cm4__ model_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
 				//if (scenario == 1 || scenario == 2)
 				//{
-				vzm::ObjStates volume_ws_obj_state;
 				vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
 
 				// TEMP
 				if (scenario == 0)
 				{
-					glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
-					glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
+					glm::fmat4x4 mat_s = glm::scale(glm::fvec3(dicom_flip_x, dicom_flip_y, dicom_flip_z));
+					glm::fmat4x4 mat_t = glm::translate(glm::fvec3(dicom_tr_x, dicom_tr_y, dicom_tr_z));
 					__cm4__ volume_ws_obj_state.os2ws = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm * mat_t * mat_s;
 				}
 				else
@@ -2068,13 +2074,13 @@ namespace var_settings
 					//	}
 					//}
 
-					glm::fmat4x4& tr = __cm4__ model_ws_obj_state.os2ws;
-					if (scenario == 0)
-					{
-						glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
-						glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
-						tr = tr * mat_t * mat_s;
-					}
+					glm::fmat4x4& tr = __cm4__ volume_ws_obj_state.os2ws;
+					//if (scenario == 0)
+					//{
+					//	glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+					//	glm::fmat4x4 mat_t = glm::translate(glm::fvec3(dicom_tr_x, dicom_tr_y, dicom_tr_z));
+					//	tr = tr * mat_t * mat_s;
+					//}
 					const pair< glm::fvec3, glm::fvec3>& guide_line = g_info.guide_lines_target_rbs[guide_line_idx];
 					glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
 					glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
@@ -2144,13 +2150,9 @@ namespace var_settings
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_id, angle_state);
 					vzm::ReplaceOrAddSceneObject(g_info.rs_scene_id, angle_text_id, angle_text_state);
 
-					// show distance distance
-					
 
-					
 					// color coding w.r.t. distance and angle. //
 					// guide
-					//if (g_info.closest_dist <= cyl_r) {
 					if (g_info.angle * 180.f / glm::pi<float>() <= 5) {
 						cyl_state.color[3] = 0.15;
 						float r = 0 / 255.0;
@@ -2229,17 +2231,9 @@ namespace var_settings
 
 					// zoom navi view //
 					{
-						//vzm::ObjStates probe_state = default_obj_state;
-						//__cv4__ probe_state.color = glm::fvec4(1);
-						
+						// probe tip
 						vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, probe_tip_id, tooltipState);
 						vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, probe_tip_id, tooltipState);
-
-						//vzm::ReplaceOrAddSceneObject(g_info.znavi_rs_scene_id, closest_dist_line_id, closest_dist_line_state);
-						//vzm::ReplaceOrAddSceneObject(g_info.znavi_stg_scene_id, closest_dist_line_id, closest_dist_line_state);
-						//SetDashEffectInRendering(g_info.znavi_rs_scene_id, 1, closest_dist_line_id, 0.01, true);
-						//SetDashEffectInRendering(g_info.znavi_stg_scene_id, 1, closest_dist_line_id, 0.01, true);
-						//SetDashEffectInRendering(g_info.znavi_stg_scene_id, 2, closest_dist_line_id, 0.01, true);
 
 						// displacement arrow
 						static int guide_dist_arrow_id = 0;
@@ -2450,14 +2444,22 @@ namespace var_settings
 						vzm::GetRenderBufferPtrs(g_info.znavi_rs_scene_id, &znavi_rs_ptr_rgba, &znavi_rs_ptr_zdepth, &znavi_rs_w, &znavi_rs_h, 1);
 						cv::Mat znavi_rs_cvmat(znavi_rs_w, znavi_rs_h, CV_8UC4, znavi_rs_ptr_rgba);
 
-						glm::fmat4x4 mat_matchmodelfrm2ws;
-						g_info.otrk_data.trk_info.GetLFrmInfo(g_info.match_model_rbs_name, mat_matchmodelfrm2ws);
-						glm::fmat4x4 tr = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
-						if (scenario == 0)
+						glm::fmat4x4 tr;
+						//{
+						//	glm::fmat4x4 mat_matchmodelfrm2ws;
+						//	g_info.otrk_data.trk_info.GetLFrmInfo(g_info.match_model_rbs_name, mat_matchmodelfrm2ws);
+						//	tr = mat_matchmodelfrm2ws * g_info.mat_os2matchmodefrm;
+						//	if (scenario == 0)
+						//	{
+						//		glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
+						//		glm::fmat4x4 mat_t = glm::translate(glm::fvec3(dicom_tr_x, dicom_tr_y, dicom_tr_z));
+						//		tr = tr * mat_t * mat_s;
+						//	}
+						//}
 						{
-							glm::fmat4x4 mat_s = glm::scale(glm::fvec3(-1, -1, 1));
-							glm::fmat4x4 mat_t = glm::translate(glm::fvec3(112.896, 112.896, 91.5));
-							tr = tr * mat_t * mat_s;
+							vzm::ObjStates volume_ws_obj_state;
+							vzm::GetSceneObjectState(g_info.ws_scene_id, g_info.model_volume_id, volume_ws_obj_state);
+							tr = __cm4__ volume_ws_obj_state.os2ws;
 						}
 						const pair< glm::fvec3, glm::fvec3>& guide_line = g_info.guide_lines_target_rbs[g_info.guide_line_idx];
 						glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
