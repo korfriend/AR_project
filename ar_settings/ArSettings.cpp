@@ -2464,7 +2464,7 @@ namespace var_settings
 						}
 						const pair< glm::fvec3, glm::fvec3>& guide_line = g_info.guide_lines_target_rbs[g_info.guide_line_idx];
 						glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
-						glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
+						glm::fvec3 dir_guide_line = glm::normalize(tr_vec2(tr, get<1>(guide_line)));
 
 						glm::fvec3 guide_probe_closest_point = g_info.guide_probe_closest_point;
 
