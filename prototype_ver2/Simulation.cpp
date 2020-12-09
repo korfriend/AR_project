@@ -165,7 +165,7 @@ void Simulation::initTool(const char* pcDataRoot)
 	pgb_tool->addFiducialPoint(btVector3(-0.9, -68.0838, 1.49));
 	pgb_tool->addFiducialPoint(btVector3(-0.9, 35.0838, 1.49));
 
-	pgb_tool->translate(btVector3(0, 177, 0));
+	pgb_tool->translate(btVector3(0, 1000, 0));
 
 	rigidBodies.push_back(pgb_tool);
 }

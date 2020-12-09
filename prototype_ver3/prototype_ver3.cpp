@@ -240,8 +240,8 @@ int main()
 			break;
 		case ',': line_guide_idx = max(line_guide_idx - 1, 0); break;
 		case '.': line_guide_idx = min(line_guide_idx + 1, (int)ginfo.guide_lines_target_rbs.size() - 1); break;
-		case '-': ginfo.stg_focus_offset_w = max(ginfo.stg_focus_offset_w - 3, 0); break;
-		case '=': ginfo.stg_focus_offset_w = max(ginfo.stg_focus_offset_w + 3, 60); break;
+		case '-': ginfo.stg_focus_offset_w = max(ginfo.stg_focus_offset_w - 5, 0); break;
+		case '=': ginfo.stg_focus_offset_w = min(ginfo.stg_focus_offset_w + 5, 200); break;
 		}
 		vzm::SetRenderTestParam("_bool_ReloadHLSLObjFiles", recompile_hlsl, sizeof(bool), -1, -1);
 		vzm::SetRenderTestParam("_bool_PrintOutRoutineObjs", show_apis_console, sizeof(bool), -1, -1);

@@ -313,11 +313,11 @@ namespace var_settings
 	}
 
 	int scenario = 0;
-	float dicom_tr_x = 128;
-	float dicom_tr_y = 128;
-	float dicom_tr_z = 108.5;
-	int dicom_flip_x = -1;
-	int dicom_flip_y = -1;
+	float dicom_tr_x = 0;
+	float dicom_tr_y = 0;
+	float dicom_tr_z = 0;
+	int dicom_flip_x = 1;
+	int dicom_flip_y = 1;
 	int dicom_flip_z = 1;
 	
 	bool _show_sectional_views = false;
@@ -2084,7 +2084,7 @@ namespace var_settings
 					//}
 					const pair< glm::fvec3, glm::fvec3>& guide_line = g_info.guide_lines_target_rbs[guide_line_idx];
 					glm::fvec3 pos_guide_line = tr_pt(tr, get<0>(guide_line));
-					glm::fvec3 dir_guide_line = glm::normalize(tr_vec(tr, get<1>(guide_line)));
+					glm::fvec3 dir_guide_line = glm::normalize(tr_vec2(tr, get<1>(guide_line)));
 
 					glm::fvec3 closetPoint;
 					ComputeClosestPointBetweenLineAndPoint(pos_guide_line, dir_guide_line, g_info.pos_probe_pin, closetPoint);
@@ -2632,8 +2632,8 @@ namespace var_settings
 				else
 				{
 					int w = g_info.stg_w / 2;
-					cv::drawMarker(image_stg, Point(w / 2, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
-					cv::drawMarker(image_stg, Point(w + w / 2, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
+					cv::drawMarker(image_stg, Point(w / 2 + g_info.stg_focus_offset_w, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
+					cv::drawMarker(image_stg, Point(w + w / 2 - g_info.stg_focus_offset_w, g_info.stg_h / 2), Scalar(100, 100, 255), MARKER_CROSS, 30, 3);
 
 					cv::rectangle(image_stg, Point(2, 2), Point(w - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);
 					cv::rectangle(image_stg, Point(w + 2, 2), Point(w + w - 2, g_info.stg_h - 2), Scalar(255, 255, 255), 3);

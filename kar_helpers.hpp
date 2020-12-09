@@ -45,6 +45,14 @@ glm::fvec3 tr_vec(const glm::fmat4x4& mat, const glm::fvec3& v)
 	return _v;
 }
 
+glm::fvec3 tr_vec2(const glm::fmat4x4& mat, const glm::fvec3& v)
+{
+	glm::fvec3 _p0 = tr_pt(mat, glm::fvec3(0));
+	glm::fvec3 _p1 = tr_pt(mat, glm::fvec3(0) + v);
+
+	return _p1 - _p0;
+}
+
 // http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c
 std::vector<std::string> split(const std::string &text, char sep) {
 	std::vector<std::string> tokens;
@@ -468,7 +476,7 @@ struct GlobalInfo
 		is_calib_rs_cam = false;
 		is_calib_stg_cam = false;
 		is_calib_stg_cam_2 = false;
-		stg_focus_offset = false;
+		stg_focus_offset_w = 0;
 		model_ms_obj_id = 0;
 		model_ws_obj_id = 0;
 		captured_model_ms_point_id = 0;
