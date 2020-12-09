@@ -1123,6 +1123,7 @@ namespace var_settings
 	void UpdateTrackInfo(const void* trk_info, const std::string& probe_specifier_rb_name, int _probe_mode)
 	{
 		PROBE_MODE probe_mode = (PROBE_MODE)_probe_mode;
+		g_info.probe_rb_name = probe_specifier_rb_name;
 		g_info.otrk_data.trk_info = *(track_info*)trk_info;
 		is_rsrb_detected = g_info.otrk_data.trk_info.GetLFrmInfo("rs_cam", mat_clf2ws);
 		mat_ws2clf = glm::inverse(mat_clf2ws);
@@ -1412,7 +1413,7 @@ namespace var_settings
 				vzm::ReplaceOrAddSceneObject(g_info.stg_scene_id, dst_custom_spheres_id, default_obj_state);
 			}
 		}
-		if (hide_dst_custom_spheres && dst_custom_spheres_id != 0)
+		if (hide_dst_custom_spheres || (dst_custom_spheres_id == 0))
 		{
 			vzm::ObjStates cstate = default_obj_state;
 			cstate.is_visible = false;

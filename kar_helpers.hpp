@@ -384,7 +384,9 @@ struct GlobalInfo
 	bool is_calib_stg_cam;
 	bool is_calib_stg_cam_2;
 	int stg_display_num;
+	int stg_focus_offset;
 
+	string probe_rb_name;
 	bool is_probe_detected;
 	glm::fvec3 pos_probe_pin;
 	glm::fvec3 dir_probe_se;
@@ -466,6 +468,7 @@ struct GlobalInfo
 		is_calib_rs_cam = false;
 		is_calib_stg_cam = false;
 		is_calib_stg_cam_2 = false;
+		stg_focus_offset = false;
 		model_ms_obj_id = 0;
 		model_ws_obj_id = 0;
 		captured_model_ms_point_id = 0;
