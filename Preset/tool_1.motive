@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Profile version="1">
     <NodeAssets>
-        <rigid_body version="1.1" id="e802f8c2857050ba:caffcbd7352c11eb">
+        <rigid_body version="1.1" id="e802f8c2857051ba:b2388af33a0011eb">
             <markers>
                 <marker id="0:0">
-                    <position>-0.0552202,0.0433454,0.185137</position>
+                    <position>-0.044367,0.0422587,0.186498</position>
                     <size>0</size>
                     <residual>0</residual>
-                    <label_id>0</label_id>
+                    <label_id>1</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.0556433,0.0918542,0.154668</position>
+                    <position>-0.0155007,0.0708072,0.174209</position>
                     <size>0</size>
                     <residual>0</residual>
-                    <label_id>0</label_id>
+                    <label_id>2</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.015409,0.115531,0.149585</position>
+                    <position>-0.00663344,0.114679,0.148769</position>
                     <size>0</size>
                     <residual>0</residual>
-                    <label_id>0</label_id>
+                    <label_id>3</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.0256618,0.0720331,0.174834</position>
+                    <position>-0.046563,0.0910843,0.156241</position>
                     <size>0</size>
                     <residual>0</residual>
-                    <label_id>0</label_id>
+                    <label_id>4</label_id>
                 </marker>
             </markers>
             <properties>
@@ -36,8 +36,8 @@
                 </property>
                 <property>
                     <name>Color</name>
-                    <value>8430591</value>
-                    <defaultValue>8430591</defaultValue>
+                    <value>16711902</value>
+                    <defaultValue>16711902</defaultValue>
                 </property>
                 <property>
                     <name>DisplayLabel</name>
@@ -52,27 +52,35 @@
                 <property>
                     <name>UserData</name>
                     <value>999</value>
-                    <defaultValue>1031</defaultValue>
+                    <defaultValue>999</defaultValue>
+                </property>
+                <property>
+                    <name>MinimumMarkerCount</name>
+                    <value>4</value>
+                </property>
+                <property>
+                    <name>AcquisitionFrames</name>
+                    <value>1</value>
                 </property>
                 <property>
                     <name>MarkerLocation0</name>
-                    <value>-0.0552202,0.0433454,0.185137</value>
-                    <defaultValue>-0.0552202,0.0433454,0.185137</defaultValue>
+                    <value>-0.044367,0.0422587,0.186498</value>
+                    <defaultValue>-0.044367,0.0422587,0.186498</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation1</name>
-                    <value>-0.0556433,0.0918542,0.154668</value>
-                    <defaultValue>-0.0556433,0.0918542,0.154668</defaultValue>
+                    <value>-0.0155007,0.0708072,0.174209</value>
+                    <defaultValue>-0.0155007,0.0708072,0.174209</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation2</name>
-                    <value>-0.015409,0.115531,0.149585</value>
-                    <defaultValue>-0.015409,0.115531,0.149585</defaultValue>
+                    <value>-0.00663344,0.114679,0.148769</value>
+                    <defaultValue>-0.00663344,0.114679,0.148769</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation3</name>
-                    <value>-0.0256618,0.0720331,0.174834</value>
-                    <defaultValue>-0.0256618,0.0720331,0.174834</defaultValue>
+                    <value>-0.046563,0.0910843,0.156241</value>
+                    <defaultValue>-0.046563,0.0910843,0.156241</defaultValue>
                 </property>
             </properties>
             <MarkerNames ReorderMarkers="true">
@@ -87,10 +95,10 @@
             </MarkerNames>
             <MarkerColors>
                 <!--The "name" tag in this section corresponds with the "name" values in <MarkerNames>.-->
-                <Marker name="Marker1" color="255 163 128" movable="false"/>
-                <Marker name="Marker1" color="255 163 128" movable="false"/>
-                <Marker name="Marker1" color="255 163 128" movable="false"/>
-                <Marker name="Marker1" color="255 163 128" movable="false"/>
+                <Marker name="Marker1" color="222 0 255" movable="false"/>
+                <Marker name="Marker2" color="222 0 255" movable="false"/>
+                <Marker name="Marker3" color="222 0 255" movable="false"/>
+                <Marker name="Marker4" color="222 0 255" movable="false"/>
                 <!--If nothing appears in this section it is because you need to update or generate colors. You can do this in the asset's context menu.-->
                 <!--The movable="false" tag currently is not functioning.-->
             </MarkerColors>

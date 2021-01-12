@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Profile version="1">
     <NodeAssets>
-        <rigid_body version="1.1" id="e802f8c2857050ba:f5768f52352c11eb">
+        <rigid_body version="1.1" id="e802f8c2857051ba:85abee433a1011eb">
             <markers>
                 <marker id="0:0">
-                    <position>-0.13515,0.0222843,0.172556</position>
+                    <position>0.0337041,0.0369744,0.208635</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>0</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.0969808,0.037396,0.182059</position>
+                    <position>0.0427789,0.06341,0.18815</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>0</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.107849,0.0726644,0.148525</position>
+                    <position>0.00419782,0.0717516,0.188773</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>0</label_id>
                 </marker>
                 <marker id="0:0">
-                    <position>-0.0775176,0.0643876,0.172234</position>
+                    <position>-0.00194567,0.0216362,0.224932</position>
                     <size>0</size>
                     <residual>0</residual>
                     <label_id>0</label_id>
@@ -36,8 +36,8 @@
                 </property>
                 <property>
                     <name>Color</name>
-                    <value>16771840</value>
-                    <defaultValue>16771840</defaultValue>
+                    <value>8430591</value>
+                    <defaultValue>8430591</defaultValue>
                 </property>
                 <property>
                     <name>DisplayLabel</name>
@@ -52,27 +52,27 @@
                 <property>
                     <name>UserData</name>
                     <value>999</value>
-                    <defaultValue>998</defaultValue>
+                    <defaultValue>999</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation0</name>
-                    <value>-0.13515,0.0222843,0.172556</value>
-                    <defaultValue>-0.13515,0.0222843,0.172556</defaultValue>
+                    <value>0.0337041,0.0369744,0.208635</value>
+                    <defaultValue>0.0337041,0.0369744,0.208635</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation1</name>
-                    <value>-0.0969808,0.037396,0.182059</value>
-                    <defaultValue>-0.0969808,0.037396,0.182059</defaultValue>
+                    <value>0.0427789,0.06341,0.18815</value>
+                    <defaultValue>0.0427789,0.06341,0.18815</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation2</name>
-                    <value>-0.107849,0.0726644,0.148525</value>
-                    <defaultValue>-0.107849,0.0726644,0.148525</defaultValue>
+                    <value>0.00419782,0.0717516,0.188773</value>
+                    <defaultValue>0.00419782,0.0717516,0.188773</defaultValue>
                 </property>
                 <property>
                     <name>MarkerLocation3</name>
-                    <value>-0.0775176,0.0643876,0.172234</value>
-                    <defaultValue>-0.0775176,0.0643876,0.172234</defaultValue>
+                    <value>-0.00194567,0.0216362,0.224932</value>
+                    <defaultValue>-0.00194567,0.0216362,0.224932</defaultValue>
                 </property>
             </properties>
             <MarkerNames ReorderMarkers="true">
@@ -87,10 +87,10 @@
             </MarkerNames>
             <MarkerColors>
                 <!--The "name" tag in this section corresponds with the "name" values in <MarkerNames>.-->
-                <Marker name="Marker1" color="0 235 255" movable="false"/>
-                <Marker name="Marker1" color="0 235 255" movable="false"/>
-                <Marker name="Marker1" color="0 235 255" movable="false"/>
-                <Marker name="Marker1" color="0 235 255" movable="false"/>
+                <Marker name="Marker1" color="255 163 128" movable="false"/>
+                <Marker name="Marker1" color="255 163 128" movable="false"/>
+                <Marker name="Marker1" color="255 163 128" movable="false"/>
+                <Marker name="Marker1" color="255 163 128" movable="false"/>
                 <!--If nothing appears in this section it is because you need to update or generate colors. You can do this in the asset's context menu.-->
                 <!--The movable="false" tag currently is not functioning.-->
             </MarkerColors>

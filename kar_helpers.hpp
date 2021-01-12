@@ -1419,11 +1419,11 @@ bool CalibrteCamLocalFrame(const vector<glm::fvec2>& points_2d, const vector<glm
 		//cout << "PnP reprojection error : " << err_proj << " pixels, # of point pairs L " << points_buf_2d.size() << endl;
 	}
 
-	const float err_criterion = 3.f;
+	const float err_criterion = 7.f;
 	Mat inliers_ids;
-	if ((pair_pts.size() > 20 && err_proj > err_criterion)
-		|| (pair_pts.size() > 50 && err_proj > 2.f)
-		|| (pair_pts.size() > 100 && err_proj > 1.f))
+	if ((pair_pts.size() > 20 && err_proj > 5.f)
+		|| (pair_pts.size() > 50 && err_proj > 3.f)
+		|| (pair_pts.size() > 100 && err_proj > 2.f))
 	{
 		float confidence = 0.9f;
 		if (pair_pts.size() >= 100) confidence = 0.8f;

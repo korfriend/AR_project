@@ -347,7 +347,7 @@ namespace var_settings
 	void InitializeVarSettings(int _scenario, bool is_stereo_stg, const std::string& marker_rb_name)
 	{
 		g_info.scenario = scenario = _scenario;
-		g_info.stg_display_num = is_stereo_stg ? 2 : 1;
+		g_info.stg_display_num = 1;// is_stereo_stg ? 2 : 1;
 
 		g_info.otrk_data.marker_rb_name = marker_rb_name;
 
@@ -451,8 +451,8 @@ namespace var_settings
 		cout << "cam0 frame rate setting ==> " << optitrk::SetCameraFrameRate(0, 120) << endl;
 		cout << "cam1 frame rate setting ==> " << optitrk::SetCameraFrameRate(1, 120) << endl;
 
-		optitrk::SetCameraSettings(0, 4, 20, 40);
-		optitrk::SetCameraSettings(1, 4, 20, 40);
+		optitrk::SetCameraSettings(0, 4, 50, 100);
+		optitrk::SetCameraSettings(1, 4, 50, 100);
 
 		g_info.eye_w = eye_w;
 		g_info.eye_h = eye_h;
@@ -2332,7 +2332,7 @@ namespace var_settings
 
 				zoom_cam_params.fov_y = 3.141592654f / 4.f;
 				zoom_cam_params.aspect_ratio = (float)g_info.zn_w / (float)g_info.zn_h;
-				cout << g_info.zn_w << ", " << g_info.zn_h << endl;
+				//cout << g_info.zn_w << ", " << g_info.zn_h << endl;
 				zoom_cam_params.projection_mode = 2;
 				zoom_cam_params.w = g_info.zn_w;
 				zoom_cam_params.h = g_info.zn_h;
@@ -2468,7 +2468,7 @@ namespace var_settings
 
 						glm::fvec3 guide_probe_closest_point = g_info.guide_probe_closest_point;
 
-						float maxDistance = 100;
+						float maxDistance = 99;
 						float currentDistance = glm::length(guide_probe_closest_point - pos_guide_line) * 1000;
 						if (currentDistance >= maxDistance) { currentDistance = maxDistance; }
 
@@ -2659,7 +2659,7 @@ namespace var_settings
 			cv::waitKey(100);
 			cv::moveWindow(g_info.window_name_ws_view, g_info.rs_w + 5, 0);
 			cv::waitKey(100);
-			cv::moveWindow(g_info.window_name_ms_view, g_info.rs_w + 5, g_info.rs_h + 5);
+			cv::moveWindow(g_info.window_name_ms_view, g_info.rs_w + g_info.ws_w + 10, 0);
 			cv::waitKey(100);
 
 			const int display1_w = 1680 + 2;// 1920;
@@ -2678,7 +2678,7 @@ namespace var_settings
 			cv::waitKey(10);
 			cv::resizeWindow(g_info.window_name_ws_view, cv::Size(g_info.ws_w, g_info.ws_h));
 			cv::waitKey(10);
-			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(g_info.ms_w, g_info.ms_h));
+			cv::resizeWindow(g_info.window_name_ms_view, cv::Size(g_info.ws_w, g_info.ws_h));
 			cv::waitKey(10);
 		}
 	}
